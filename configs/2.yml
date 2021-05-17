@@ -1,7 +1,7 @@
 experiment_name: 'contrastive_InfoNCE_hard'
 
 num_epochs: 1000
-batch_size: 512
+batch_size: 2
 prefetch_graphs: False
 log_iterations: 30
 patience: 25
