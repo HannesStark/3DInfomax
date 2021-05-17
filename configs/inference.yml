@@ -1,0 +1,2 @@
+checkpoints_list:
+  - runs/PNA_LeakyRelu_02-04_09-17-35/last_checkpoint.pt

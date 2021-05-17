@@ -1,0 +1,22 @@
+experiment_name: ''
+
+num_epochs: 1000
+batch_size: 96
+log_iterations: 30
+patience: 80
+targets:
+  - homo
+
+optimizer_params:
+  lr: 1.0e-4
+  #weight_decay: 1.0e-16
+
+# Model parameters
+model_type: 'MPNN3D'
+model_parameters:
+  target_dim: 1
+  hidden_dim: 128
+  n_layers: 5
+
+# continue training from checkpoint:
+checkpoint: runs/MPNN3D__30-03_08-47-06/last_checkpoint.pt

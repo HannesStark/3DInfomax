@@ -1,0 +1,131 @@
+experiment_name: 'standard_local_global_infomax'
+
+num_epochs: 1000
+batch_size: 128
+prefetch_graphs: False
+log_iterations: 30
+patience: 80
+loss_func: NTXentLocalGlobal
+num_train: 50000
+features:
+  - 'implicit-valence'
+  - 'degree'
+  - 'hybridization'
+  - 'chirality'
+  - 'mass'
+  - 'electronegativity'
+  - 'aromatic-bond'
+  - 'formal-charge'
+  - 'radical-electron'
+  - 'in-ring'
+  - 'atomic-number'
+features3d:
+  - 'implicit-valence'
+  - 'degree'
+  - 'hybridization'
+  - 'chirality'
+  - 'mass'
+  - 'electronegativity'
+  - 'aromatic-bond'
+  - 'formal-charge'
+  - 'radical-electron'
+  - 'in-ring'
+  - 'atomic-number'
+e_features:
+  - 'bond-type-onehot'
+  - 'stereo'
+  - 'conjugated'
+  - 'in-ring-edges'
+e_features3d:
+  - 'bond-type-onehot'
+  - 'stereo'
+  - 'conjugated'
+  - 'in-ring-edges'
+required_data:
+  - mol_graph
+  - mol_graph3d
+metrics:
+  - positive_similarity
+  - negative_similarity
+  - f1_contrastive
+  - contrastive_accuracy
+  - true_negative_rate
+  - true_positive_rate
+main_metric: loss
+collate_function: contrastive_collate
+
+optimizer: Adam
+optimizer_params:
+  lr: 5.0e-5
+  weight_decay: 6.0e-10
+
+
+lr_scheduler: ReduceLROnPlateau
+scheduler_step_per_batch: False
+lr_scheduler_params:
+  factor: 0.5
+  patience: 25
+  min_lr: 5.0e-5
+  mode: 'min'
+  verbose: True
+
+
+# Model parameters
+model_type: 'PNALocal'
+model_parameters:
+  target_dim: 256
+  hidden_dim: 90
+  mid_batch_norm: True
+  last_batch_norm: True
+  readout_batchnorm: False
+  dropout: 0.0
+  propagation_depth: 6
+  aggregators:
+    - mean
+    - max
+    - min
+    - std
+  scalers:
+    - identity
+    - amplification
+    - attenuation
+  readout_aggregators:
+    - sum
+    - min
+    - max
+    - mean
+  pretrans_layers: 2
+  posttrans_layers: 1
+  residual: True
+
+# Model parameters
+model3d_type: 'PNA'
+model3d_parameters:
+  target_dim: 256
+  hidden_dim: 90
+  mid_batch_norm: True
+  last_batch_norm: True
+  readout_batchnorm: False
+  dropout: 0.0
+  propagation_depth: 6
+  aggregators:
+    - mean
+    - max
+    - min
+    - std
+  scalers:
+    - identity
+    - amplification
+    - attenuation
+  readout_aggregators:
+    - sum
+    - min
+    - max
+    - mean
+  pretrans_layers: 2
+  posttrans_layers: 1
+  residual: True
+
+
+# continue training from checkpoint:
+#checkpoint: runs/PNAReadout_2_layer_03-04_15-29-07/last_checkpoint.pt

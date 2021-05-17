@@ -1,0 +1,64 @@
+experiment_name: 'reproduce'
+
+num_epochs: 100
+batch_size: 8
+prefetch_graphs: True
+log_iterations: 4
+patience: 50
+num_train: 100000
+loss_func: L1Loss
+targets:
+  - homo
+features:
+  - 'implicit-valence'
+  - 'degree'
+  - 'hybridization'
+  - 'chirality'
+  - 'mass'
+  - 'electronegativity'
+  - 'aromatic-bond'
+  - 'formal-charge'
+  - 'radical-electron'
+  - 'in-ring'
+  - 'atomic-number'
+e_features:
+  - 'bond-type-onehot'
+  - 'stereo'
+  - 'conjugated'
+  - 'in-ring-edges'
+required_data:
+  - se3Transformer_graph
+  - targets
+metrics:
+  - mae_denormalized
+  - pearsonr
+  - rsquared
+  - qm9_properties
+#  - cosine
+#  - contrastive_cosine
+
+optimizer: Adam
+optimizer_params:
+  lr: 1.0e-3
+
+lr_scheduler: CosineAnnealingWarmRestarts
+scheduler_step_per_batch: False
+lr_scheduler_params:
+  T_0: 100 # batchsize * epochs
+  eta_min: 1.0e-4
+
+# Model parameters
+model_type: 'SE3Transformer'
+model_parameters:
+  target_dim: 1
+  num_layers: 7
+  num_channels: 32
+  num_nlayers: 1
+  num_degrees: 4
+  div: 2
+  pooling: max
+  n_heads: 8
+
+
+# continue training from checkpoint:
+#checkpoint: runs/PNAReadout_2_layer_03-04_15-29-07/last_checkpoint.pt
