@@ -63,7 +63,7 @@ model_parameters:
   mid_batch_norm: True
   last_batch_norm: True
   readout_batchnorm: True
-  readout_hidden_dim: 256
+  readout_hidden_dim: 90
   readout_layers: 2
   dropout: 0.0
   propagation_depth: 6

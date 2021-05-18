@@ -23,6 +23,8 @@ class PNALocal(nn.Module):
                  aggregators: List[str],
                  scalers: List[str],
                  readout_batchnorm: bool = True,
+                 readout_hidden_dim=None,
+                 readout_layers: int = 2,
                  residual: bool = True,
                  pairwise_distances: bool = False,
                  activation: Union[Callable, str] = "relu",
@@ -52,9 +54,10 @@ class PNALocal(nn.Module):
                           pretrans_layers=pretrans_layers
                           )
 
-        self.projection_head = MLP(in_dim=hidden_dim, hidden_size=hidden_dim,
-                                mid_batch_norm=readout_batchnorm, out_dim=target_dim,
-                                layers=2)
+
+        self.projection_head = MLP(in_dim=hidden_dim, hidden_size=readout_hidden_dim,
+                          mid_batch_norm=readout_batchnorm, out_dim=target_dim,
+                          layers=readout_layers)
 
 
     def forward(self, graph: dgl.DGLGraph):
