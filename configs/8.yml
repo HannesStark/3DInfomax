@@ -1,6 +1,6 @@
-experiment_name: 'tune_BYOL'
+experiment_name: 'tune_256_cosine_decay'
 
-pretrain_checkpoint: runs/BYOLwrapper__14-05_10-27-05/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_contrastive_SNAPSHOT_NTXent_without_sum_aggregation_cosine_decay_15-05_06-58-57/best_checkpoint.pt
 transfer_layers:
   - gnn
 
@@ -48,7 +48,7 @@ optimizer_params:
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: 700
+  warmup_steps: 1500
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
   factor: 0.5

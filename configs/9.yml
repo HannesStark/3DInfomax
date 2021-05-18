@@ -1,6 +1,6 @@
-experiment_name: 'tune_256_hidden_readout_dim_with_first_layer'
+experiment_name: 'tune_256_cosine_decay_with_first_layer_snapshot'
 
-pretrain_checkpoint: runs/PNA_contrastive_NTXent_without_sum_aggregation_256hidden_readout_dim_12-05_16-20-17/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_contrastive_SNAPSHOT_NTXent_without_sum_aggregation_cosine_decay_15-05_06-58-57/best_checkpoint.pt
 transfer_layers:
   - gnn
   - output.fully_connected.0
@@ -49,7 +49,7 @@ optimizer_params:
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: 700
+  warmup_steps: 1500
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
   factor: 0.5

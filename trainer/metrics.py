@@ -3,12 +3,10 @@ from pytorch_lightning.metrics.utils import reduce
 from torch import Tensor
 from torch.nn import functional as F
 import torch.nn as nn
-import operator as op
-
+import numpy as np
 
 from pytorch_lightning.metrics import F1
 from datasets.qm9_dataset import QM9Dataset
-
 
 
 class QM9SingleTargetDenormalizedL1(nn.Module):
@@ -109,7 +107,7 @@ class TruePositiveRate(nn.Module):
         x2_abs = x2.norm(dim=1)
         sim_matrix = sim_matrix / torch.einsum('i,j->ij', x1_abs, x2_abs)
 
-        preds = sim_matrix > self.threshold
+        preds: Tensor = (sim_matrix + 1) /2> self.threshold
         if pos_mask == None:  # if we are comparing global with global
             pos_mask = torch.eye(batch_size, device=x1.device)
 
@@ -117,6 +115,7 @@ class TruePositiveRate(nn.Module):
         true_positives = num_positives - ((preds.long() - pos_mask) * pos_mask).count_nonzero()
 
         return true_positives / num_positives
+
 
 class TrueNegativeRate(nn.Module):
     def __init__(self, threshold=0.5) -> None:
@@ -131,7 +130,7 @@ class TrueNegativeRate(nn.Module):
         x2_abs = x2.norm(dim=1)
         sim_matrix = sim_matrix / torch.einsum('i,j->ij', x1_abs, x2_abs)
 
-        preds: Tensor = sim_matrix > self.threshold
+        preds: Tensor = (sim_matrix + 1) /2> self.threshold
         if pos_mask == None:  # if we are comparing global with global
             pos_mask = torch.eye(batch_size, device=x1.device)
         neg_mask = 1 - pos_mask
@@ -140,6 +139,7 @@ class TrueNegativeRate(nn.Module):
         true_negatives = num_negatives - (((~preds).long() - neg_mask) * neg_mask).count_nonzero()
 
         return true_negatives / num_negatives
+
 
 class ContrastiveAccuracy(nn.Module):
     def __init__(self, threshold=0.5) -> None:
@@ -154,7 +154,7 @@ class ContrastiveAccuracy(nn.Module):
         x2_abs = x2.norm(dim=1)
         sim_matrix = sim_matrix / torch.einsum('i,j->ij', x1_abs, x2_abs)
 
-        preds: Tensor = sim_matrix > self.threshold
+        preds: Tensor = (sim_matrix + 1) /2> self.threshold
         if pos_mask == None:  # if we are comparing global with global
             pos_mask = torch.eye(batch_size, device=x1.device)
         neg_mask = 1 - pos_mask
@@ -178,13 +178,12 @@ class F1Contrastive(nn.Module):
         x1_abs = x1.norm(dim=1)
         x2_abs = x2.norm(dim=1)
         sim_matrix = sim_matrix / torch.einsum('i,j->ij', x1_abs, x2_abs)
-
-        preds = sim_matrix.view(-1)
+        preds = (sim_matrix.view(-1) + 1) /2
         if pos_mask != None:  # if we are comparing local with global
             targets = pos_mask.view(-1)
         else:  # if we are comparing global with global
             targets = torch.eye(batch_size, device=x1.device).view(-1)
-        return self.f1(preds, targets)
+        return self.f1(preds, targets.long())
 
 
 class PositiveSimilarity(nn.Module):
@@ -206,6 +205,7 @@ class PositiveSimilarity(nn.Module):
             pos_sim = (pos_mask * sim_matrix).sum(dim=1)
         else:  # if we are comparing global with global
             pos_sim = F.cosine_similarity(x1, x2)
+        pos_sim = (pos_sim + 1) /2
         return pos_sim.mean(dim=0)
 
 
@@ -226,6 +226,7 @@ class NegativeSimilarity(nn.Module):
         else:  # if we are comparing global with global
             pos_sim = sim_matrix[range(batch_size), range(batch_size)]
         neg_sim = (sim_matrix.sum(dim=1) - pos_sim) / (batch_size - 1)
+        neg_sim = (neg_sim + 1) /2
         return neg_sim.mean(dim=0)
 
 
@@ -313,4 +314,3 @@ def spearmanr(
     target_rank = torch.argsort(target, dim=0).float()
     spearman = pearsonr(pred_rank, target_rank, reduction=reduction)
     return spearman
-

@@ -14,7 +14,6 @@ from trainer.lr_schedulers import WarmUpWrapper  # do not remove
 
 from torch.optim.lr_scheduler import *  # For loading optimizer specified in config
 
-
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from datetime import datetime
@@ -36,10 +35,7 @@ class Trainer():
         self.main_metric = type(self.loss_func).__name__ if main_metric == 'loss' else main_metric
         self.main_metric_goal = main_metric_goal
         self.scheduler_step_per_batch = scheduler_step_per_batch
-        self.warmup_steps = 0
         if self.args.lr_scheduler:  # Needs "from torch.optim.lr_scheduler import *" to work
-            if self.args.lr_scheduler == 'WarmUpWrapper':
-                self.warmup_steps = self.args.lr_scheduler_params['warmup_steps']
             self.lr_scheduler = globals()[args.lr_scheduler](self.optim, **args.lr_scheduler_params)
         else:
             self.lr_scheduler = None
@@ -150,8 +146,8 @@ class Trainer():
                 self.after_optim_step()  # overwrite to do stuff before zeroing out grads
                 self.optim.zero_grad()
                 self.optim_steps += 1
-                if self.lr_scheduler != None and (
-                        self.scheduler_step_per_batch or self.warmup_steps > self.optim_steps):
+                if self.lr_scheduler != None and (self.scheduler_step_per_batch or (isinstance(self.lr_scheduler,
+                                                                                               WarmUpWrapper) and self.lr_scheduler.warmup_steps > self.lr_scheduler._step)):  # step per batch if that is what we want to do or if we are using a warmup schedule and are still in the warmup period
                     self.lr_scheduler.step()
 
             with torch.no_grad():

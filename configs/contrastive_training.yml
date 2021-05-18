@@ -1,10 +1,10 @@
-experiment_name: 'contrastive_NTXent_without_sum_aggregation'
+experiment_name: 'contrastive_NTXent_without_sum_aggregation_cosine_decay'
 
 num_epochs: 1000
 batch_size: 512
 prefetch_graphs: True
 log_iterations: 30
-patience: 25
+patience: 35
 loss_func: NTXent
 num_train: 50000
 features:
@@ -41,8 +41,8 @@ collate_function: contrastive_collate
 
 optimizer: Adam
 optimizer_params:
-  lr: 8.0e-5
-  weight_decay: 6.0e-8
+  lr: 2.0e-4
+  weight_decay: 6.0e-7
 
 
 scheduler_step_per_batch: False
@@ -50,12 +50,8 @@ lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
   warmup_steps: 700
   # parameters of scheduler to run after warmup
-  wrapped_scheduler: ReduceLROnPlateau
-  factor: 0.6
-  patience: 15
-  min_lr: 5.0e-6
-  mode: 'min'
-  verbose: True
+  wrapped_scheduler: CosineAnnealingLR
+  T_max: 1000
 
 
 
@@ -67,6 +63,7 @@ model_parameters:
   mid_batch_norm: True
   last_batch_norm: True
   readout_batchnorm: True
+  readout_hidden_dim: 256
   readout_layers: 2
   dropout: 0.0
   propagation_depth: 6

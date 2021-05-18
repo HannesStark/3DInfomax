@@ -1,17 +1,11 @@
-experiment_name: 'contrastive_InfoNCE_hard'
+experiment_name: 'contrastive_NTXent_lowest_dist_eigvec'
 
 num_epochs: 1000
-batch_size: 2
-prefetch_graphs: False
+batch_size: 512
+prefetch_graphs: True
 log_iterations: 30
-patience: 25
-loss_func: InfoNCEHard
-loss_params:
-  norm: False
-  tau: 0.5
-  tau_plus: 0.1
-  beta: 0.5
-
+patience: 35
+loss_func: NTXent
 num_train: 50000
 features:
   - 'implicit-valence'
@@ -26,7 +20,7 @@ features:
   - 'in-ring'
   - 'atomic-number'
 features3d:
-  - 'constant_ones'
+  - 'lowest'
 e_features:
   - 'bond-type-onehot'
   - 'stereo'
@@ -47,18 +41,18 @@ collate_function: contrastive_collate
 
 optimizer: Adam
 optimizer_params:
-  lr: 5.0e-5
-  weight_decay: 6.0e-8
+  lr: 2.0e-4
+  weight_decay: 6.0e-7
 
 
-lr_scheduler: ReduceLROnPlateau
 scheduler_step_per_batch: False
+lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  factor: 0.6
-  patience: 25
-  min_lr: 5.0e-5
-  mode: 'min'
-  verbose: True
+  warmup_steps: 700
+  # parameters of scheduler to run after warmup
+  wrapped_scheduler: CosineAnnealingLR
+  T_max: 1000
+
 
 
 # Model parameters
@@ -69,6 +63,7 @@ model_parameters:
   mid_batch_norm: True
   last_batch_norm: True
   readout_batchnorm: True
+  readout_hidden_dim: 256
   readout_layers: 2
   dropout: 0.0
   propagation_depth: 6

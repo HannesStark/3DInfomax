@@ -1,14 +1,12 @@
-experiment_name: 'baseline_with_many_fourier_features'
+experiment_name: 'contrastive_NTXent_ConstantNumberAtomsChunks'
 
 num_epochs: 1000
-batch_size: 128
+batch_size: 512
 prefetch_graphs: True
 log_iterations: 30
-patience: 50
-loss_func: L1Loss
+patience: 35
+loss_func: NTXent
 num_train: 50000
-targets:
-  - homo
 features:
   - 'implicit-valence'
   - 'degree'
@@ -21,62 +19,53 @@ features:
   - 'radical-electron'
   - 'in-ring'
   - 'atomic-number'
-  - 'lowest'
-  - 'highest'
-  - 'lowest_abs'
-  - 'second_lowest_abs'
-  - 'third_lowest_abs'
-  - 'mean'
-  - 'sum'
-  - 'max'
-  - 'min'
-  - 'std'
-  - 'mean_abs'
-  - 'sum_abs'
-  - 'max_abs'
-  - 'min_abs'
-  - 'std_abs'
+features3d:
+  - 'constant_ones'
 e_features:
   - 'bond-type-onehot'
   - 'stereo'
   - 'conjugated'
   - 'in-ring-edges'
-
-
 required_data:
   - mol_graph
-  - targets
+  - complete_graph3d
 metrics:
-  - mae_denormalized
-  - pearsonr
-  - rsquared
-  - qm9_properties
+  - positive_similarity
+  - negative_similarity
+  - f1_contrastive
+  - contrastive_accuracy
+  - true_negative_rate
+  - true_positive_rate
+main_metric: loss
+collate_function: contrastive_collate
+train_sampler: ConstantNumberAtomsChunks
 
 optimizer: Adam
 optimizer_params:
-  lr: 1.0e-4
+  lr: 2.0e-4
+  weight_decay: 6.0e-7
+
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
   warmup_steps: 700
   # parameters of scheduler to run after warmup
-  wrapped_scheduler: ReduceLROnPlateau
-  factor: 0.5
-  patience: 30
-  min_lr: 5.0e-5
-  mode: 'min'
-  verbose: True
+  wrapped_scheduler: CosineAnnealingLR
+  T_max: 1000
 
 
 
 # Model parameters
 model_type: 'PNA'
 model_parameters:
-  target_dim: 1
+  target_dim: 256
   hidden_dim: 90
   mid_batch_norm: True
   last_batch_norm: True
+  readout_batchnorm: True
+  readout_hidden_dim: 256
+  readout_layers: 2
   dropout: 0.0
   propagation_depth: 6
   aggregators:
@@ -89,13 +78,27 @@ model_parameters:
     - amplification
     - attenuation
   readout_aggregators:
-    - sum
     - min
     - max
     - mean
   pretrans_layers: 2
   posttrans_layers: 1
   residual: True
+
+# Model parameters
+model3d_type: 'EGNN'
+model3d_parameters:
+  target_dim: 256
+  hidden_dim: 128
+  propagation_depth: 7
+  dropout: 0.0
+  readout_batchnorm: True
+  readout_layers: 2
+  readout_aggregators:
+    - min
+    - max
+    - mean
+  batch_norm: True
 
 
 # continue training from checkpoint:

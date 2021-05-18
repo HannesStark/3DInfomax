@@ -1,8 +1,8 @@
 experiment_name: 'contrastive_NTXent_without_sum_aggregation'
 
 num_epochs: 1000
-batch_size: 512
-prefetch_graphs: True
+batch_size: 4
+prefetch_graphs: False
 log_iterations: 30
 patience: 25
 loss_func: NTXent

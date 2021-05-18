@@ -68,7 +68,6 @@ def train(args):
         checkpoint = torch.load(args.pretrain_checkpoint, map_location=device)
         # get all the weights that have something from 'args.transfer_layers' in their keys name
         # but only if they do not contain 'teacher' and remove 'student.' which we need for loading from BYOLWrapper
-        ic(checkpoint['model_state_dict'].keys())
         pretrained_gnn_dict = {k.replace('student.', ''): v for k, v in checkpoint['model_state_dict'].items() if any(
             transfer_layer in k for transfer_layer in args.transfer_layers) and 'teacher' not in k}
         model_state_dict = model.state_dict()
@@ -150,7 +149,7 @@ def train(args):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/byol.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/6.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
