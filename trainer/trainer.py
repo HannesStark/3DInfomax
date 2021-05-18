@@ -8,7 +8,11 @@ import pyaml
 import torch
 import numpy as np
 from torch.utils.tensorboard.summary import hparams
+from models import *  # do not remove
+from trainer.byol_wrapper import BYOLwrapper
+from trainer.lr_schedulers import WarmUpWrapper  # do not remove
 
+from torch.optim.lr_scheduler import *  # For loading optimizer specified in config
 
 
 from torch.utils.data import DataLoader
@@ -36,7 +40,6 @@ class Trainer():
         if self.args.lr_scheduler:  # Needs "from torch.optim.lr_scheduler import *" to work
             if self.args.lr_scheduler == 'WarmUpWrapper':
                 self.warmup_steps = self.args.lr_scheduler_params['warmup_steps']
-                ic(self.warmup_steps)
             self.lr_scheduler = globals()[args.lr_scheduler](self.optim, **args.lr_scheduler_params)
         else:
             self.lr_scheduler = None

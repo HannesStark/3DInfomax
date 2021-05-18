@@ -5,6 +5,7 @@ import torch
 
 from torch import nn
 
+from models import * # do not reomve
 from models.base_layers import MLP
 
 

@@ -20,7 +20,7 @@ features:
   - 'in-ring'
   - 'atomic-number'
 features3d:
-  - 'constant_ones'
+  - 'lowest'
 e_features:
   - 'bond-type-onehot'
   - 'stereo'
@@ -59,7 +59,7 @@ ssl_mode: 'byol'
 model_type: 'BYOLwrapper'
 model_parameters:
   predictor_layers: 1
-  predictor_hidden_size: 4096
+  predictor_hidden_size: 256
   predictor_batchnorm: False
   metric_dim: 256
   ma_decay: 0.998 #moving average decay

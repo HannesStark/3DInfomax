@@ -4,6 +4,7 @@ from icecream import install
 
 from commons.utils import seed_all, get_random_indices
 from trainer.byol_trainer import BYOLTrainer
+from trainer.byol_wrapper import BYOLwrapper
 
 install()
 
@@ -11,10 +12,17 @@ from trainer.self_supervised_trainer import SelfSupervisedTrainer
 
 import torch
 import yaml
+from datasets.custom_collate import * # do not remove
 from models import * # do not remove
+from torch.nn import * # do not remove
+from torch.optim import *
+from commons.contrastive_loss import * # do not remove
+from torch.optim.lr_scheduler import *
+from datasets.samplers import * # do not remove
 
 from datasets.qm9_dataset import QM9Dataset
 from torch.utils.data import DataLoader, Subset
+
 
 from trainer.metrics import QM9DenormalizedL1, QM9DenormalizedL2, pearsonr, \
     QM9SingleTargetDenormalizedL1, Rsquared, NegativeSimilarity, MeanPredictorLoss, \
@@ -142,7 +150,7 @@ def train(args):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/pna.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/byol.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')

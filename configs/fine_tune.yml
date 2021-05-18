@@ -1,6 +1,6 @@
 experiment_name: 'tune_BYOL'
 
-pretrain_checkpoint: runs/BYOLwrapper__15-05_20-30-17/best_checkpoint.pt
+pretrain_checkpoint: runs/BYOLwrapper__17-05_20-38-29/best_checkpoint.pt
 transfer_layers:
   - gnn
 
@@ -48,7 +48,7 @@ optimizer_params:
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: 700
+  warmup_steps: 1500
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
   factor: 0.5
