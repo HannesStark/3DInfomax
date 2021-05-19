@@ -1,9 +1,8 @@
-experiment_name: 'tune_256_cosine_decay_with_first_layer_snapshot'
+experiment_name: 'tune_ConstantNumberAtomsChunks_Snapshot'
 
-pretrain_checkpoint: runs/PNA_contrastive_SNAPSHOT_NTXent_without_sum_aggregation_cosine_decay_15-05_06-58-57/best_checkpoint.pt
+pretrain_checkpoint: runs/.snapshot/PNA_contrastive_NTXent_ConstantNumberAtomsChunks_18-05_10-27-35/best_checkpoint.pt
 transfer_layers:
   - gnn
-  - output.fully_connected.0
 
 num_epochs: 1000
 batch_size: 128
@@ -67,9 +66,6 @@ model_parameters:
   hidden_dim: 90
   mid_batch_norm: True
   last_batch_norm: True
-  readout_batchnorm: True
-  readout_hidden_dim: 256
-  readout_layers: 2
   dropout: 0.0
   propagation_depth: 6
   aggregators:
@@ -83,6 +79,7 @@ model_parameters:
     - attenuation
   readout_aggregators:
     - sum
+    - min
     - max
     - mean
   pretrans_layers: 2

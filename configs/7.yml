@@ -1,6 +1,6 @@
-experiment_name: 'tune_BYOL'
+experiment_name: 'tune_lowest_dist_eigvec_Snapshot'
 
-pretrain_checkpoint: runs/PNA_contrastive_SNAPSHOT_NTXent_without_sum_aggregation_cosine_decay_15-05_06-58-57/best_checkpoint.pt
+pretrain_checkpoint: runs/.snapshot/PNA_contrastive_NTXent_lowest_dist_eigvec_18-05_10-27-37/best_checkpoint.pt
 transfer_layers:
   - gnn
 
