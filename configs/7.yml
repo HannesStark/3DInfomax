@@ -1,6 +1,6 @@
-experiment_name: 'tune_lowest_dist_eigvec_Snapshot'
+experiment_name: 'tune_ConstantNumberAtomsCategorical'
 
-pretrain_checkpoint: runs/.snapshot/PNA_contrastive_NTXent_lowest_dist_eigvec_18-05_10-27-37/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_contrastive_NTXent_ConstantNumberAtomsCategorical_18-05_10-27-35/best_checkpoint.pt
 transfer_layers:
   - gnn
 

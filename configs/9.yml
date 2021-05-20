@@ -1,6 +1,6 @@
-experiment_name: 'tune_ConstantNumberAtomsChunks_Snapshot'
+experiment_name: 'tune_NTXent_global_global'
 
-pretrain_checkpoint: runs/.snapshot/PNA_contrastive_NTXent_ConstantNumberAtomsChunks_18-05_10-27-35/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_contrastive_NTXent_without_sum_aggregation_19-05_14-41-45/best_checkpoint.pt
 transfer_layers:
   - gnn
 

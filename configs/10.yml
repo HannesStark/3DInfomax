@@ -1,6 +1,6 @@
-experiment_name: 'tune_ConstantNumberAtomsCategorical_Snapshot'
+experiment_name: 'tune_loca_global_Snapshot'
 
-pretrain_checkpoint: runs/.snapshot/PNA_contrastive_NTXent_ConstantNumberAtomsCategorical_18-05_10-27-40/best_checkpoint.pt
+pretrain_checkpoint: runs/.snapshot/PNALocal_contrastive_NTXent_local_global_new_hparams_18-05_10-12-26/best_checkpoint.pt
 transfer_layers:
   - gnn
 

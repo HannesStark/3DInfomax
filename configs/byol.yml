@@ -41,16 +41,23 @@ collate_function: contrastive_collate
 
 optimizer: Adam
 optimizer_params:
-  lr: 0.001
-  weight_decay: 1.0e-8
+  lr: 1.0e-4
+  weight_decay: 6.0e-8
+
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: 1700
+  warmup_steps: 700
   # parameters of scheduler to run after warmup
-  wrapped_scheduler: CosineAnnealingLR
-  T_max: 200
+  wrapped_scheduler: ReduceLROnPlateau
+  cooldown: 20
+  factor: 0.6
+  patience: 25
+  min_lr: 1.0e-6
+  threshold: 1.0e-5
+  mode: 'min'
+  verbose: True
 
 
 # self supervision mode either byol or contrastive
@@ -59,14 +66,14 @@ ssl_mode: 'byol'
 model_type: 'BYOLwrapper'
 model_parameters:
   predictor_layers: 1
-  predictor_hidden_size: 256
+  predictor_hidden_size: 90
   predictor_batchnorm: False
   metric_dim: 256
   ma_decay: 0.998 #moving average decay
 
   model_type: 'PNA'
   model_parameters:
-    target_dim: 256
+    target_dim: 90
     hidden_dim: 90
     mid_batch_norm: True
     last_batch_norm: True
@@ -95,19 +102,19 @@ model_parameters:
 model3d_type: 'BYOLwrapper'
 model3d_parameters:
   predictor_layers: 1
-  predictor_hidden_size: 256
+  predictor_hidden_size: 90
   predictor_batchnorm: True
   metric_dim: 256
   ma_decay: 0.998 #moving average decay
 
   model_type: 'EGNN'
   model_parameters:
-    target_dim: 256
+    target_dim: 90
     hidden_dim: 128
     propagation_depth: 7
     dropout: 0.0
     readout_batchnorm: True
-    readout_layers: 2
+    readout_layers: 1
     readout_aggregators:
       - min
       - max

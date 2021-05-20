@@ -38,8 +38,6 @@ metrics:
   - rsquared
   - qm9_properties
   - mean_predictor_loss
-#  - cosine
-#  - contrastive_cosine
 
 optimizer: Adam
 optimizer_params:

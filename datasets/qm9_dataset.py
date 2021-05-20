@@ -424,8 +424,8 @@ class QM9Dataset(Dataset):
         atom_float = {'implicit-valence': [], 'degree': [], 'hybridization': [], 'chirality': [], 'mass': [],
                       'electronegativity': [], 'aromatic-bond': [], 'formal-charge': [], 'radical-electron': [],
                       'in-ring': []}
-        inv_distance_eigvectors = {'inv_lowest': [], 'inv_highest': [], 'inv_lowest_abs': [], 'inv_second_lowest_abs': [], 'inv_third_lowest_abs': [], 'inv_mean': [], 'inv_sum': [], 'inv_max': [], 'inv_min': [], 'inv_std': [], 'inv_mean_abs': [], 'inv_sum_abs': [], 'inv_max_abs': [], 'inv_min_abs': [], 'inv_std_abs': []}
-        distance_eigvectors = {'lowest': [], 'highest': [], 'lowest_abs': [], 'second_lowest_abs': [],'third_lowest_abs': [], 'mean': [], 'sum': [], 'max': [], 'min': [], 'std': [],'mean_abs': [], 'sum_abs': [], 'max_abs': [], 'min_abs': [], 'std_abs': []}
+        inv_distance_eigvectors = {'inv_vec1': [], 'inv_vec2': [], 'inv_vec3': [], 'inv_vec-1': [], 'inv_vec-2': [], 'inv_vec-3': []}
+        distance_eigvectors = {'vec1': [], 'vec2': [], 'vec3': [], 'vec-1': [], 'vec-2': [], 'vec-3': []}
         positional_encodings = []
         edge_indices = []  # edges of each molecule in coo format
         targets = []  # the 19 properties that should be predicted for the QM9 dataset
@@ -455,37 +455,19 @@ class QM9Dataset(Dataset):
             dist_matrix = torch.cdist(mol_coordinates, mol_coordinates)
             inv_dist_matrix = 1 / (torch.eye(dist_matrix.shape[0]) + dist_matrix) - torch.eye(dist_matrix.shape[0])
             e, v = torch.symeig(inv_dist_matrix, eigenvectors=True)
-            inv_distance_eigvectors['inv_lowest'].append(v[0][:, None])
-            inv_distance_eigvectors['inv_highest'].append(v[-1][:, None])
-            inv_distance_eigvectors['inv_lowest_abs'].append(v[torch.argmin(e.abs())][:, None])
-            inv_distance_eigvectors['inv_second_lowest_abs'].append(v[torch.kthvalue(e.abs(),2)[1]][:, None])
-            inv_distance_eigvectors['inv_third_lowest_abs'].append(v[torch.kthvalue(e.abs(),3)[1]][:, None])
-            inv_distance_eigvectors['inv_mean'].append(v.mean(dim=0)[:, None])
-            inv_distance_eigvectors['inv_sum'].append(v.sum(dim=0)[:, None])
-            inv_distance_eigvectors['inv_max'].append(v.max(dim=0)[0][:, None])
-            inv_distance_eigvectors['inv_min'].append(v.min(dim=0)[0][:, None])
-            inv_distance_eigvectors['inv_std'].append(v.std(dim=0)[:, None])
-            inv_distance_eigvectors['inv_mean_abs'].append(v.abs().mean(dim=0)[:, None])
-            inv_distance_eigvectors['inv_sum_abs'].append(v.abs().sum(dim=0)[:, None])
-            inv_distance_eigvectors['inv_max_abs'].append(v.abs().max(dim=0)[0][:, None])
-            inv_distance_eigvectors['inv_min_abs'].append(v.abs().min(dim=0)[0][:, None])
-            inv_distance_eigvectors['inv_std_abs'].append(v.abs().std(dim=0)[:, None])
+            inv_distance_eigvectors['inv_vec1'].append(v[1][:,None])
+            inv_distance_eigvectors['inv_vec2'].append(v[2][:,None])
+            inv_distance_eigvectors['inv_vec3'].append(v[3][:,None])
+            inv_distance_eigvectors['inv_vec-1'].append(v[-1][:,None])
+            inv_distance_eigvectors['inv_vec-2'].append(v[-2][:,None])
+            inv_distance_eigvectors['inv_vec-3'].append(v[-3][:,None])
             e, v = torch.symeig(dist_matrix, eigenvectors=True)
-            distance_eigvectors['lowest'].append(v[0][:, None])
-            distance_eigvectors['highest'].append(v[-1][:, None])
-            distance_eigvectors['lowest_abs'].append(v[torch.argmin(e.abs())][:, None])
-            distance_eigvectors['second_lowest_abs'].append(v[torch.kthvalue(e.abs(), 2)[1]][:, None])
-            distance_eigvectors['third_lowest_abs'].append(v[torch.kthvalue(e.abs(), 3)[1]][:, None])
-            distance_eigvectors['mean'].append(v.mean(dim=0)[:, None])
-            distance_eigvectors['sum'].append(v.sum(dim=0)[:, None])
-            distance_eigvectors['max'].append(v.max(dim=0)[0][:, None])
-            distance_eigvectors['min'].append(v.min(dim=0)[0][:, None])
-            distance_eigvectors['std'].append(v.std(dim=0)[:, None])
-            distance_eigvectors['mean_abs'].append(v.abs().mean(dim=0)[:, None])
-            distance_eigvectors['sum_abs'].append(v.abs().sum(dim=0)[:, None])
-            distance_eigvectors['max_abs'].append(v.abs().max(dim=0)[0][:, None])
-            distance_eigvectors['min_abs'].append(v.abs().min(dim=0)[0][:, None])
-            distance_eigvectors['std_abs'].append(v.abs().std(dim=0)[:, None])
+            distance_eigvectors['vec1'].append(v[1][:, None])
+            distance_eigvectors['vec2'].append(v[2][:, None])
+            distance_eigvectors['vec3'].append(v[3][:, None])
+            distance_eigvectors['vec-1'].append(v[-1][:, None])
+            distance_eigvectors['vec-2'].append(v[-2][:, None])
+            distance_eigvectors['vec-3'].append(v[-3][:, None])
 
             type_idx = []
             for atom in mol.GetAtoms():

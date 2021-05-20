@@ -1,12 +1,16 @@
-experiment_name: 'baseline_pretrans_1'
+experiment_name: 'tune_loca_global'
+
+pretrain_checkpoint: runs/PNALocal_contrastive_NTXent_local_global_new_hparams_18-05_10-12-26/best_checkpoint.pt
+transfer_layers:
+  - gnn
 
 num_epochs: 1000
 batch_size: 128
 prefetch_graphs: True
 log_iterations: 30
 patience: 50
-num_train: 50000
 loss_func: L1Loss
+num_train: 50000
 targets:
   - homo
 features:
@@ -26,7 +30,7 @@ e_features:
   - 'stereo'
   - 'conjugated'
   - 'in-ring-edges'
-pos_dir: True
+
 
 required_data:
   - mol_graph
@@ -36,7 +40,6 @@ metrics:
   - pearsonr
   - rsquared
   - qm9_properties
-  - mean_predictor_loss
 
 optimizer: Adam
 optimizer_params:
@@ -45,17 +48,19 @@ optimizer_params:
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: 700
+  warmup_steps: 1500
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
   factor: 0.5
-  patience: 30
+  patience: 25
   min_lr: 5.0e-5
   mode: 'min'
   verbose: True
 
+
+
 # Model parameters
-model_type: 'DGN'
+model_type: 'PNA'
 model_parameters:
   target_dim: 1
   hidden_dim: 90
@@ -66,8 +71,8 @@ model_parameters:
   aggregators:
     - mean
     - max
-    - dir1/dx_abs
-    - dir1/smooth
+    - min
+    - std
   scalers:
     - identity
     - amplification
@@ -77,7 +82,7 @@ model_parameters:
     - min
     - max
     - mean
-  pretrans_layers: 1
+  pretrans_layers: 2
   posttrans_layers: 1
   residual: True
 
