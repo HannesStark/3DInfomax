@@ -118,11 +118,10 @@ class QM9Dataset(Dataset):
         which is the stuff that is commonly predicted by papers like DimeNet, Equivariant GNNs, Spherical message passing
         The returned targets will be in the order specified by this list
     features:
-        possible features are ['implicit-valence','degree','hybridization','chirality','mass','electronegativity','aromatic-bond','formal-charge','radical-electron','in-ring','atomic-number', 'pos-enc', 'lowest', 'highest', 'lowest_abs', 'second_lowest_abs','third_lowest_abs', 'mean', 'sum', 'max', 'min', 'std', 'mean_abs', 'sum_abs', 'max_abs', 'min_abs', 'std_abs']
-        the fourier features of the inverse distance matrix are 'lowest', 'highest', 'lowest_abs', 'second_lowest_abs', 'third_lowest_abs', 'mean', 'sum', 'max', 'min', 'std', 'mean_abs', 'sum_abs', 'max_abs', 'min_abs', 'std_abs'
+        possible features are ['implicit-valence','degree','hybridization','chirality','mass','electronegativity','aromatic-bond','formal-charge','radical-electron','in-ring','atomic-number', 'pos-enc', 'vec1', 'vec2', 'vec3', 'vec-1', 'vec-2', 'vec-3', 'inv_vec1', 'inv_vec2', 'inv_vec3', 'inv_vec-1', 'inv_vec-2', 'inv_vec-3']
 
     features3d:
-        possible features are ['implicit-valence','degree','hybridization','chirality','mass','electronegativity','aromatic-bond','formal-charge','radical-electron','in-ring','atomic-number', 'pos-enc', 'lowest', 'highest', 'lowest_abs', 'second_lowest_abs','third_lowest_abs', 'mean', 'sum', 'max', 'min', 'std', 'mean_abs', 'sum_abs', 'max_abs', 'min_abs', 'std_abs']
+        possible features are ['implicit-valence','degree','hybridization','chirality','mass','electronegativity','aromatic-bond','formal-charge','radical-electron','in-ring','atomic-number', 'pos-enc', 'vec1', 'vec2', 'vec3', 'vec-1', 'vec-2', 'vec-3', 'inv_vec1', 'inv_vec2', 'inv_vec3', 'inv_vec-1', 'inv_vec-2', 'inv_vec-3']
     e_features:
         possible are ['bond-type-onehot','stereo','conjugated','in-ring-edges']
     others: list
@@ -424,8 +423,8 @@ class QM9Dataset(Dataset):
         atom_float = {'implicit-valence': [], 'degree': [], 'hybridization': [], 'chirality': [], 'mass': [],
                       'electronegativity': [], 'aromatic-bond': [], 'formal-charge': [], 'radical-electron': [],
                       'in-ring': []}
-        inv_distance_eigvectors = {'inv_vec1': [], 'inv_vec2': [], 'inv_vec3': [], 'inv_vec-1': [], 'inv_vec-2': [], 'inv_vec-3': []}
-        distance_eigvectors = {'vec1': [], 'vec2': [], 'vec3': [], 'vec-1': [], 'vec-2': [], 'vec-3': []}
+        inv_distance_eigvectors = {'inv_vec1': [], 'inv_vec2': [], 'inv_vec-1': [], 'inv_vec-2': [], 'inv_vec-3': []}
+        distance_eigvectors = {'vec1': [], 'vec2': [], 'vec-1': [], 'vec-2': [], 'vec-3': []}
         positional_encodings = []
         edge_indices = []  # edges of each molecule in coo format
         targets = []  # the 19 properties that should be predicted for the QM9 dataset
@@ -455,16 +454,14 @@ class QM9Dataset(Dataset):
             dist_matrix = torch.cdist(mol_coordinates, mol_coordinates)
             inv_dist_matrix = 1 / (torch.eye(dist_matrix.shape[0]) + dist_matrix) - torch.eye(dist_matrix.shape[0])
             e, v = torch.symeig(inv_dist_matrix, eigenvectors=True)
-            inv_distance_eigvectors['inv_vec1'].append(v[1][:,None])
-            inv_distance_eigvectors['inv_vec2'].append(v[2][:,None])
-            inv_distance_eigvectors['inv_vec3'].append(v[3][:,None])
+            inv_distance_eigvectors['inv_vec1'].append(v[1].abs()[:,None])
+            inv_distance_eigvectors['inv_vec2'].append(v[2].abs()[:,None])
             inv_distance_eigvectors['inv_vec-1'].append(v[-1][:,None])
             inv_distance_eigvectors['inv_vec-2'].append(v[-2][:,None])
             inv_distance_eigvectors['inv_vec-3'].append(v[-3][:,None])
             e, v = torch.symeig(dist_matrix, eigenvectors=True)
-            distance_eigvectors['vec1'].append(v[1][:, None])
-            distance_eigvectors['vec2'].append(v[2][:, None])
-            distance_eigvectors['vec3'].append(v[3][:, None])
+            distance_eigvectors['vec1'].append(v[1].abs()[:, None])
+            distance_eigvectors['vec2'].append(v[2].abs()[:, None])
             distance_eigvectors['vec-1'].append(v[-1][:, None])
             distance_eigvectors['vec-2'].append(v[-2][:, None])
             distance_eigvectors['vec-3'].append(v[-3][:, None])

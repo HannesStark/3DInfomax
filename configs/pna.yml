@@ -1,4 +1,4 @@
-experiment_name: 'baseline_seed1'
+experiment_name: 'baseline_eigvecs'
 
 num_epochs: 1000
 batch_size: 128

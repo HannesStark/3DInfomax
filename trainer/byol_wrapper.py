@@ -18,7 +18,7 @@ class BYOLwrapper(nn.Module):
                  model_type,
                  model_parameters,
                  predictor_layers=1,
-                 predictor_hidden_size=4096,
+                 predictor_hidden_size=256,
                  predictor_batchnorm = False,
                  metric_dim=256,
                  ma_decay=0.99, #moving average decay

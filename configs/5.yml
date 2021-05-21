@@ -1,7 +1,7 @@
 experiment_name: ''
 
 num_epochs: 1000
-batch_size: 240
+batch_size: 256
 prefetch_graphs: True
 log_iterations: 20
 patience: 20
@@ -20,7 +20,7 @@ features:
   - 'in-ring'
   - 'atomic-number'
 features3d:
-  - 'lowest'
+  - 'constant_ones'
 e_features:
   - 'bond-type-onehot'
   - 'stereo'
@@ -68,7 +68,7 @@ model_parameters:
   predictor_layers: 1
   predictor_hidden_size: 90
   predictor_batchnorm: False
-  metric_dim: 256
+  metric_dim: 90
   ma_decay: 0.998 #moving average decay
 
   model_type: 'PNA'
@@ -104,7 +104,7 @@ model3d_parameters:
   predictor_layers: 1
   predictor_hidden_size: 90
   predictor_batchnorm: True
-  metric_dim: 256
+  metric_dim: 90
   ma_decay: 0.998 #moving average decay
 
   model_type: 'EGNN'
