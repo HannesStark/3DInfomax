@@ -48,7 +48,7 @@ scheduler_step_per_batch: False
 lr_scheduler_params:
   factor: 0.6
   patience: 25
-  min_lr: 5.0e-5
+  min_lr: 5.0e-6
   mode: 'min'
   verbose: True
 
