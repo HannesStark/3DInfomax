@@ -1,2 +1,2 @@
 # continue training from checkpoint:
-checkpoint: runs/contrastive_NTXent_drop_10_3d_nodes2/last_checkpoint.pt
+checkpoint: runs/PNA_contrastive_NTXent_drop_10_3d_nodes2_21-05_10-09-06/last_checkpoint.pt
