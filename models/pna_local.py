@@ -53,8 +53,8 @@ class PNALocal(nn.Module):
                           posttrans_layers=posttrans_layers,
                           pretrans_layers=pretrans_layers
                           )
-
-
+        if readout_hidden_dim == None:
+            readout_hidden_dim = hidden_dim
         self.projection_head = MLP(in_dim=hidden_dim, hidden_size=readout_hidden_dim,
                           mid_batch_norm=readout_batchnorm, out_dim=target_dim,
                           layers=readout_layers)

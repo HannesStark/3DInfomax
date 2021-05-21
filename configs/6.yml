@@ -1,18 +1,12 @@
-experiment_name: 'tune_local_global_Snapshot'
-
-pretrain_checkpoint: runs/.snapshot/PNALocal_contrastive_NTXent_local_global_new_hparams_18-05_10-12-26/best_checkpoint.pt
-transfer_layers:
-  - gnn
+experiment_name: '256_metric_dim'
 
 num_epochs: 1000
-batch_size: 128
+batch_size: 256
 prefetch_graphs: True
-log_iterations: 30
-patience: 50
-loss_func: L1Loss
+log_iterations: 20
+patience: 20
+loss_func: CosineSimilarityLoss
 num_train: 50000
-targets:
-  - homo
 features:
   - 'implicit-valence'
   - 'degree'
@@ -25,66 +19,107 @@ features:
   - 'radical-electron'
   - 'in-ring'
   - 'atomic-number'
+features3d:
+  - 'constant_ones'
 e_features:
   - 'bond-type-onehot'
   - 'stereo'
   - 'conjugated'
   - 'in-ring-edges'
-
-
 required_data:
   - mol_graph
-  - targets
+  - complete_graph3d
 metrics:
-  - mae_denormalized
-  - pearsonr
-  - rsquared
-  - qm9_properties
+  - positive_similarity
+  - negative_similarity
+  - f1_contrastive
+  - contrastive_accuracy
+  - true_negative_rate
+  - true_positive_rate
+main_metric: loss
+collate_function: contrastive_collate
 
 optimizer: Adam
 optimizer_params:
   lr: 1.0e-4
+  weight_decay: 6.0e-8
+
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: 1500
+  warmup_steps: 700
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
-  factor: 0.5
+  cooldown: 20
+  factor: 0.6
   patience: 25
-  min_lr: 5.0e-5
+  min_lr: 1.0e-6
+  threshold: 1.0e-5
   mode: 'min'
   verbose: True
 
 
+# self supervision mode either byol or contrastive
+ssl_mode: 'byol'
+# Model parameters
+model_type: 'BYOLwrapper'
+model_parameters:
+  predictor_layers: 1
+  predictor_hidden_size: 90
+  predictor_batchnorm: True
+  metric_dim: 256
+  ma_decay: 0.998 #moving average decay
+
+  model_type: 'PNA'
+  model_parameters:
+    target_dim: 256
+    hidden_dim: 90
+    mid_batch_norm: True
+    last_batch_norm: True
+    readout_batchnorm: True
+    readout_layers: 1
+    dropout: 0.0
+    propagation_depth: 6
+    aggregators:
+      - mean
+      - max
+      - min
+      - std
+    scalers:
+      - identity
+      - amplification
+      - attenuation
+    readout_aggregators:
+      - min
+      - max
+      - mean
+    pretrans_layers: 2
+    posttrans_layers: 1
+    residual: True
 
 # Model parameters
-model_type: 'PNA'
-model_parameters:
-  target_dim: 1
-  hidden_dim: 90
-  mid_batch_norm: True
-  last_batch_norm: True
-  dropout: 0.0
-  propagation_depth: 6
-  aggregators:
-    - mean
-    - max
-    - min
-    - std
-  scalers:
-    - identity
-    - amplification
-    - attenuation
-  readout_aggregators:
-    - sum
-    - min
-    - max
-    - mean
-  pretrans_layers: 2
-  posttrans_layers: 1
-  residual: True
+model3d_type: 'BYOLwrapper'
+model3d_parameters:
+  predictor_layers: 1
+  predictor_hidden_size: 90
+  predictor_batchnorm: True
+  metric_dim: 256
+  ma_decay: 0.998 #moving average decay
+
+  model_type: 'EGNN'
+  model_parameters:
+    target_dim: 256
+    hidden_dim: 128
+    propagation_depth: 7
+    dropout: 0.0
+    readout_batchnorm: True
+    readout_layers: 1
+    readout_aggregators:
+      - min
+      - max
+      - mean
+    batch_norm: True
 
 
 # continue training from checkpoint:
