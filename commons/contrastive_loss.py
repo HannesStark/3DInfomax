@@ -9,25 +9,25 @@ import numpy as np
 import torch.nn.functional as F
 
 
-class IBLoss(_Loss):
-    def __init__(self, scale_loss=0.5, lambd=0.5) -> None:
+class BTLoss(_Loss):
+    def __init__(self, scale_loss=1/32, lambd=3.9e-3) -> None:
         "Loss funtion from the Barlow twins paper from yann lecun"
-        super(IBLoss, self).__init__()
+        super(BTLoss, self).__init__()
         self.scale_loss = scale_loss
         self.lambd = lambd
 
     def forward(self, z1: torch.Tensor, z2: torch.Tensor, **kwargs) -> Tensor:
-        batchsize, metric_dim = z1.size
-        z1_norm = (z1 - z1.mean(dim=0)) / z1.std(dim=0) # [batchsize, metric_dim]
-        z2_norm = (z2 - z2.mean(dim=0)) / z2.std(dim=0) # [batchsize, metric_dim]
-        corr_matrix = (z1_norm.T @ z2_norm) / batchsize # [metric_dim, metric_dim]
+        batch_size, metric_dim = z1.size()
+        z1_norm = (z1 - z1.mean(dim=0)) / z1.std(dim=0)  # [batch_size, metric_dim]
+        z2_norm = (z2 - z2.mean(dim=0)) / z2.std(dim=0)  # [batch_size, metric_dim]
+        corr_matrix = (z1_norm.T @ z2_norm) / batch_size  # [metric_dim, metric_dim]
 
-        off_diagonal = corr_matrix.flatten()[:-1].view(metric_dim - 1, metric_dim + 1)[:, 1:].flatten()
+        on_diag = torch.diagonal(corr_matrix).add_(-1).pow(2).sum().mul(self.scale_loss)
 
-        on_diag = torch.diagonal(corr_matrix).add_(-1).pow_(2).sum().mul(self.scale_loss)
-        off_diag = off_diagonal.pow_(2).sum().mul(self.scale_loss)
+        off_diag = corr_matrix.flatten()[:-1].view(metric_dim - 1, metric_dim + 1)[:, 1:].flatten()
+        off_diag = off_diag.pow(2).sum().mul(self.scale_loss)
+
         loss = on_diag + self.lambd * off_diag
-
         return loss
 
 
@@ -66,7 +66,7 @@ class NTXent(_Loss):
             sim_matrix = sim_matrix / torch.einsum('i,j->ij', z1_abs, z2_abs)
 
         sim_matrix = torch.exp(sim_matrix / self.tau)
-        pos_sim = sim_matrix[range(batch_size), range(batch_size)]
+        pos_sim = torch.diagonal(sim_matrix)
         loss = pos_sim / (sim_matrix.sum(dim=1) - pos_sim)
         loss = - torch.log(loss).mean()
         return loss
