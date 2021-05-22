@@ -1,6 +1,6 @@
 # Self-Supervised Graph Representation Learning
 
-Contains contrastive learning methods, different contrastive losses, local-global methods but also stuff like "Bootstrap your own Latent".
+Contains contrastive learning methods, different contrastive losses, local-global methods but also stuff like "Bootstrap your own Latent" or "Barlow Twins".
 
 Everything is tested on Molecules and with a focus on learning representations that capture 3D information of the molecules 
 
