@@ -1,12 +1,13 @@
-experiment_name: 'baseline_eigvecs'
+experiment_name: 'all_data'
+
 
 num_epochs: 1000
 batch_size: 128
-prefetch_graphs: False
+prefetch_graphs: True
 log_iterations: 30
 patience: 50
-num_train: 50000
 loss_func: L1Loss
+num_train: 100000
 targets:
   - homo
 features:
@@ -28,7 +29,6 @@ e_features:
   - 'in-ring-edges'
 
 
-
 required_data:
   - mol_graph
   - targets
@@ -37,52 +37,32 @@ metrics:
   - pearsonr
   - rsquared
   - qm9_properties
-  - mean_predictor_loss
 
 optimizer: Adam
 optimizer_params:
   lr: 1.0e-4
 
+lr_scheduler: ReduceLROnPlateau
 scheduler_step_per_batch: False
-lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: 1500
-  # parameters of scheduler to run after warmup
-  wrapped_scheduler: ReduceLROnPlateau
-  factor: 0.5
+  factor: 0.6
   patience: 25
-  min_lr: 5.0e-6
+  min_lr: 5.0e-5
   mode: 'min'
   verbose: True
 
 # Model parameters
-model_type: 'PNA'
+model_type: 'GCN'
 model_parameters:
   target_dim: 1
-  hidden_dim: 90
-  mid_batch_norm: True
-  last_batch_norm: True
-  readout_batchnorm: True
-  readout_hidden_dim: 90
-  readout_layers: 2
-  dropout: 0.0
-  propagation_depth: 6
-  aggregators:
-    - mean
-    - max
-    - min
-    - std
-  scalers:
-    - identity
-    - amplification
-    - attenuation
+  hidden_dim: 500
+  propagation_depth: 5
   readout_aggregators:
+    - mean
     - min
     - max
-    - mean
-  pretrans_layers: 2
-  posttrans_layers: 1
-  residual: True
+    - sum
+
 
 
 # continue training from checkpoint:

@@ -1,11 +1,11 @@
-experiment_name: 'baseline_eigvecs'
+experiment_name: 'all_data'
 
 num_epochs: 1000
 batch_size: 128
-prefetch_graphs: False
+prefetch_graphs: True
 log_iterations: 30
 patience: 50
-num_train: 50000
+num_train: 100000
 loss_func: L1Loss
 targets:
   - homo
@@ -26,7 +26,6 @@ e_features:
   - 'stereo'
   - 'conjugated'
   - 'in-ring-edges'
-
 
 
 required_data:

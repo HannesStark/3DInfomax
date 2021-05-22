@@ -9,6 +9,28 @@ import numpy as np
 import torch.nn.functional as F
 
 
+class IBLoss(_Loss):
+    def __init__(self, scale_loss=0.5, lambd=0.5) -> None:
+        "Loss funtion from the Barlow twins paper from yann lecun"
+        super(IBLoss, self).__init__()
+        self.scale_loss = scale_loss
+        self.lambd = lambd
+
+    def forward(self, z1: torch.Tensor, z2: torch.Tensor, **kwargs) -> Tensor:
+        batchsize, metric_dim = z1.size
+        z1_norm = (z1 - z1.mean(dim=0)) / z1.std(dim=0) # [batchsize, metric_dim]
+        z2_norm = (z2 - z2.mean(dim=0)) / z2.std(dim=0) # [batchsize, metric_dim]
+        corr_matrix = (z1_norm.T @ z2_norm) / batchsize # [metric_dim, metric_dim]
+
+        off_diagonal = corr_matrix.flatten()[:-1].view(metric_dim - 1, metric_dim + 1)[:, 1:].flatten()
+
+        on_diag = torch.diagonal(corr_matrix).add_(-1).pow_(2).sum().mul(self.scale_loss)
+        off_diag = off_diagonal.pow_(2).sum().mul(self.scale_loss)
+        loss = on_diag + self.lambd * off_diag
+
+        return loss
+
+
 class CosineSimilarityLoss(_Loss):
     def __init__(self) -> None:
         super(CosineSimilarityLoss, self).__init__()
@@ -17,7 +39,7 @@ class CosineSimilarityLoss(_Loss):
         # see the "Bootstrap your own latent" paper equation 2 for the loss"
         x = F.normalize(z1, dim=-1, p=2)
         y = F.normalize(z2, dim=-1, p=2)
-        return (((x-y)**2).sum(dim=-1)).mean()
+        return (((x - y) ** 2).sum(dim=-1)).mean()
 
 
 class NTXent(_Loss):

@@ -1,13 +1,12 @@
 experiment_name: 'debug'
 
-seed: 235
 num_epochs: 1000
 batch_size: 4
 prefetch_graphs: False
 log_iterations: 1
-patience: 20
-loss_func: NTXent
-num_train: 1000
+patience: 35
+loss_func: IBLoss
+num_train: 50000
 features:
   - 'implicit-valence'
   - 'degree'
@@ -27,7 +26,6 @@ e_features:
   - 'stereo'
   - 'conjugated'
   - 'in-ring-edges'
-
 required_data:
   - mol_graph
   - complete_graph3d
@@ -40,22 +38,27 @@ metrics:
   - true_positive_rate
 main_metric: loss
 collate_function: contrastive_collate
-train_sampler: ConstantNumberAtomsChunks
 
 optimizer: Adam
 optimizer_params:
-  lr: 5.0e-5
+  lr: 8.0e-5
   weight_decay: 6.0e-8
 
 
-lr_scheduler: ReduceLROnPlateau
 scheduler_step_per_batch: False
+lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
+  warmup_steps: 700
+  # parameters of scheduler to run after warmup
+  wrapped_scheduler: ReduceLROnPlateau
+  cooldown: 20
   factor: 0.6
   patience: 25
-  min_lr: 5.0e-5
+  min_lr: 1.0e-6
+  threshold: 1.0e-4
   mode: 'min'
   verbose: True
+
 
 
 # Model parameters
@@ -66,6 +69,8 @@ model_parameters:
   mid_batch_norm: True
   last_batch_norm: True
   readout_batchnorm: True
+  readout_hidden_dim: 90
+  readout_layers: 2
   dropout: 0.0
   propagation_depth: 6
   aggregators:
@@ -78,7 +83,6 @@ model_parameters:
     - amplification
     - attenuation
   readout_aggregators:
-    - sum
     - min
     - max
     - mean
@@ -94,6 +98,7 @@ model3d_parameters:
   propagation_depth: 7
   dropout: 0.0
   readout_batchnorm: True
+  readout_hidden_dim: 90
   readout_layers: 2
   readout_aggregators:
     - min
