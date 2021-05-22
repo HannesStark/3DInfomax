@@ -1,6 +1,6 @@
-experiment_name: 'tune_drop_BYOL90MetricDIM'
+experiment_name: 'tune_drop10_3d_nodes_snapshot'
 
-pretrain_checkpoint: runs/.contrastive/BYOLwrapper_90_metric_dim_21-05_14-58-55/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_contrastive_NTXent_drop_10_3d_nodes2_21-05_10-09-06/best_checkpoint.pt
 transfer_layers:
   - gnn
 

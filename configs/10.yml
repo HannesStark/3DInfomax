@@ -1,6 +1,6 @@
-experiment_name: 'tune_drop_3d_nodes2'
+experiment_name: 'tune_Tau0.1_Snapshot'
 
-pretrain_checkpoint: runs/.contrastive/PNA_contrastive_NTXent_drop_3d_nodes2_20-05_08-44-44/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_NTXent_0.1Tau_21-05_10-09-06/best_checkpoint.pt
 transfer_layers:
   - gnn
 

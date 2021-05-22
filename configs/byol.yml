@@ -4,7 +4,7 @@ num_epochs: 1000
 batch_size: 240
 prefetch_graphs: True
 log_iterations: 20
-patience: 20
+patience: 200
 loss_func: CosineSimilarityLoss
 num_train: 50000
 features:
@@ -20,7 +20,7 @@ features:
   - 'in-ring'
   - 'atomic-number'
 features3d:
-  - 'lowest'
+  - 'constant_ones'
 e_features:
   - 'bond-type-onehot'
   - 'stereo'
@@ -48,7 +48,7 @@ optimizer_params:
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: 700
+  warmup_steps: 1500
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
   cooldown: 20
@@ -66,14 +66,14 @@ ssl_mode: 'byol'
 model_type: 'BYOLwrapper'
 model_parameters:
   predictor_layers: 1
-  predictor_hidden_size: 90
-  predictor_batchnorm: False
+  predictor_hidden_size: 256
+  predictor_batchnorm: True
   metric_dim: 256
-  ma_decay: 0.998 #moving average decay
+  ma_decay: 0.9995 #moving average decay
 
   model_type: 'PNA'
   model_parameters:
-    target_dim: 90
+    target_dim: 256
     hidden_dim: 90
     mid_batch_norm: True
     last_batch_norm: True
@@ -102,14 +102,14 @@ model_parameters:
 model3d_type: 'BYOLwrapper'
 model3d_parameters:
   predictor_layers: 1
-  predictor_hidden_size: 90
+  predictor_hidden_size: 256
   predictor_batchnorm: True
   metric_dim: 256
-  ma_decay: 0.998 #moving average decay
+  ma_decay: 0.9995 #moving average decay
 
   model_type: 'EGNN'
   model_parameters:
-    target_dim: 90
+    target_dim: 256
     hidden_dim: 128
     propagation_depth: 7
     dropout: 0.0
