@@ -321,7 +321,6 @@ class PNALayer(nn.Module):
             squared_distance = torch.sum((edges.src['x'] - edges.dst['x']) ** 2, dim=-1)[:, None]
             z2 = torch.cat([edges.src['f'], edges.dst['f'], squared_distance], dim=-1)
         elif self.edge_features and not self.pairwise_distances:
-            ic('here')
             z2 = torch.cat([edges.src['f'], edges.dst['f'], edges.data['w']], dim=-1)
         else:
             z2 = torch.cat([edges.src['f'], edges.dst['f']], dim=-1)

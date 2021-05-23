@@ -12,7 +12,7 @@ from models.base_layers import MLP
 
 class EGNN(nn.Module):
     def __init__(self, node_dim, edge_dim, hidden_dim, target_dim, readout_aggregators: List[str], batch_norm=False,
-                 readout_batchnorm=True,
+                 readout_batchnorm=True, reduce_func='sum',
                  dropout=0.0, propagation_depth: int = 4, readout_layers: int = 2, readout_hidden_dim=None,
                  fourier_encodings=0,
                  mid_activation: str = 'SiLU', **kwargs):
@@ -29,10 +29,13 @@ class EGNN(nn.Module):
             dropout=dropout,
             last_activation='None',
         )
+
         self.mp_layers = nn.ModuleList()
+        edge_in_dim = 1 if fourier_encodings == 0 else 2 * fourier_encodings + 1
         for _ in range(propagation_depth):
-            self.mp_layers.append(EGCLayer(node_dim, hidden_dim=hidden_dim, batch_norm=batch_norm, dropout=dropout,
-                                           mid_activation=mid_activation))
+            self.mp_layers.append(
+                EGCLayer(node_dim, edge_dim=edge_in_dim, hidden_dim=hidden_dim, batch_norm=batch_norm, dropout=dropout,
+                         mid_activation=mid_activation, reduce_func=reduce_func))
 
         self.node_wise_output_network = MLP(
             in_dim=hidden_dim,
@@ -54,9 +57,8 @@ class EGNN(nn.Module):
 
     def forward(self, graph: dgl.DGLGraph):
         graph.apply_nodes(self.input_node_func)
-
         if self.fourier_encodings > 0:
-            graph.edata['w'] = fourier_encode_dist(graph.edata['w'], num_encodings=self.fourier_encodings)
+            graph.edata['w'] = fourier_encode_dist(graph.edata['w'], num_encodings=self.fourier_encodings).squeeze()
 
         for mp_layer in self.mp_layers:
             mp_layer(graph)
@@ -78,10 +80,10 @@ class EGNN(nn.Module):
 
 
 class EGCLayer(nn.Module):
-    def __init__(self, node_dim, hidden_dim, batch_norm, dropout, mid_activation):
+    def __init__(self, node_dim, reduce_func, edge_dim, hidden_dim, batch_norm, dropout, mid_activation):
         super(EGCLayer, self).__init__()
         self.message_network = MLP(
-            in_dim=hidden_dim * 2 + 1,
+            in_dim=hidden_dim * 2 + edge_dim,
             hidden_size=hidden_dim,
             out_dim=hidden_dim,
             mid_batch_norm=batch_norm,
@@ -91,7 +93,12 @@ class EGCLayer(nn.Module):
             dropout=dropout,
             last_activation=mid_activation,
         )
-
+        if reduce_func=='sum':
+            self.reduce_func = fn.sum
+        elif reduce_func=='mean':
+            self.reduce_func = fn.mean
+        else:
+            raise ValueError('reduce function not supportet: ', reduce_func)
         self.update_network = MLP(
             in_dim=hidden_dim,
             hidden_size=hidden_dim,
@@ -107,13 +114,12 @@ class EGCLayer(nn.Module):
         self.soft_edge_network = nn.Linear(hidden_dim, 1)
 
     def forward(self, graph):
-        graph.update_all(message_func=self.message_function, reduce_func=fn.sum(msg='m', out='m_sum'),
+        graph.update_all(message_func=self.message_function, reduce_func=self.reduce_func(msg='m', out='m_sum'),
                          apply_node_func=self.update_function)
 
     def message_function(self, edges):
-        squared_distance = edges.data['w'] ** 2
-        message_input = torch.cat(
-            [edges.src['f'], edges.dst['f'], squared_distance], dim=-1)
+        distance_data = edges.data['w']
+        message_input = torch.cat([edges.src['f'], edges.dst['f'], distance_data], dim=-1)
         message = self.message_network(message_input)
         edge_weight = torch.sigmoid(self.soft_edge_network(message))
         return {'m': message * edge_weight}

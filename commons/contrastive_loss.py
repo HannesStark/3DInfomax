@@ -71,6 +71,35 @@ class NTXent(_Loss):
         loss = - torch.log(loss).mean()
         return loss
 
+class InfoNCE(_Loss):
+    '''
+        Normalized Temperature-scaled Cross Entropy Loss from SimCLR paper
+        Args:
+            z1, z2: Tensor of shape [batch_size, z_dim]
+            tau: Float. Usually in (0,1].
+            norm: Boolean. Whether to apply normlization.
+        '''
+
+    def __init__(self, norm: bool = True, tau: float = 0.5) -> None:
+        super(InfoNCE, self).__init__()
+        self.norm = norm
+        self.tau = tau
+
+    def forward(self, z1, z2, **kwargs) -> Tensor:
+        batch_size, _ = z1.size()
+        sim_matrix = torch.einsum('ik,jk->ij', z1, z2)
+
+        if self.norm:
+            z1_abs = z1.norm(dim=1)
+            z2_abs = z2.norm(dim=1)
+            sim_matrix = sim_matrix / torch.einsum('i,j->ij', z1_abs, z2_abs)
+
+        sim_matrix = torch.exp(sim_matrix / self.tau)
+        pos_sim = torch.diagonal(sim_matrix)
+        loss = pos_sim / (sim_matrix.sum(dim=1))
+        loss = - torch.log(loss).mean()
+        return loss
+
 
 class InfoNCEHard(_Loss):
     '''
