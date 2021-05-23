@@ -10,13 +10,12 @@ from commons.utils import fourier_encode_dist
 from models.base_layers import MLP
 
 
-class EGNN(nn.Module):
+class Net3D(nn.Module):
     def __init__(self, node_dim, edge_dim, hidden_dim, target_dim, readout_aggregators: List[str], batch_norm=False,
                  readout_batchnorm=True,
-                 dropout=0.0, propagation_depth: int = 4, readout_layers: int = 2, readout_hidden_dim=None,
-                 fourier_encodings=0,
+                 dropout=0.0, propagation_depth: int = 4, readout_layers: int = 2, readout_hidden_dim=None, fourier_encodings= 0,
                  mid_activation: str = 'SiLU', **kwargs):
-        super(EGNN, self).__init__()
+        super(Net3D, self).__init__()
         self.fourier_encodings = fourier_encodings
         self.input = MLP(
             in_dim=node_dim,

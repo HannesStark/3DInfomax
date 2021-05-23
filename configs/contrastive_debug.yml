@@ -5,7 +5,7 @@ batch_size: 4
 prefetch_graphs: False
 log_iterations: 1
 patience: 35
-loss_func: IBLoss
+loss_func: NTXent
 num_train: 50000
 features:
   - 'implicit-valence'
@@ -91,14 +91,14 @@ model_parameters:
   residual: True
 
 # Model parameters
-model3d_type: 'EGNN'
+model3d_type: 'Net3D'
 model3d_parameters:
   target_dim: 256
   hidden_dim: 128
   propagation_depth: 7
   dropout: 0.0
   readout_batchnorm: True
-  readout_hidden_dim: 90
+  readout_hidden_dim: 128
   readout_layers: 2
   readout_aggregators:
     - min

@@ -96,7 +96,7 @@ model3d_parameters:
   propagation_depth: 7
   dropout: 0.0
   readout_batchnorm: True
-  readout_hidden_dim: 90
+  readout_hidden_dim: 128
   readout_layers: 2
   readout_aggregators:
     - min

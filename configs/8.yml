@@ -1,6 +1,6 @@
-experiment_name: 'tune_local_global'
+experiment_name: 'tune_target_dim500_Snapshot'
 
-pretrain_checkpoint: runs/PNALocal_contrastive_NTXentLocalGlobal_21-05_08-43-01/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_contrastive_NTXent_target_dim500_22-05_08-19-36/best_checkpoint.pt
 transfer_layers:
   - gnn
 
