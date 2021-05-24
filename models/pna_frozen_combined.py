@@ -9,7 +9,7 @@ from torch import nn
 from models.base_layers import MLP
 from models.pna import PNAGNN
 
-class PNAFrozen(nn.Module):
+class PNAFrozenCombined(nn.Module):
     """
     Message Passing Neural Network that does not use 3D information
     """
@@ -38,7 +38,7 @@ class PNAFrozen(nn.Module):
                  posttrans_layers: int = 1,
                  pretrans_layers: int = 1,
                  **kwargs):
-        super(PNAFrozen, self).__init__()
+        super(PNAFrozenCombined, self).__init__()
         # the pretrained GNN
         self.node_gnn = PNAGNN(node_dim=node_dim,
                           edge_dim=edge_dim,

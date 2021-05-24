@@ -1,16 +1,12 @@
-experiment_name: 'tune_tau01'
-
-pretrain_checkpoint: runs/PNA_NTXent_0.1Tau_21-05_10-09-06/best_checkpoint.pt
-transfer_layers:
-  - gnn
+experiment_name: 'baseline'
 
 num_epochs: 1000
 batch_size: 128
 prefetch_graphs: True
 log_iterations: 30
 patience: 50
-loss_func: L1Loss
 num_train: 50000
+loss_func: L1Loss
 targets:
   - homo
 features:
@@ -32,6 +28,7 @@ e_features:
   - 'in-ring-edges'
 
 
+
 required_data:
   - mol_graph
   - targets
@@ -40,6 +37,7 @@ metrics:
   - pearsonr
   - rsquared
   - qm9_properties
+  - mean_predictor_loss
 
 optimizer: Adam
 optimizer_params:
@@ -57,9 +55,8 @@ lr_scheduler_params:
   mode: 'min'
   verbose: True
 
-
 # Model parameters
-model_type: 'PNAFrozen'
+model_type: 'MPNN3D'
 model_parameters:
   target_dim: 1
   hidden_dim: 90
@@ -69,24 +66,10 @@ model_parameters:
   readout_hidden_dim: 90
   readout_layers: 2
   dropout: 0.0
-  propagation_depth: 6
-  aggregators:
-    - mean
-    - max
-    - min
-    - std
-  scalers:
-    - identity
-    - amplification
-    - attenuation
-  readout_aggregators:
-    - min
-    - max
-    - mean
-  pretrans_layers: 2
+  propagation_depth: 5
+  pretrans_layers: 1
   posttrans_layers: 1
   residual: True
-
 
 
 # continue training from checkpoint:

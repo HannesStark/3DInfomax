@@ -263,7 +263,7 @@ class PNALayer(nn.Module):
             mid_batch_norm=mid_batch_norm,
             last_batch_norm=last_batch_norm,
             layers=pretrans_layers,
-            mid_activation='relu',
+            mid_activation=activation,
             dropout=dropout,
             last_activation=last_activation,
             batch_norm_momentum=batch_norm_momentum
@@ -274,7 +274,7 @@ class PNALayer(nn.Module):
             hidden_size=out_dim,
             out_dim=out_dim,
             layers=posttrans_layers,
-            mid_activation=self.activation,
+            mid_activation=activation,
             last_activation=last_activation,
             dropout=dropout,
             mid_batch_norm=mid_batch_norm,

@@ -1,12 +1,13 @@
-experiment_name: 'tune_tau01'
+experiment_name: 'finetune_frozen'
 
-pretrain_checkpoint: runs/PNA_NTXent_0.1Tau_21-05_10-09-06/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_contrastive_NTXent_without_sum_aggregation_256hidden_readout_dim_12-05_16-20-17/best_checkpoint.pt
 transfer_layers:
   - gnn
+  - output.fully_connected.0.linear
 
 num_epochs: 1000
 batch_size: 128
-prefetch_graphs: True
+prefetch_graphs: False
 log_iterations: 30
 patience: 50
 loss_func: L1Loss
@@ -48,26 +49,23 @@ optimizer_params:
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: 1500
+  warmup_steps: 700
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
   factor: 0.5
-  patience: 25
-  min_lr: 5.0e-6
+  patience: 30
+  min_lr: 5.0e-5
   mode: 'min'
   verbose: True
 
-
 # Model parameters
-model_type: 'PNAFrozen'
+model_type: 'PNAFrozenCombined'
 model_parameters:
+  latent3d_dim: 256
   target_dim: 1
   hidden_dim: 90
   mid_batch_norm: True
   last_batch_norm: True
-  readout_batchnorm: True
-  readout_hidden_dim: 90
-  readout_layers: 2
   dropout: 0.0
   propagation_depth: 6
   aggregators:
@@ -80,13 +78,17 @@ model_parameters:
     - amplification
     - attenuation
   readout_aggregators:
+    - sum
     - min
     - max
     - mean
   pretrans_layers: 2
   posttrans_layers: 1
   residual: True
-
+  frozen_readout_aggregators:
+    - min
+    - max
+    - mean
 
 
 # continue training from checkpoint:
