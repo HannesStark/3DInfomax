@@ -16,7 +16,9 @@ class Net3D(nn.Module):
                  readout_batchnorm=True, batch_norm_momentum=0.1, reduce_func='sum',
                  dropout=0.0, propagation_depth: int = 4, readout_layers: int = 2, readout_hidden_dim=None,
                  fourier_encodings=0,
-                 activation: str = 'SiLU', **kwargs):
+                 activation: str = 'SiLU',
+                 update_net_layers=2,
+                 message_net_layers=2, **kwargs):
         super(Net3D, self).__init__()
         self.fourier_encodings = fourier_encodings
         self.input = MLP(
@@ -51,7 +53,8 @@ class Net3D(nn.Module):
                 Net3DLayer(node_dim, edge_dim=hidden_edge_dim, hidden_dim=hidden_dim, batch_norm=batch_norm,
                            batch_norm_momentum=batch_norm_momentum,
                            dropout=dropout,
-                           mid_activation=activation, reduce_func=reduce_func))
+                           mid_activation=activation, reduce_func=reduce_func, message_net_layers=message_net_layers,
+                           update_net_layers=update_net_layers))
 
         self.node_wise_output_network = MLP(
             in_dim=hidden_dim,
@@ -101,7 +104,7 @@ class Net3D(nn.Module):
 
 class Net3DLayer(nn.Module):
     def __init__(self, node_dim, edge_dim, reduce_func, hidden_dim, batch_norm, batch_norm_momentum, dropout,
-                 mid_activation):
+                 mid_activation, message_net_layers, update_net_layers):
         super(Net3DLayer, self).__init__()
         self.message_network = MLP(
             in_dim=hidden_dim * 2 + edge_dim,
@@ -110,7 +113,7 @@ class Net3DLayer(nn.Module):
             mid_batch_norm=batch_norm,
             last_batch_norm=batch_norm,
             batch_norm_momentum=batch_norm_momentum,
-            layers=2,
+            layers=message_net_layers,
             mid_activation=mid_activation,
             dropout=dropout,
             last_activation=mid_activation,
@@ -129,7 +132,7 @@ class Net3DLayer(nn.Module):
             mid_batch_norm=batch_norm,
             last_batch_norm=batch_norm,
             batch_norm_momentum=batch_norm_momentum,
-            layers=2,
+            layers=update_net_layers,
             mid_activation=mid_activation,
             dropout=dropout,
             last_activation='None',

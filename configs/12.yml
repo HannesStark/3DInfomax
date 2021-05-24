@@ -1,4 +1,4 @@
-experiment_name: 'contrastive_NTXent'
+experiment_name: 'contrastive_NTXent_dim40_3DNet'
 
 num_epochs: 1000
 batch_size: 500
@@ -6,6 +6,8 @@ prefetch_graphs: True
 log_iterations: 30
 patience: 35
 loss_func: NTXent
+loss_params:
+  tau: 0.1
 num_train: 50000
 features:
   - 'implicit-valence'
@@ -92,16 +94,21 @@ model_parameters:
   residual: True
 
 # Model parameters
-model3d_type: 'EGNN'
+model3d_type: 'Net3D'
 model3d_parameters:
   target_dim: 256
-  hidden_dim: 128
+  hidden_dim: 40
+  hidden_edge_dim: 40
+  message_net_layers: 1
+  update_net_layers: 1
+  reduce_func: 'mean'
+  fourier_encodings: 4
   propagation_depth: 7
   dropout: 0.0
-  batch_norm_momentum: 0.9
   batch_norm: True
   readout_batchnorm: True
-  readout_hidden_dim: 128
+  batch_norm_momentum: 0.9
+  readout_hidden_dim: 40
   readout_layers: 2
   readout_aggregators:
     - min
