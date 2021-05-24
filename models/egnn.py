@@ -12,7 +12,8 @@ from models.base_layers import MLP
 
 class EGNN(nn.Module):
     def __init__(self, node_dim, edge_dim, hidden_dim, target_dim, readout_aggregators: List[str], batch_norm=False,
-                 readout_batchnorm=True, reduce_func='sum',
+                 readout_batchnorm=True
+                 , batch_norm_momentum=0.1, reduce_func='sum',
                  dropout=0.0, propagation_depth: int = 4, readout_layers: int = 2, readout_hidden_dim=None,
                  fourier_encodings=0,
                  mid_activation: str = 'SiLU', **kwargs):
@@ -24,6 +25,7 @@ class EGNN(nn.Module):
             out_dim=hidden_dim,
             mid_batch_norm=batch_norm,
             last_batch_norm=batch_norm,
+            batch_norm_momentum = batch_norm_momentum,
             layers=1,
             mid_activation=mid_activation,
             dropout=dropout,
@@ -34,7 +36,7 @@ class EGNN(nn.Module):
         edge_in_dim = 1 if fourier_encodings == 0 else 2 * fourier_encodings + 1
         for _ in range(propagation_depth):
             self.mp_layers.append(
-                EGCLayer(node_dim, edge_dim=edge_in_dim, hidden_dim=hidden_dim, batch_norm=batch_norm, dropout=dropout,
+                EGCLayer(node_dim, edge_dim=edge_in_dim, hidden_dim=hidden_dim, batch_norm=batch_norm, batch_norm_momentum = batch_norm_momentum, dropout=dropout,
                          mid_activation=mid_activation, reduce_func=reduce_func))
 
         self.node_wise_output_network = MLP(
@@ -43,6 +45,7 @@ class EGNN(nn.Module):
             out_dim=hidden_dim,
             mid_batch_norm=batch_norm,
             last_batch_norm=batch_norm,
+            batch_norm_momentum=batch_norm_momentum,
             layers=2,
             mid_activation=mid_activation,
             dropout=dropout,
@@ -51,8 +54,11 @@ class EGNN(nn.Module):
         if readout_hidden_dim == None:
             readout_hidden_dim = hidden_dim
         self.readout_aggregators = readout_aggregators
-        self.output = MLP(in_dim=hidden_dim * len(self.readout_aggregators), hidden_size=readout_hidden_dim,
-                          mid_batch_norm=readout_batchnorm, out_dim=target_dim,
+        self.output = MLP(in_dim=hidden_dim * len(self.readout_aggregators),
+                          hidden_size=readout_hidden_dim,
+                          mid_batch_norm=readout_batchnorm,
+                          batch_norm_momentum = batch_norm_momentum,
+                          out_dim=target_dim,
                           layers=readout_layers)
 
     def forward(self, graph: dgl.DGLGraph):
@@ -80,7 +86,7 @@ class EGNN(nn.Module):
 
 
 class EGCLayer(nn.Module):
-    def __init__(self, node_dim, reduce_func, edge_dim, hidden_dim, batch_norm, dropout, mid_activation):
+    def __init__(self, node_dim, reduce_func, edge_dim, hidden_dim, batch_norm, batch_norm_momentum, dropout, mid_activation):
         super(EGCLayer, self).__init__()
         self.message_network = MLP(
             in_dim=hidden_dim * 2 + edge_dim,
@@ -88,6 +94,7 @@ class EGCLayer(nn.Module):
             out_dim=hidden_dim,
             mid_batch_norm=batch_norm,
             last_batch_norm=batch_norm,
+            batch_norm_momentum=batch_norm_momentum,
             layers=2,
             mid_activation=mid_activation,
             dropout=dropout,
@@ -105,6 +112,7 @@ class EGCLayer(nn.Module):
             out_dim=hidden_dim,
             mid_batch_norm=batch_norm,
             last_batch_norm=batch_norm,
+            batch_norm_momentum=batch_norm_momentum,
             layers=2,
             mid_activation=mid_activation,
             dropout=dropout,

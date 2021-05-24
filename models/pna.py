@@ -157,6 +157,7 @@ class PNAGNN(nn.Module):
                  last_activation: Union[Callable, str] = "none",
                  mid_batch_norm: bool = False,
                  last_batch_norm: bool = False,
+                 batch_norm_momentum=0.1,
                  propagation_depth: int = 5,
                  dropout: float = 0.0,
                  posttrans_layers: int = 1,
@@ -173,6 +174,8 @@ class PNAGNN(nn.Module):
             mid_activation='relu',
             dropout=dropout,
             last_activation=last_activation,
+            batch_norm_momentum=batch_norm_momentum
+
         )
         if edge_dim > 0:
             self.edge_input = MLP(
@@ -185,6 +188,7 @@ class PNAGNN(nn.Module):
                 mid_activation='relu',
                 dropout=dropout,
                 last_activation=last_activation,
+                batch_norm_momentum=batch_norm_momentum
             )
         self.mp_layers = nn.ModuleList()
         for _ in range(propagation_depth):
@@ -203,6 +207,7 @@ class PNAGNN(nn.Module):
                                            avg_d={"log": 1.0},
                                            posttrans_layers=posttrans_layers,
                                            pretrans_layers=pretrans_layers,
+                                           batch_norm_momentum=batch_norm_momentum
                                            ),
 
                                   )
@@ -234,6 +239,7 @@ class PNALayer(nn.Module):
                  pairwise_distances: bool = False,
                  mid_batch_norm: bool = False,
                  last_batch_norm: bool = False,
+                 batch_norm_momentum=0.1,
                  avg_d: Dict[str, float] = {"log": 1.0},
                  posttrans_layers: int = 2,
                  pretrans_layers: int = 1, ):
@@ -258,6 +264,8 @@ class PNALayer(nn.Module):
             mid_activation='relu',
             dropout=dropout,
             last_activation=last_activation,
+            batch_norm_momentum=batch_norm_momentum
+
         )
         self.posttrans = MLP(
             in_dim=(len(self.aggregators) * len(self.scalers) + 1) * in_dim,
@@ -269,6 +277,7 @@ class PNALayer(nn.Module):
             dropout=dropout,
             mid_batch_norm=mid_batch_norm,
             last_batch_norm=last_batch_norm,
+            batch_norm_momentum=batch_norm_momentum
         )
 
     def forward(self, g):

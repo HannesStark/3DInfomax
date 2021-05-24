@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
 
-
 SUPPORTED_ACTIVATION_MAP = {'ReLU', 'Sigmoid', 'Tanh', 'ELU', 'SELU', 'GLU', 'LeakyReLU', 'Softplus', 'SiLU', 'None'}
 EPS = 1e-5
+
 
 def get_activation(activation):
     """ returns the activation function represented by the input string """
@@ -67,7 +67,8 @@ class FCLayer(nn.Module):
             Output dimension of the linear layer
     """
 
-    def     __init__(self, in_dim, out_dim, activation='relu', dropout=0., batch_norm=False, bias=True, init_fn=None,
+    def __init__(self, in_dim, out_dim, activation='relu', dropout=0., batch_norm=False, batch_norm_momentum=0.1,
+                 bias=True, init_fn=None,
                  device='cpu'):
         super(FCLayer, self).__init__()
 
@@ -83,7 +84,7 @@ class FCLayer(nn.Module):
         if dropout:
             self.dropout = nn.Dropout(p=dropout)
         if batch_norm:
-            self.batch_norm = nn.BatchNorm1d(out_dim).to(device)
+            self.batch_norm = nn.BatchNorm1d(out_dim, momentum=batch_norm_momentum).to(device)
         self.activation = get_activation(activation)
         self.init_fn = nn.init.xavier_uniform_
 
@@ -121,7 +122,7 @@ class MLP(nn.Module):
     """
 
     def __init__(self, in_dim, hidden_size, out_dim, layers, mid_activation='relu', last_activation='none',
-                 dropout=0., mid_batch_norm=False, last_batch_norm=False, device='cpu'):
+                 dropout=0., mid_batch_norm=False, last_batch_norm=False, batch_norm_momentum=0.1, device='cpu'):
         super(MLP, self).__init__()
 
         self.in_dim = in_dim
@@ -131,15 +132,19 @@ class MLP(nn.Module):
         self.fully_connected = nn.ModuleList()
         if layers <= 1:
             self.fully_connected.append(FCLayer(in_dim, out_dim, activation=last_activation, batch_norm=last_batch_norm,
-                                                device=device, dropout=dropout))
+                                                device=device, dropout=dropout,
+                                                batch_norm_momentum=batch_norm_momentum))
         else:
-            self.fully_connected.append(FCLayer(in_dim, hidden_size, activation=mid_activation, batch_norm=mid_batch_norm,
-                                                device=device, dropout=dropout))
+            self.fully_connected.append(
+                FCLayer(in_dim, hidden_size, activation=mid_activation, batch_norm=mid_batch_norm,
+                        device=device, dropout=dropout, batch_norm_momentum=batch_norm_momentum))
             for _ in range(layers - 2):
                 self.fully_connected.append(FCLayer(hidden_size, hidden_size, activation=mid_activation,
-                                                    batch_norm=mid_batch_norm, device=device, dropout=dropout))
-            self.fully_connected.append(FCLayer(hidden_size, out_dim, activation=last_activation, batch_norm=last_batch_norm,
-                                                device=device, dropout=dropout))
+                                                    batch_norm=mid_batch_norm, device=device, dropout=dropout,
+                                                    batch_norm_momentum=batch_norm_momentum))
+            self.fully_connected.append(
+                FCLayer(hidden_size, out_dim, activation=last_activation, batch_norm=last_batch_norm,
+                        device=device, dropout=dropout, batch_norm_momentum=batch_norm_momentum))
 
     def forward(self, x):
         for fc in self.fully_connected:
@@ -150,4 +155,3 @@ class MLP(nn.Module):
         return self.__class__.__name__ + ' (' \
                + str(self.in_dim) + ' -> ' \
                + str(self.out_dim) + ')'
-

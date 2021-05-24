@@ -11,9 +11,11 @@ from models.base_layers import MLP
 
 
 class Net3D(nn.Module):
-    def __init__(self, node_dim, edge_dim, hidden_edge_dim, hidden_dim, target_dim, readout_aggregators: List[str], batch_norm=False,
-                 readout_batchnorm=True, reduce_func='sum',
-                 dropout=0.0, propagation_depth: int = 4, readout_layers: int = 2, readout_hidden_dim=None, fourier_encodings= 0,
+    def __init__(self, node_dim, edge_dim, hidden_edge_dim, hidden_dim, target_dim, readout_aggregators: List[str],
+                 batch_norm=False,
+                 readout_batchnorm=True, batch_norm_momentum=0.1, reduce_func='sum',
+                 dropout=0.0, propagation_depth: int = 4, readout_layers: int = 2, readout_hidden_dim=None,
+                 fourier_encodings=0,
                  activation: str = 'SiLU', **kwargs):
         super(Net3D, self).__init__()
         self.fourier_encodings = fourier_encodings
@@ -23,6 +25,7 @@ class Net3D(nn.Module):
             out_dim=hidden_dim,
             mid_batch_norm=batch_norm,
             last_batch_norm=batch_norm,
+            batch_norm_momentum=batch_norm_momentum,
             layers=1,
             mid_activation=activation,
             dropout=dropout,
@@ -36,6 +39,7 @@ class Net3D(nn.Module):
             out_dim=hidden_edge_dim,
             mid_batch_norm=batch_norm,
             last_batch_norm=batch_norm,
+            batch_norm_momentum=batch_norm_momentum,
             layers=1,
             mid_activation=activation,
             dropout=dropout,
@@ -43,8 +47,11 @@ class Net3D(nn.Module):
         )
         self.mp_layers = nn.ModuleList()
         for _ in range(propagation_depth):
-            self.mp_layers.append(Net3DLayer(node_dim, edge_dim=hidden_edge_dim, hidden_dim=hidden_dim, batch_norm=batch_norm, dropout=dropout,
-                                           mid_activation=activation, reduce_func=reduce_func))
+            self.mp_layers.append(
+                Net3DLayer(node_dim, edge_dim=hidden_edge_dim, hidden_dim=hidden_dim, batch_norm=batch_norm,
+                           batch_norm_momentum=batch_norm_momentum,
+                           dropout=dropout,
+                           mid_activation=activation, reduce_func=reduce_func))
 
         self.node_wise_output_network = MLP(
             in_dim=hidden_dim,
@@ -52,6 +59,7 @@ class Net3D(nn.Module):
             out_dim=hidden_dim,
             mid_batch_norm=batch_norm,
             last_batch_norm=batch_norm,
+            batch_norm_momentum=batch_norm_momentum,
             layers=2,
             mid_activation=activation,
             dropout=dropout,
@@ -61,9 +69,10 @@ class Net3D(nn.Module):
             readout_hidden_dim = hidden_dim
         self.readout_aggregators = readout_aggregators
         self.output = MLP(in_dim=hidden_dim * len(self.readout_aggregators), hidden_size=readout_hidden_dim,
-                          mid_batch_norm=readout_batchnorm, out_dim=target_dim,
+                          mid_batch_norm=readout_batchnorm,
+                          batch_norm_momentum=batch_norm_momentum,
+                          out_dim=target_dim,
                           layers=readout_layers)
-
 
     def forward(self, graph: dgl.DGLGraph):
         graph.apply_nodes(self.input_node_func)
@@ -91,7 +100,8 @@ class Net3D(nn.Module):
 
 
 class Net3DLayer(nn.Module):
-    def __init__(self, node_dim, edge_dim, reduce_func, hidden_dim, batch_norm, dropout, mid_activation):
+    def __init__(self, node_dim, edge_dim, reduce_func, hidden_dim, batch_norm, batch_norm_momentum, dropout,
+                 mid_activation):
         super(Net3DLayer, self).__init__()
         self.message_network = MLP(
             in_dim=hidden_dim * 2 + edge_dim,
@@ -99,14 +109,15 @@ class Net3DLayer(nn.Module):
             out_dim=hidden_dim,
             mid_batch_norm=batch_norm,
             last_batch_norm=batch_norm,
+            batch_norm_momentum=batch_norm_momentum,
             layers=2,
             mid_activation=mid_activation,
             dropout=dropout,
             last_activation=mid_activation,
         )
-        if reduce_func=='sum':
+        if reduce_func == 'sum':
             self.reduce_func = fn.sum
-        elif reduce_func=='mean':
+        elif reduce_func == 'mean':
             self.reduce_func = fn.mean
         else:
             raise ValueError('reduce function not supportet: ', reduce_func)
@@ -117,6 +128,7 @@ class Net3DLayer(nn.Module):
             out_dim=hidden_dim,
             mid_batch_norm=batch_norm,
             last_batch_norm=batch_norm,
+            batch_norm_momentum=batch_norm_momentum,
             layers=2,
             mid_activation=mid_activation,
             dropout=dropout,
