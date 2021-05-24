@@ -1,4 +1,4 @@
-experiment_name: 'contrastive_NTXent_dim40_3DNet_SGD_Momentum'
+experiment_name: 'NTXent_01Tau_batchnorm_momentum09_SGD'
 
 num_epochs: 1000
 batch_size: 500
@@ -44,6 +44,7 @@ collate_function: contrastive_collate
 optimizer: SGD
 optimizer_params:
   lr: 8.0e-5
+  momentum: 0.95
   weight_decay: 6.0e-8
 
 
@@ -57,7 +58,7 @@ lr_scheduler_params:
   factor: 0.6
   patience: 25
   min_lr: 1.0e-6
-  threshold: 1.0e-4
+  threshold: 1.0e-5
   mode: 'min'
   verbose: True
 
@@ -94,21 +95,16 @@ model_parameters:
   residual: True
 
 # Model parameters
-model3d_type: 'Net3D'
+model3d_type: 'EGNN'
 model3d_parameters:
   target_dim: 256
-  hidden_dim: 40
-  hidden_edge_dim: 40
-  message_net_layers: 1
-  update_net_layers: 1
-  reduce_func: 'mean'
-  fourier_encodings: 4
+  hidden_dim: 128
   propagation_depth: 7
   dropout: 0.0
-  batch_norm: True
   readout_batchnorm: True
+  batch_norm: True
   batch_norm_momentum: 0.9
-  readout_hidden_dim: 40
+  readout_hidden_dim: 90
   readout_layers: 2
   readout_aggregators:
     - min

@@ -71,7 +71,6 @@ class FCLayer(nn.Module):
                  bias=True, init_fn=None,
                  device='cpu'):
         super(FCLayer, self).__init__()
-
         self.__params = locals()
         del self.__params['__class__']
         del self.__params['self']

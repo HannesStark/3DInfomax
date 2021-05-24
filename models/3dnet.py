@@ -20,6 +20,7 @@ class Net3D(nn.Module):
                  update_net_layers=2,
                  message_net_layers=2, **kwargs):
         super(Net3D, self).__init__()
+        ic('3dnet')
         self.fourier_encodings = fourier_encodings
         self.input = MLP(
             in_dim=node_dim,
