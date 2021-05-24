@@ -1,12 +1,12 @@
-experiment_name: 'debug'
+experiment_name: 'all_data'
 
 num_epochs: 1000
-batch_size: 4
-prefetch_graphs: False
+batch_size: 96
+prefetch_graphs: True
 log_iterations: 30
 patience: 50
 num_train: 100000
-loss_func: MSELoss
+loss_func: L1Loss
 targets:
   - homo
 features:
@@ -44,9 +44,9 @@ lr_scheduler_params:
 model_type: 'Net3D'
 model_parameters:
   target_dim: 1
-  hidden_dim: 90
-  hidden_edge_dim: 90
-  reduce_func: 'mean'
+  hidden_dim: 128
+  hidden_edge_dim: 128
+  reduce_func: 'sum'
   fourier_encodings: 4
   propagation_depth: 7
   dropout: 0.0
