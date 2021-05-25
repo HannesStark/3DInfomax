@@ -1,4 +1,4 @@
-experiment_name: 'NTXent_EGNN_Batchnorm_SGD'
+experiment_name: 'NTXent_EGNN_Batchnorm_Adam'
 
 num_epochs: 1000
 batch_size: 500
@@ -41,10 +41,9 @@ metrics:
 main_metric: loss
 collate_function: contrastive_collate
 
-optimizer: SGD
+optimizer: Adam
 optimizer_params:
   lr: 5.0e-5
-  momentum: 0.95
   weight_decay: 1.0e-4
 
 
