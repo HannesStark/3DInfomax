@@ -1,6 +1,6 @@
 experiment_name: 'tune_dim40_3DNet_3layers'
 
-pretrain_checkpoint: runs/PNA_contrastive_NTXent_dim40_3DNet_3layers_24-05_18-27-32/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_contrastive_NTXent_dim40_3DNet_3layers_24-05_10-29-49/best_checkpoint.pt
 transfer_layers:
   - gnn
 
