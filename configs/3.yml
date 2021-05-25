@@ -1,4 +1,4 @@
-experiment_name: 'NTXent_EGNN_small_Net3d'
+experiment_name: 'NTXent_small_Net3d'
 
 num_epochs: 1000
 batch_size: 500
