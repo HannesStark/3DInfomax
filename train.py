@@ -12,17 +12,16 @@ from trainer.self_supervised_trainer import SelfSupervisedTrainer
 
 import torch
 import yaml
-from datasets.custom_collate import * # do not remove
-from models import * # do not remove
-from torch.nn import * # do not remove
+from datasets.custom_collate import *  # do not remove
+from models import *  # do not remove
+from torch.nn import *  # do not remove
 from torch.optim import *
-from commons.contrastive_loss import * # do not remove
+from commons.contrastive_loss import *  # do not remove
 from torch.optim.lr_scheduler import *
-from datasets.samplers import * # do not remove
+from datasets.samplers import *  # do not remove
 
 from datasets.qm9_dataset import QM9Dataset
 from torch.utils.data import DataLoader, Subset
-
 
 from trainer.metrics import QM9DenormalizedL1, QM9DenormalizedL2, pearsonr, \
     QM9SingleTargetDenormalizedL1, Rsquared, NegativeSimilarity, MeanPredictorLoss, \
@@ -47,13 +46,12 @@ def train(args):
     test_idx = all_idx[len(model_idx): len(model_idx) + int(0.1 * len(all_data))]
     val_idx = all_idx[len(model_idx) + len(test_idx):]
     train_idx = model_idx[:args.num_train]
-    # TODO REMOVE debugging stuff:
+    # for debugging purposes:
     # test_idx = all_idx[len(model_idx): len(model_idx) + 200]
     # val_idx = all_idx[len(model_idx) + len(test_idx): len(model_idx) + len(test_idx)]
 
     model = globals()[args.model_type](node_dim=all_data[0][0].ndata['f'].shape[1],
-                                       edge_dim=all_data[0][0].edata['w'].shape[
-                                           1] if args.use_e_features else 0,
+                                       edge_dim=all_data[0][0].edata['w'].shape[1] if args.use_e_features else 0,
                                        avg_d=all_data.avg_degree,
                                        **args.model_parameters)
 
@@ -83,7 +81,7 @@ def train(args):
         train_loader = DataLoader(Subset(all_data, train_idx), batch_sampler=sampler, collate_fn=collate_function)
     else:
         train_loader = DataLoader(Subset(all_data, train_idx), batch_size=args.batch_size, shuffle=True,
-                              collate_fn=collate_function)
+                                  collate_fn=collate_function)
     val_loader = DataLoader(Subset(all_data, val_idx), batch_size=args.batch_size, collate_fn=collate_function)
     test_loader = DataLoader(Subset(all_data, test_idx), batch_size=args.batch_size, collate_fn=collate_function)
 

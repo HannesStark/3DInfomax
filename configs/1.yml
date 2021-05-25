@@ -1,6 +1,6 @@
 experiment_name: 'tune_fourier_enc'
 
-pretrain_checkpoint: runs/PNA_contrastive_NTXent_egnn_mean_and_fourier_enc_23-05_11-52-45 best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_contrastive_NTXent_egnn_mean_and_fourier_enc_23-05_11-52-45/best_checkpoint.pt
 transfer_layers:
   - gnn
 
