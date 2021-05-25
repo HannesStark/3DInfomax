@@ -15,9 +15,9 @@ import yaml
 from datasets.custom_collate import *  # do not remove
 from models import *  # do not remove
 from torch.nn import *  # do not remove
-from torch.optim import *
-from commons.contrastive_loss import *  # do not remove
-from torch.optim.lr_scheduler import *
+from torch.optim import * # do not remove
+from commons.losses import *  # do not remove
+from torch.optim.lr_scheduler import * # do not remove
 from datasets.samplers import *  # do not remove
 
 from datasets.qm9_dataset import QM9Dataset
@@ -147,7 +147,7 @@ def train(args):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/fine_tune_frozen.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/12.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
