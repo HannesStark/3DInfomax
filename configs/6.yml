@@ -1,6 +1,6 @@
-experiment_name: 'tune_BarlowTwins'
+experiment_name: 'tune_dim40_3DNet'
 
-pretrain_checkpoint: runs/PNA_contrastive_BarlowTwins_22-05_10-10-27/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_contrastive_NTXent_dim40_3DNet_24-05_10-29-49/best_checkpoint.pt
 transfer_layers:
   - gnn
 

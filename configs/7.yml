@@ -1,6 +1,6 @@
-experiment_name: 'tune_3D_hidden_dim256_Snapshot'
+experiment_name: 'tune_dim40_3DNet_3layers'
 
-pretrain_checkpoint: runs/PNA_contrastive_NTXent_3D_hidden_dim256_22-05_08-21-33/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_contrastive_NTXent_dim40_3DNet_3layers_24-05_10-29-49/best_checkpoint.pt
 transfer_layers:
   - gnn
 

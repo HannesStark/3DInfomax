@@ -1,6 +1,6 @@
-experiment_name: 'tune_BYOL_long_Snapshot'
+experiment_name: 'tune_01Tau_batchnorm_momentum09_SGD'
 
-pretrain_checkpoint: runs/BYOLwrapper_long_run_22-05_10-11-02/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_NTXent_01Tau_batchnorm_momentum09_SGD_24-05_10-29-49/best_checkpoint.pt
 transfer_layers:
   - gnn
 
