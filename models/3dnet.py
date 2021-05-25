@@ -11,7 +11,7 @@ from models.base_layers import MLP
 
 
 class Net3D(nn.Module):
-    def __init__(self, node_dim, edge_dim, hidden_edge_dim, hidden_dim, target_dim, readout_aggregators: List[str],
+    def __init__(self, node_dim, edge_dim, hidden_dim, target_dim, readout_aggregators: List[str],
                  batch_norm=False,
                  readout_batchnorm=True, batch_norm_momentum=0.1, reduce_func='sum',
                  dropout=0.0, propagation_depth: int = 4, readout_layers: int = 2, readout_hidden_dim=None,
@@ -20,7 +20,6 @@ class Net3D(nn.Module):
                  update_net_layers=2,
                  message_net_layers=2, **kwargs):
         super(Net3D, self).__init__()
-        ic('3dnet')
         self.fourier_encodings = fourier_encodings
         self.input = MLP(
             in_dim=node_dim,
@@ -38,8 +37,8 @@ class Net3D(nn.Module):
         edge_in_dim = 1 if fourier_encodings == 0 else 2 * fourier_encodings + 1
         self.edge_input = MLP(
             in_dim=edge_in_dim,
-            hidden_size=hidden_edge_dim,
-            out_dim=hidden_edge_dim,
+            hidden_size=hidden_dim,
+            out_dim=hidden_dim,
             mid_batch_norm=batch_norm,
             last_batch_norm=batch_norm,
             batch_norm_momentum=batch_norm_momentum,
@@ -51,7 +50,7 @@ class Net3D(nn.Module):
         self.mp_layers = nn.ModuleList()
         for _ in range(propagation_depth):
             self.mp_layers.append(
-                Net3DLayer(node_dim, edge_dim=hidden_edge_dim, hidden_dim=hidden_dim, batch_norm=batch_norm,
+                Net3DLayer(node_dim, edge_dim=hidden_dim, hidden_dim=hidden_dim, batch_norm=batch_norm,
                            batch_norm_momentum=batch_norm_momentum,
                            dropout=dropout,
                            mid_activation=activation, reduce_func=reduce_func, message_net_layers=message_net_layers,

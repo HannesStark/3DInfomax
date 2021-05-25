@@ -1,0 +1,2 @@
+# continue training from checkpoint:
+checkpoint: runs/PNA_tune_NTXent_3dNet_25-05_08-23-38/last_checkpoint.pt
