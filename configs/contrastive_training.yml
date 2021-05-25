@@ -1,4 +1,4 @@
-experiment_name: 'contrastive_NTXent'
+experiment_name: 'NTXent_01Tau_batchnorm_momentum09_SGD'
 
 num_epochs: 1000
 batch_size: 500
@@ -6,6 +6,8 @@ prefetch_graphs: True
 log_iterations: 30
 patience: 35
 loss_func: NTXent
+loss_params:
+  tau: 0.1
 num_train: 50000
 features:
   - 'implicit-valence'
@@ -39,23 +41,24 @@ metrics:
 main_metric: loss
 collate_function: contrastive_collate
 
-optimizer: Adam
+optimizer: SGD
 optimizer_params:
-  lr: 8.0e-5
-  weight_decay: 6.0e-8
+  lr: 5.0e-5
+  momentum: 0.95
+  weight_decay: 1.0e-4
 
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: 700
+  warmup_steps: 1500
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
   cooldown: 20
   factor: 0.6
   patience: 25
   min_lr: 1.0e-6
-  threshold: 1.0e-4
+  threshold: 1.0e-5
   mode: 'min'
   verbose: True
 
@@ -69,7 +72,8 @@ model_parameters:
   mid_batch_norm: True
   last_batch_norm: True
   readout_batchnorm: True
-  batch_norm_momentum: 0.9
+  # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
+  batch_norm_momentum: 0.97
   readout_hidden_dim: 90
   readout_layers: 2
   dropout: 0.0
@@ -95,13 +99,14 @@ model_parameters:
 model3d_type: 'EGNN'
 model3d_parameters:
   target_dim: 256
-  hidden_dim: 128
-  propagation_depth: 7
+  hidden_dim: 70
+  propagation_depth: 3
   dropout: 0.0
-  batch_norm_momentum: 0.9
-  batch_norm: True
   readout_batchnorm: True
-  readout_hidden_dim: 128
+  batch_norm: True
+  # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
+  batch_norm_momentum: 0.97
+  readout_hidden_dim: 90
   readout_layers: 2
   readout_aggregators:
     - min
