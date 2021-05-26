@@ -1,8 +1,8 @@
 experiment_name: 'NTXentShuffled'
 
 num_epochs: 1000
-batch_size: 4
-prefetch_graphs: False
+batch_size: 500
+prefetch_graphs: True
 log_iterations: 30
 patience: 35
 loss_func: NTXentShuffled
