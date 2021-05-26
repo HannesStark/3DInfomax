@@ -38,6 +38,10 @@ metrics:
   - contrastive_accuracy
   - true_negative_rate
   - true_positive_rate
+  - uniformity
+  - alignment
+  - batch_variance
+  - dimension_covariance
 main_metric: loss
 collate_function: contrastive_collate
 

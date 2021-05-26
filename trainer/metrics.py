@@ -94,6 +94,61 @@ class MeanPredictorLoss(nn.Module):
         return self.loss_func(torch.full_like(targets, targets.mean()), targets)
 
 
+class DimensionCovariance(nn.Module):
+    def __init__(self) -> None:
+        super(DimensionCovariance, self).__init__()
+
+    def forward(self, x1: Tensor, x2: Tensor, pos_mask: Tensor = None) -> Tensor:
+        batch_size, metric_dim = x1.size()
+
+        x1 = x1 - x1.mean(dim=0)
+        x2 = x2 - x2.mean(dim=0)
+        cov_x1 = (x1.T @ x1) / (batch_size - 1)
+        cov_x2 = (x2.T @ x2) / (batch_size - 1)
+
+        off_diag_cov_x1 = cov_x1.flatten()[:-1].view(metric_dim - 1, metric_dim + 1)[:, 1:].flatten()
+        off_diag_cov_x2 = cov_x2.flatten()[:-1].view(metric_dim - 1, metric_dim + 1)[:, 1:].flatten()
+
+        cov_loss = off_diag_cov_x1.pow_(2).sum() / metric_dim
+        cov_loss += off_diag_cov_x2.pow_(2).sum() / metric_dim
+        return cov_loss
+
+
+class BatchVariance(nn.Module):
+    def __init__(self) -> None:
+        super(BatchVariance, self).__init__()
+
+    def forward(self, x1: Tensor, x2: Tensor, pos_mask: Tensor = None) -> Tensor:
+        std_x1 = torch.sqrt(x1.var(dim=0) + 1e-04)
+        std_x2 = torch.sqrt(x2.var(dim=0) + 1e-04)
+        std_loss = torch.mean(torch.relu(1 - std_x1))
+        std_loss += torch.mean(torch.relu(1 - std_x2))
+        return std_loss
+
+
+class Alignment(nn.Module):
+    def __init__(self, alpha=2) -> None:
+        super(Alignment, self).__init__()
+        self.alpha = alpha
+
+    def forward(self, x1: Tensor, x2: Tensor, pos_mask: Tensor = None) -> Tensor:
+        return (x1 - x2).norm(dim=1).pow(self.alpha).mean()
+
+
+class Uniformity(nn.Module):
+    def __init__(self, t=2) -> None:
+        super(Uniformity, self).__init__()
+        self.t = t
+
+    def forward(self, x1: Tensor, x2: Tensor, pos_mask: Tensor = None) -> Tensor:
+        sq_pdist_x1 = torch.pdist(x1, p=2).pow(2)
+        uniformity_x1 = sq_pdist_x1.mul(-self.t).exp().mean().log()
+
+        sq_pdist_x2 = torch.pdist(x2, p=2).pow(2)
+        uniformity_x2 = sq_pdist_x2.mul(-self.t).exp().mean().log()
+        return (uniformity_x1 + uniformity_x2) / 2
+
+
 class TruePositiveRate(nn.Module):
     def __init__(self, threshold=0.5) -> None:
         super(TruePositiveRate, self).__init__()
@@ -107,7 +162,7 @@ class TruePositiveRate(nn.Module):
         x2_abs = x2.norm(dim=1)
         sim_matrix = sim_matrix / torch.einsum('i,j->ij', x1_abs, x2_abs)
 
-        preds: Tensor = (sim_matrix + 1) /2> self.threshold
+        preds: Tensor = (sim_matrix + 1) / 2 > self.threshold
         if pos_mask == None:  # if we are comparing global with global
             pos_mask = torch.eye(batch_size, device=x1.device)
 
@@ -130,7 +185,7 @@ class TrueNegativeRate(nn.Module):
         x2_abs = x2.norm(dim=1)
         sim_matrix = sim_matrix / torch.einsum('i,j->ij', x1_abs, x2_abs)
 
-        preds: Tensor = (sim_matrix + 1) /2> self.threshold
+        preds: Tensor = (sim_matrix + 1) / 2 > self.threshold
         if pos_mask == None:  # if we are comparing global with global
             pos_mask = torch.eye(batch_size, device=x1.device)
         neg_mask = 1 - pos_mask
@@ -154,7 +209,7 @@ class ContrastiveAccuracy(nn.Module):
         x2_abs = x2.norm(dim=1)
         sim_matrix = sim_matrix / torch.einsum('i,j->ij', x1_abs, x2_abs)
 
-        preds: Tensor = (sim_matrix + 1) /2> self.threshold
+        preds: Tensor = (sim_matrix + 1) / 2 > self.threshold
         if pos_mask == None:  # if we are comparing global with global
             pos_mask = torch.eye(batch_size, device=x1.device)
         neg_mask = 1 - pos_mask
@@ -178,7 +233,7 @@ class F1Contrastive(nn.Module):
         x1_abs = x1.norm(dim=1)
         x2_abs = x2.norm(dim=1)
         sim_matrix = sim_matrix / torch.einsum('i,j->ij', x1_abs, x2_abs)
-        preds = (sim_matrix.view(-1) + 1) /2
+        preds = (sim_matrix.view(-1) + 1) / 2
         if pos_mask != None:  # if we are comparing local with global
             targets = pos_mask.view(-1)
         else:  # if we are comparing global with global
@@ -205,7 +260,7 @@ class PositiveSimilarity(nn.Module):
             pos_sim = (pos_mask * sim_matrix).sum(dim=1)
         else:  # if we are comparing global with global
             pos_sim = F.cosine_similarity(x1, x2)
-        pos_sim = (pos_sim + 1) /2
+        pos_sim = (pos_sim + 1) / 2
         return pos_sim.mean(dim=0)
 
 
@@ -226,7 +281,7 @@ class NegativeSimilarity(nn.Module):
         else:  # if we are comparing global with global
             pos_sim = sim_matrix[range(batch_size), range(batch_size)]
         neg_sim = (sim_matrix.sum(dim=1) - pos_sim) / (batch_size - 1)
-        neg_sim = (neg_sim + 1) /2
+        neg_sim = (neg_sim + 1) / 2
         return neg_sim.mean(dim=0)
 
 

@@ -25,7 +25,8 @@ from torch.utils.data import DataLoader, Subset
 
 from trainer.metrics import QM9DenormalizedL1, QM9DenormalizedL2, pearsonr, \
     QM9SingleTargetDenormalizedL1, Rsquared, NegativeSimilarity, MeanPredictorLoss, \
-    F1Contrastive, PositiveSimilarity, ContrastiveAccuracy, TrueNegativeRate, TruePositiveRate
+    F1Contrastive, PositiveSimilarity, ContrastiveAccuracy, TrueNegativeRate, TruePositiveRate, Alignment, Uniformity, \
+    BatchVariance, DimensionCovariance
 from trainer.trainer import Trainer
 
 
@@ -71,7 +72,7 @@ def train(args):
         model_state_dict = model.state_dict()
         model_state_dict.update(pretrained_gnn_dict)  # update the gnn layers with the pretrained weights
         model.load_state_dict(model_state_dict)
-    print('trainable params: ', sum(p.numel() for p in model.parameters() if p.requires_grad))
+    print('model trainable params: ', sum(p.numel() for p in model.parameters() if p.requires_grad))
 
     print(f'Training on {len(train_idx)} samples from the model sequences')
     collate_function = globals()[args.collate_function]
@@ -96,6 +97,10 @@ def train(args):
                     'true_negative_rate': TrueNegativeRate(threshold=0.5),
                     'true_positive_rate': TruePositiveRate(threshold=0.5),
                     'mean_predictor_loss': MeanPredictorLoss(globals()[args.loss_func](**args.loss_params)),
+                    'uniformity': Uniformity(t=2),
+                    'alignment': Alignment(alpha=2),
+                    'batch_variance': BatchVariance(),
+                    'dimension_covariance': DimensionCovariance()
                     }
     metrics = {metric: metrics_dict[metric] for metric in args.metrics if metric != 'qm9_properties'}
     if 'qm9_properties' in args.metrics:
@@ -109,6 +114,7 @@ def train(args):
                                                    1] if args.use_e_features else 0,
                                                avg_d=all_data.avg_degree,
                                                **args.model3d_parameters)
+        print('3D model trainable params: ', sum(p.numel() for p in model3d.parameters() if p.requires_grad))
         optim = globals()[args.optimizer](list(model.parameters()) + list(model3d.parameters()),
                                           **args.optimizer_params)
         ssl_trainer = BYOLTrainer if args.ssl_mode == 'byol' else SelfSupervisedTrainer
@@ -147,7 +153,7 @@ def train(args):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/1.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/contrastive_debug.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
