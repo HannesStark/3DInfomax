@@ -1,11 +1,15 @@
 experiment_name: 'debug'
 
 num_epochs: 1000
-batch_size: 300
+batch_size: 7
 prefetch_graphs: False
 log_iterations: 1
 patience: 35
 loss_func: NTXent
+loss_params:
+  uniformity_reg: 0
+  variance_reg: 1
+  covariance_reg: 0
 num_train: 50000
 features:
   - 'implicit-valence'

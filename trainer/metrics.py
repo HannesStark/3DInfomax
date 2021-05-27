@@ -6,6 +6,8 @@ import torch.nn as nn
 import numpy as np
 
 from pytorch_lightning.metrics import F1
+
+from commons.losses import cov_loss, std_loss, uniformity_loss
 from datasets.qm9_dataset import QM9Dataset
 
 
@@ -99,19 +101,7 @@ class DimensionCovariance(nn.Module):
         super(DimensionCovariance, self).__init__()
 
     def forward(self, x1: Tensor, x2: Tensor, pos_mask: Tensor = None) -> Tensor:
-        batch_size, metric_dim = x1.size()
-
-        x1 = x1 - x1.mean(dim=0)
-        x2 = x2 - x2.mean(dim=0)
-        cov_x1 = (x1.T @ x1) / (batch_size - 1)
-        cov_x2 = (x2.T @ x2) / (batch_size - 1)
-
-        off_diag_cov_x1 = cov_x1.flatten()[:-1].view(metric_dim - 1, metric_dim + 1)[:, 1:].flatten()
-        off_diag_cov_x2 = cov_x2.flatten()[:-1].view(metric_dim - 1, metric_dim + 1)[:, 1:].flatten()
-
-        cov_loss = off_diag_cov_x1.pow_(2).sum() / metric_dim
-        cov_loss += off_diag_cov_x2.pow_(2).sum() / metric_dim
-        return cov_loss
+        return cov_loss(x1) + cov_loss(x2)
 
 
 class BatchVariance(nn.Module):
@@ -119,11 +109,7 @@ class BatchVariance(nn.Module):
         super(BatchVariance, self).__init__()
 
     def forward(self, x1: Tensor, x2: Tensor, pos_mask: Tensor = None) -> Tensor:
-        std_x1 = torch.sqrt(x1.var(dim=0) + 1e-04)
-        std_x2 = torch.sqrt(x2.var(dim=0) + 1e-04)
-        std_loss = torch.mean(torch.relu(1 - std_x1))
-        std_loss += torch.mean(torch.relu(1 - std_x2))
-        return std_loss
+        return std_loss(x1) + std_loss(x2)
 
 
 class Alignment(nn.Module):
@@ -141,12 +127,7 @@ class Uniformity(nn.Module):
         self.t = t
 
     def forward(self, x1: Tensor, x2: Tensor, pos_mask: Tensor = None) -> Tensor:
-        sq_pdist_x1 = torch.pdist(x1, p=2).pow(2)
-        uniformity_x1 = sq_pdist_x1.mul(-self.t).exp().mean().log()
-
-        sq_pdist_x2 = torch.pdist(x2, p=2).pow(2)
-        uniformity_x2 = sq_pdist_x2.mul(-self.t).exp().mean().log()
-        return (uniformity_x1 + uniformity_x2) / 2
+        return uniformity_loss(x1,x2)
 
 
 class TruePositiveRate(nn.Module):

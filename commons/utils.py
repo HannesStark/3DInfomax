@@ -84,10 +84,14 @@ def fourier_encode_dist(x, num_encodings = 4, include_self = True):
     return x.squeeze()
 
 def tensorboard_singular_value_plot(predictions, targets, writer: SummaryWriter, step, data_split):
-    u, s, v = torch.pca_lowrank(predictions.detach().cpu(), q=100)
+    u, s, v = torch.pca_lowrank(predictions.detach().cpu(), q=min(predictions.shape))
     fig, ax = plt.subplots()
-    ax.plot(s.detach().cpu().numpy())
+    s = 100*s/s.sum()
+    ax.plot(s.numpy())
     writer.add_figure(f'singular_values/{data_split}',figure=fig,global_step=step)
+    fig, ax = plt.subplots()
+    ax.plot(np.cumsum(s.numpy()))
+    writer.add_figure(f'singular_values_cumsum/{data_split}', figure=fig, global_step=step)
 
 
 TENSORBOARD_FUNCTIONS = {

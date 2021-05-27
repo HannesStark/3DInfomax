@@ -1,18 +1,16 @@
-experiment_name: 'tune_EGNN_Batchnorm_SGD_256_readout_dim'
-
-pretrain_checkpoint: runs/PNA_NTXent_EGNN_Batchnorm_SGD_256_readout_dim_25-05_09-38-42/best_checkpoint.pt
-transfer_layers:
-  - gnn
+experiment_name: 'CosineSimilarityLoss_uniformity05_variance1_covariance004'
 
 num_epochs: 1000
-batch_size: 128
+batch_size: 500
 prefetch_graphs: True
-log_iterations: 30
-patience: 50
-loss_func: L1Loss
+log_iterations: 50
+patience: 35
+loss_func: CosineSimilarityLoss
+loss_params:
+  uniformity_reg: 0.5
+  variance_reg: 1
+  covariance_reg: 0.04
 num_train: 50000
-targets:
-  - homo
 features:
   - 'implicit-valence'
   - 'degree'
@@ -25,35 +23,43 @@ features:
   - 'radical-electron'
   - 'in-ring'
   - 'atomic-number'
+features3d:
+  - 'constant_ones'
 e_features:
   - 'bond-type-onehot'
   - 'stereo'
   - 'conjugated'
   - 'in-ring-edges'
-
-
 required_data:
   - mol_graph
-  - targets
+  - complete_graph3d
 metrics:
-  - mae_denormalized
-  - pearsonr
-  - rsquared
-  - qm9_properties
+  - positive_similarity
+  - negative_similarity
+  - f1_contrastive
+  - contrastive_accuracy
+  - true_negative_rate
+  - true_positive_rate
+main_metric: loss
+collate_function: contrastive_collate
 
 optimizer: Adam
 optimizer_params:
-  lr: 1.0e-4
+  lr: 8.0e-5
+  weight_decay: 6.0e-8
+
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: 1500
+  warmup_steps: 700
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
-  factor: 0.5
+  cooldown: 20
+  factor: 0.6
   patience: 25
-  min_lr: 5.0e-6
+  min_lr: 1.0e-6
+  threshold: 1.0e-4
   mode: 'min'
   verbose: True
 
@@ -62,10 +68,14 @@ lr_scheduler_params:
 # Model parameters
 model_type: 'PNA'
 model_parameters:
-  target_dim: 1
+  target_dim: 256
   hidden_dim: 90
   mid_batch_norm: True
   last_batch_norm: True
+  readout_batchnorm: True
+  batch_norm_momentum: 0.9
+  readout_hidden_dim: 90
+  readout_layers: 2
   dropout: 0.0
   propagation_depth: 6
   aggregators:
@@ -78,13 +88,34 @@ model_parameters:
     - amplification
     - attenuation
   readout_aggregators:
-    - sum
     - min
     - max
     - mean
   pretrans_layers: 2
   posttrans_layers: 1
   residual: True
+
+# Model parameters
+model3d_type: 'Net3D'
+model3d_parameters:
+  target_dim: 256
+  hidden_dim: 20
+  hidden_edge_dim: 20
+  message_net_layers: 1
+  update_net_layers: 1
+  reduce_func: 'mean'
+  fourier_encodings: 4
+  propagation_depth: 2
+  dropout: 0.0
+  batch_norm: True
+  readout_batchnorm: True
+  batch_norm_momentum: 0.9
+  readout_hidden_dim: 20
+  readout_layers: 2
+  readout_aggregators:
+    - min
+    - max
+    - mean
 
 
 # continue training from checkpoint:
