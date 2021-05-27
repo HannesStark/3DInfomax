@@ -39,6 +39,8 @@ metrics:
   - true_negative_rate
   - true_positive_rate
 main_metric: loss
+tensorboard_functions:
+  - singular_values
 collate_function: contrastive_collate
 
 optimizer: Adam
