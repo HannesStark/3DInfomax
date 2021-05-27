@@ -3,10 +3,14 @@ import random
 from argparse import Namespace
 from collections import MutableMapping
 from typing import Dict, Any
+import matplotlib.pyplot as plt
+import sklearn
 
 import torch
 import numpy as np
 import dgl
+from torch.utils.tensorboard import SummaryWriter
+
 
 def seed_all(seed):
     if not seed:
@@ -78,3 +82,14 @@ def fourier_encode_dist(x, num_encodings = 4, include_self = True):
     x = torch.cat([x.sin(), x.cos()], dim=-1)
     x = torch.cat((x, orig_x), dim = -1) if include_self else x
     return x.squeeze()
+
+def tensorboard_singular_value_plot(predictions, targets, writer: SummaryWriter, step, data_split):
+    u, s, v = torch.pca_lowrank(predictions.detach().cpu(), q=100)
+    fig, ax = plt.subplots()
+    ax.plot(s.detach().cpu().numpy())
+    writer.add_figure(f'singular_values/{data_split}',figure=fig,global_step=step)
+
+
+TENSORBOARD_FUNCTIONS = {
+    'singular_values': tensorboard_singular_value_plot
+}

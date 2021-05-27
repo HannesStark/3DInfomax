@@ -1,7 +1,7 @@
 experiment_name: 'debug'
 
 num_epochs: 1000
-batch_size: 4
+batch_size: 300
 prefetch_graphs: False
 log_iterations: 1
 patience: 35
@@ -41,6 +41,8 @@ metrics:
   - batch_variance
   - dimension_covariance
 main_metric: loss
+tensorboard_functions:
+  - singular_values
 collate_function: contrastive_collate
 
 optimizer: Adam

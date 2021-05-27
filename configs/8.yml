@@ -11,7 +11,7 @@ log_iterations: 30
 patience: 50
 loss_func: L1Loss
 num_train: 50000
-targets: 
+targets:
   - homo
 features:
   - 'implicit-valence'

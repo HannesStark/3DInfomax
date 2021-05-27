@@ -2,11 +2,13 @@ import argparse
 import os
 from icecream import install
 
-from commons.utils import seed_all, get_random_indices
+from commons.utils import seed_all, get_random_indices, TENSORBOARD_FUNCTIONS
 from trainer.byol_trainer import BYOLTrainer
 from trainer.byol_wrapper import BYOLwrapper
 
+import seaborn
 install()
+seaborn.set_theme()
 
 from trainer.self_supervised_trainer import SelfSupervisedTrainer
 
@@ -103,6 +105,7 @@ def train(args):
                     'dimension_covariance': DimensionCovariance()
                     }
     metrics = {metric: metrics_dict[metric] for metric in args.metrics if metric != 'qm9_properties'}
+    tensorboard_functions = {function: TENSORBOARD_FUNCTIONS[function] for function in args.tensorboard_functions}
     if 'qm9_properties' in args.metrics:
         metrics.update(
             {task: QM9SingleTargetDenormalizedL1(dataset=all_data, task=task) for task in all_data.target_tasks})
@@ -127,6 +130,7 @@ def train(args):
                               optim=optim,
                               loss_func=globals()[args.loss_func](**args.loss_params),
                               device=device,
+                              tensorboard_functions=tensorboard_functions,
                               scheduler_step_per_batch=args.scheduler_step_per_batch)
     else:
         transferred_params = [v for k, v in model.named_parameters() if
@@ -144,6 +148,7 @@ def train(args):
                           optim=optim,
                           loss_func=globals()[args.loss_func](**args.loss_params),
                           device=device,
+                          tensorboard_functions=tensorboard_functions,
                           scheduler_step_per_batch=args.scheduler_step_per_batch)
     trainer.train(train_loader, val_loader)
 
@@ -178,6 +183,7 @@ def parse_arguments():
     p.add_argument('--metrics', default=[], help='tensorboard metrics [mae, mae_denormalized, qm9_properties ...]')
     p.add_argument('--main_metric', default='mae_denormalized', help='for early stopping etc.')
     p.add_argument('--main_metric_goal', type=str, default='min', help='controls early stopping. [max, min]')
+    p.add_argument('--tensorboard_functions', default=[], help='choices of the TENSORBOARD_FUNCTIONS in utils')
     p.add_argument('--checkpoint', type=str, help='path to directory that contains a checkpoint to continue training')
     p.add_argument('--pretrain_checkpoint', type=str, help='Specify path to finetune from a pretrained checkpoint')
     p.add_argument('--transfer_layers', default=[],

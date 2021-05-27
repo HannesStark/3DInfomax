@@ -23,7 +23,7 @@ from commons.utils import flatten_dict
 
 class Trainer():
     def __init__(self, model, args, metrics: Dict[str, Callable], main_metric: str,
-                 device: torch.device,
+                 device: torch.device, tensorboard_functions: Dict[str, Callable],
                  optim=None, main_metric_goal: str = 'min', loss_func=torch.nn.MSELoss(),
                  scheduler_step_per_batch: bool = True):
         self.optim = optim
@@ -31,6 +31,7 @@ class Trainer():
         self.device = device
         self.model = model.to(self.device)
         self.loss_func = loss_func
+        self.tensorboard_functions = tensorboard_functions
         self.metrics = metrics
         self.main_metric = type(self.loss_func).__name__ if main_metric == 'loss' else main_metric
         self.main_metric_goal = main_metric_goal
@@ -154,12 +155,14 @@ class Trainer():
                 if i % args.log_iterations == args.log_iterations - 1 and optim != None:  # log every log_iterations during train
                     metrics_results = self.evaluate_metrics(predictions, targets, batch)
                     metrics_results[type(self.loss_func).__name__] = loss.item()
+                    self.run_tensorboard_functions(predictions, targets, step=self.optim_steps, data_split='train')
                     self.tensorboard_log(metrics_results, data_split='train', step=self.optim_steps, epoch=epoch)
                     print('[Epoch %d; Iter %5d/%5d] %s: loss: %.7f' % (epoch,
                                                                        i + 1, len(data_loader), 'train', loss.item()))
                 if optim == None:  # during validation or testing when we want to average metrics over all the data in that dataloader
                     metrics_results = self.evaluate_metrics(predictions, targets, batch)
                     metrics_results[type(self.loss_func).__name__] = loss.item()
+                    self.run_tensorboard_functions(predictions, targets, step=self.optim_steps, data_split='val')
                     for key, value in metrics_results.items():
                         total_metrics[key] += value
                 if return_predictions:
@@ -199,6 +202,10 @@ class Trainer():
             self.writer.file_writer.add_summary(exp)
             self.writer.file_writer.add_summary(ssi)
             self.writer.file_writer.add_summary(sei)
+
+    def run_tensorboard_functions(self, predictions, targets, step, data_split):
+        for key, tensorboard_function in self.tensorboard_functions.items():
+            tensorboard_function(predictions, targets, self.writer, step, data_split= data_split)
 
     def evaluation(self, data_loader: DataLoader, data_split: str = ''):
         """
