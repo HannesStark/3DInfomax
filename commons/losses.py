@@ -190,10 +190,13 @@ class InfoNCE(_Loss):
             norm: Boolean. Whether to apply normlization.
         '''
 
-    def __init__(self, norm: bool = True, tau: float = 0.5) -> None:
+    def __init__(self, norm: bool = True, tau: float = 0.5, uniformity_reg=0, variance_reg=0, covariance_reg=0) -> None:
         super(InfoNCE, self).__init__()
         self.norm = norm
         self.tau = tau
+        self.uniformity_reg = uniformity_reg
+        self.variance_reg = variance_reg
+        self.covariancec_reg = covariance_reg
 
     def forward(self, z1, z2, **kwargs) -> Tensor:
         batch_size, _ = z1.size()
@@ -208,6 +211,12 @@ class InfoNCE(_Loss):
         pos_sim = torch.diagonal(sim_matrix)
         loss = pos_sim / (sim_matrix.sum(dim=1))
         loss = - torch.log(loss).mean()
+        if self.variance_reg > 0:
+            loss += self.variance_reg * (std_loss(z1) + std_loss(z2))
+        if self.covariancec_reg > 0:
+            loss += self.covariancec_reg * (cov_loss(z1) + cov_loss(z2))
+        if self.uniformity_reg > 0:
+            loss += self.uniformity_reg * uniformity_loss(z1, z2)
         return loss
 
 

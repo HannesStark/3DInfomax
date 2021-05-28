@@ -1,2 +1,14 @@
 # continue training from checkpoint:
-checkpoint: runs/PNA_tune_dim40_3DNet_3layers_25-05_09-38-24/last_checkpoint.pt
+checkpoint: runs/PNA_NTXent_variance1_27-05_17-16-48/last_checkpoint.pt
+
+metrics:
+  - positive_similarity
+  - negative_similarity
+  - f1_contrastive
+  - contrastive_accuracy
+  - true_negative_rate
+  - true_positive_rate
+  - uniformity
+  - alignment
+  - batch_variance
+  - dimension_covariance
