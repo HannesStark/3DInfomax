@@ -109,13 +109,14 @@ model3d_parameters:
   readout_batchnorm: True
   batch_norm: True
   # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
-  batch_norm_momentum: 0.97
-  readout_hidden_dim: 90
+  batch_norm_momentum: 0.96
+  readout_hidden_dim: 128
   readout_layers: 2
   readout_aggregators:
     - min
     - max
     - mean
+
 
 
 # continue training from checkpoint:
