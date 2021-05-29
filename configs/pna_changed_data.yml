@@ -1,11 +1,11 @@
-experiment_name: 'all_data'
+experiment_name: 'baseline_20000data'
 
 num_epochs: 1000
 batch_size: 128
 prefetch_graphs: True
 log_iterations: 30
 patience: 50
-num_train: 100000
+num_train: 20000
 loss_func: L1Loss
 targets:
   - homo
@@ -79,6 +79,7 @@ model_parameters:
     - min
     - max
     - mean
+    - sum
   pretrans_layers: 2
   posttrans_layers: 1
   residual: True

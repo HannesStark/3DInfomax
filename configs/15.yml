@@ -1,6 +1,6 @@
 experiment_name: 'tune_BarlowTwins_variance1'
 
-pretrain_checkpoint: runs/PNA_BarlowTwins_variance1/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_BarlowTwins_variance1_27-05_17-16-43/best_checkpoint.pt
 transfer_layers:
   - gnn
 

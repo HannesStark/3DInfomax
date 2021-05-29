@@ -2,7 +2,7 @@ experiment_name: 'baseline_sum_aggregator'
 
 num_epochs: 1000
 batch_size: 128
-prefetch_graphs: False
+prefetch_graphs: True
 log_iterations: 30
 patience: 50
 num_train: 50000
@@ -57,7 +57,7 @@ lr_scheduler_params:
 
 model_type: 'PNA'
 model_parameters:
-  target_dim: 256
+  target_dim: 1
   hidden_dim: 90
   mid_batch_norm: True
   last_batch_norm: True
