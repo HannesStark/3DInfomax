@@ -125,3 +125,4 @@ bsub*
 stderr*
 stdout*
 /dataset/ZINC/
+/dataset/ogbg_molhiv/
