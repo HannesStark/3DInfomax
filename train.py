@@ -3,10 +3,12 @@ import os
 from icecream import install
 
 from commons.utils import seed_all, get_random_indices, TENSORBOARD_FUNCTIONS
+from datasets.ZINC_dataset import ZINCDataset
 from trainer.byol_trainer import BYOLTrainer
 from trainer.byol_wrapper import BYOLwrapper
 
 import seaborn
+
 install()
 seaborn.set_theme()
 
@@ -17,9 +19,9 @@ import yaml
 from datasets.custom_collate import *  # do not remove
 from models import *  # do not remove
 from torch.nn import *  # do not remove
-from torch.optim import * # do not remove
+from torch.optim import *  # do not remove
 from commons.losses import *  # do not remove
-from torch.optim.lr_scheduler import * # do not remove
+from torch.optim.lr_scheduler import *  # do not remove
 from datasets.samplers import *  # do not remove
 
 from datasets.qm9_dataset import QM9Dataset
@@ -28,15 +30,82 @@ from torch.utils.data import DataLoader, Subset
 from trainer.metrics import QM9DenormalizedL1, QM9DenormalizedL2, pearsonr, \
     QM9SingleTargetDenormalizedL1, Rsquared, NegativeSimilarity, MeanPredictorLoss, \
     F1Contrastive, PositiveSimilarity, ContrastiveAccuracy, TrueNegativeRate, TruePositiveRate, Alignment, Uniformity, \
-    BatchVariance, DimensionCovariance
+    BatchVariance, DimensionCovariance, MAE
 from trainer.trainer import Trainer
 
 
 def train(args):
     seed_all(args.seed)
     device = torch.device("cuda:0" if torch.cuda.is_available() and args.device == 'cuda' else "cpu")
+    metrics_dict = {'pearsonr': pearsonr,
+                    'rsquared': Rsquared(),
+                    'mae': MAE(),
+                    'positive_similarity': PositiveSimilarity(),
+                    'negative_similarity': NegativeSimilarity(),
+                    'f1_contrastive': F1Contrastive(threshold=0.5, device=device),
+                    'contrastive_accuracy': ContrastiveAccuracy(threshold=0.5),
+                    'true_negative_rate': TrueNegativeRate(threshold=0.5),
+                    'true_positive_rate': TruePositiveRate(threshold=0.5),
+                    'mean_predictor_loss': MeanPredictorLoss(globals()[args.loss_func](**args.loss_params)),
+                    'uniformity': Uniformity(t=2),
+                    'alignment': Alignment(alpha=2),
+                    'batch_variance': BatchVariance(),
+                    'dimension_covariance': DimensionCovariance()
+                    }
     print('using device: ', device)
-    # will only return the target task properties so only those will be predicted
+    if args.dataset == 'qm9':
+        train_qm9(args, device, metrics_dict)
+    elif args.dataset == 'zinc':
+        train_zinc(args, device, metrics_dict)
+
+
+def train_zinc(args, device, metrics_dict):
+    train_data = ZINCDataset(split='train', device=device, prefetch_graphs=args.prefetch_graphs)
+    val_data = ZINCDataset(split='train', device=device, prefetch_graphs=args.prefetch_graphs)
+    test_data = ZINCDataset(split='train', device=device, prefetch_graphs=args.prefetch_graphs)
+
+    model = globals()[args.model_type](node_dim=train_data[0][0].ndata['f'].shape[1],
+                                       edge_dim=train_data[0][0].edata['w'].shape[1] if args.use_e_features else 0,
+                                       **args.model_parameters)
+
+    collate_function = globals()[args.collate_function]
+    if args.train_sampler != None:
+        sampler = globals()[args.train_sampler](data_source=train_data, batch_size=args.batch_size,
+                                                indices=range(len(train_data)))
+        train_loader = DataLoader(train_data, batch_sampler=sampler, collate_fn=collate_function)
+    else:
+        train_loader = DataLoader(train_data, batch_size=args.batch_size, shuffle=True, collate_fn=collate_function)
+    val_loader = DataLoader(val_data, batch_size=args.batch_size, collate_fn=collate_function)
+    test_loader = DataLoader(test_data, batch_size=args.batch_size, collate_fn=collate_function)
+
+    metrics = {metric: metrics_dict[metric] for metric in args.metrics}
+    tensorboard_functions = {function: TENSORBOARD_FUNCTIONS[function] for function in args.tensorboard_functions}
+
+    # Needs "from torch.optim import *" and "from models import *" to work
+    transferred_params = [v for k, v in model.named_parameters() if
+                          any(transfer_name in k for transfer_name in args.transfer_layers)]
+    new_params = [v for k, v in model.named_parameters() if
+                  all(transfer_name not in k for transfer_name in args.transfer_layers)]
+    transfer_lr = args.optimizer_params['lr'] if args.transferred_lr == None else args.transferred_lr
+    optim = globals()[args.optimizer]([{'params': new_params},
+                                       {'params': transferred_params, 'lr': transfer_lr}], **args.optimizer_params)
+    trainer = Trainer(model=model,
+                      args=args,
+                      metrics=metrics,
+                      main_metric=args.main_metric,
+                      main_metric_goal=args.main_metric_goal,
+                      optim=optim,
+                      loss_func=globals()[args.loss_func](**args.loss_params),
+                      device=device,
+                      tensorboard_functions=tensorboard_functions,
+                      scheduler_step_per_batch=args.scheduler_step_per_batch)
+    trainer.train(train_loader, val_loader)
+
+    if args.eval_on_test:
+        trainer.evaluation(test_loader, data_split='test')
+
+
+def train_qm9(args, device, metrics_dict):
     all_data = QM9Dataset(return_types=args.required_data, features=args.features, features3d=args.features3d,
                           e_features=args.e_features,
                           e_features3d=args.e_features3d, pos_dir=args.pos_dir,
@@ -88,24 +157,10 @@ def train(args):
     val_loader = DataLoader(Subset(all_data, val_idx), batch_size=args.batch_size, collate_fn=collate_function)
     test_loader = DataLoader(Subset(all_data, test_idx), batch_size=args.batch_size, collate_fn=collate_function)
 
-    metrics_dict = {'mae_denormalized': QM9DenormalizedL1(dataset=all_data),
-                    'mse_denormalized': QM9DenormalizedL2(dataset=all_data),
-                    'pearsonr': pearsonr,
-                    'rsquared': Rsquared(),
-                    'positive_similarity': PositiveSimilarity(),
-                    'negative_similarity': NegativeSimilarity(),
-                    'f1_contrastive': F1Contrastive(threshold=0.5, device=device),
-                    'contrastive_accuracy': ContrastiveAccuracy(threshold=0.5),
-                    'true_negative_rate': TrueNegativeRate(threshold=0.5),
-                    'true_positive_rate': TruePositiveRate(threshold=0.5),
-                    'mean_predictor_loss': MeanPredictorLoss(globals()[args.loss_func](**args.loss_params)),
-                    'uniformity': Uniformity(t=2),
-                    'alignment': Alignment(alpha=2),
-                    'batch_variance': BatchVariance(),
-                    'dimension_covariance': DimensionCovariance()
-                    }
     metrics = {metric: metrics_dict[metric] for metric in args.metrics if metric != 'qm9_properties'}
     tensorboard_functions = {function: TENSORBOARD_FUNCTIONS[function] for function in args.tensorboard_functions}
+    metrics.update({'mae_denormalized': QM9DenormalizedL1(dataset=all_data),
+                    'mse_denormalized': QM9DenormalizedL2(dataset=all_data)})
     if 'qm9_properties' in args.metrics:
         metrics.update(
             {task: QM9SingleTargetDenormalizedL1(dataset=all_data, task=task) for task in all_data.target_tasks})
@@ -158,7 +213,7 @@ def train(args):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/pna_changed_data.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/pna_zinc.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
@@ -166,6 +221,7 @@ def parse_arguments():
     p.add_argument('--prefetch_graphs', type=bool, default=True,
                    help='load graphs into memory (needs RAM and upfront computation) for faster data loading during training')
     p.add_argument('--patience', type=int, default=20, help='stop training after no improvement in this many epochs')
+    p.add_argument('--dataset', type=str, default='qm9', help='either zinc or qm9')
     p.add_argument('--num_train', type=int, default=100000, help='n samples of the model samples to use for train')
     p.add_argument('--seed', type=int, default=123, help='seed for reproducibility')
     p.add_argument('--seed_data', type=int, default=123, help='if you want to use a different seed for the datasplit')

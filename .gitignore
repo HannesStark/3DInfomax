@@ -114,8 +114,8 @@ runs2
 
 
 
-data/Molecules/QM9/processed/
-data/Molecules/ZINC/
+dataset/QM9/processed/
+dataset/ZINC/
 
 .idea/
 
@@ -124,3 +124,4 @@ temp/
 bsub*
 stderr*
 stdout*
+/dataset/ZINC/

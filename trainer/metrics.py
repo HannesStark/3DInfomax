@@ -45,6 +45,13 @@ class QM9DenormalizedL1(nn.Module):
         loss = F.l1_loss(preds, targets)
         return loss
 
+class MAE(nn.Module):
+    def __init__(self,):
+        super().__init__()
+
+    def forward(self, preds, targets):
+        loss = F.l1_loss(preds, targets)
+        return loss
 
 def denormalize(normalized: torch.tensor, means, stds, eV2meV):
     denormalized = normalized * stds[None, :] + means[None, :]  # [batchsize, n_tasks]
