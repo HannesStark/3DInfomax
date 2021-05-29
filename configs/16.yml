@@ -1,4 +1,4 @@
-experiment_name: 'tune_VICReg_Snapshot'
+experiment_name: 'tune_VICReg'
 
 pretrain_checkpoint: runs/PNA_VICReg_27-05_17-16-42/best_checkpoint.pt
 transfer_layers:

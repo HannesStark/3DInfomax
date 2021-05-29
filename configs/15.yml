@@ -1,4 +1,4 @@
-experiment_name: 'tune_BarlowTwins_variance1_snapshot'
+experiment_name: 'tune_BarlowTwins_variance1'
 
 pretrain_checkpoint: runs/PNA_BarlowTwins_variance1/best_checkpoint.pt
 transfer_layers:

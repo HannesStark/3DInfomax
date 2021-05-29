@@ -1,6 +1,6 @@
-experiment_name: 'tune_BYOL'
+experiment_name: 'tune_InfoNCE'
 
-pretrain_checkpoint: runs/BYOLwrapper__17-05_20-38-29/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_InfoNCE_28-05_08-03-57/best_checkpoint.pt
 transfer_layers:
   - gnn
 

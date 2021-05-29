@@ -1,15 +1,15 @@
-experiment_name: 'InfoNCE_uniformity05'
+experiment_name: 'NTXent_variance05'
 
 num_epochs: 1000
 batch_size: 500
 prefetch_graphs: True
 log_iterations: 50
 patience: 35
-loss_func: InfoNCE
+loss_func: NTXent
 loss_params:
   tau: 0.1
-  uniformity_reg: 0.5
-  variance_reg: 0
+  uniformity_reg: 0
+  variance_reg: 0.5
   covariance_reg: 0
 num_train: 50000
 features:
@@ -41,10 +41,6 @@ metrics:
   - contrastive_accuracy
   - true_negative_rate
   - true_positive_rate
-  - uniformity
-  - alignment
-  - batch_variance
-  - dimension_covariance
 main_metric: loss
 collate_function: contrastive_collate
 
@@ -101,21 +97,17 @@ model_parameters:
   residual: True
 
 # Model parameters
-model3d_type: 'Net3D'
+model3d_type: 'EGNN'
 model3d_parameters:
   target_dim: 256
-  hidden_dim: 20
-  hidden_edge_dim: 20
-  message_net_layers: 1
-  update_net_layers: 1
-  reduce_func: 'mean'
-  fourier_encodings: 4
-  propagation_depth: 2
+  hidden_dim: 70
+  propagation_depth: 3
   dropout: 0.0
-  batch_norm: True
   readout_batchnorm: True
-  batch_norm_momentum: 0.9
-  readout_hidden_dim: 20
+  batch_norm: True
+  # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
+  batch_norm_momentum: 0.97
+  readout_hidden_dim: 128
   readout_layers: 2
   readout_aggregators:
     - min

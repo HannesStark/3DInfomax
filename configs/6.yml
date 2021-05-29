@@ -1,16 +1,13 @@
-experiment_name: 'InfoNCE'
+experiment_name: 'InfoNCE_EGNN_dropout025'
 
 num_epochs: 1000
 batch_size: 500
-prefetch_graphs: False
-log_iterations: 50
+prefetch_graphs: True
+log_iterations: 30
 patience: 35
 loss_func: InfoNCE
 loss_params:
   tau: 0.1
-  uniformity_reg: 0
-  variance_reg: 0
-  covariance_reg: 0
 num_train: 50000
 features:
   - 'implicit-valence'
@@ -41,30 +38,26 @@ metrics:
   - contrastive_accuracy
   - true_negative_rate
   - true_positive_rate
-  - uniformity
-  - alignment
-  - batch_variance
-  - dimension_covariance
 main_metric: loss
 collate_function: contrastive_collate
 
 optimizer: Adam
 optimizer_params:
-  lr: 8.0e-5
-  weight_decay: 6.0e-8
+  lr: 5.0e-5
+  weight_decay: 1.0e-4
 
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: 700
+  warmup_steps: 1500
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
   cooldown: 20
   factor: 0.6
   patience: 25
   min_lr: 1.0e-6
-  threshold: 1.0e-4
+  threshold: 1.0e-5
   mode: 'min'
   verbose: True
 
@@ -78,7 +71,8 @@ model_parameters:
   mid_batch_norm: True
   last_batch_norm: True
   readout_batchnorm: True
-  batch_norm_momentum: 0.9
+  # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
+  batch_norm_momentum: 0.97
   readout_hidden_dim: 90
   readout_layers: 2
   dropout: 0.0
@@ -101,22 +95,18 @@ model_parameters:
   residual: True
 
 # Model parameters
-model3d_type: 'Net3D'
+model3d_type: 'EGNN'
 model3d_parameters:
   target_dim: 256
-  hidden_dim: 20
-  hidden_edge_dim: 20
-  message_net_layers: 1
-  update_net_layers: 1
-  reduce_func: 'mean'
-  fourier_encodings: 4
-  propagation_depth: 2
-  dropout: 0.0
-  batch_norm: True
+  hidden_dim: 70
+  propagation_depth: 3
+  dropout: 0.25
   readout_batchnorm: True
-  batch_norm_momentum: 0.9
-  readout_hidden_dim: 20
-  readout_layers: 2
+  batch_norm: True
+  # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
+  batch_norm_momentum: 0.97
+  readout_hidden_dim: 128
+  readout_layers: 1
   readout_aggregators:
     - min
     - max
