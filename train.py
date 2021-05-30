@@ -140,6 +140,7 @@ def train_qm9(args, device, metrics_dict):
         # but only if they do not contain 'teacher' and remove 'student.' which we need for loading from BYOLWrapper
         pretrained_gnn_dict = {k.replace('student.', ''): v for k, v in checkpoint['model_state_dict'].items() if any(
             transfer_layer in k for transfer_layer in args.transfer_layers) and 'teacher' not in k}
+        ic(pretrained_gnn_dict.keys())
         model_state_dict = model.state_dict()
         model_state_dict.update(pretrained_gnn_dict)  # update the gnn layers with the pretrained weights
         model.load_state_dict(model_state_dict)
@@ -213,7 +214,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/pna_zinc.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/6.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')

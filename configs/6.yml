@@ -1,4 +1,4 @@
-experiment_name: 'tune_VICReg_EGNN_snapshot'
+experiment_name: 'tune_NTXent_EGNN_hidden_dim30_new_tuning_setup'
 
 pretrain_checkpoint: runs/PNA_NTXent_EGNN_hidden_dim30_25-05_09-38-47/best_checkpoint.pt
 transfer_layers:
@@ -48,7 +48,8 @@ optimizer_params:
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: 1500
+  warmup_steps: 700
+  interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
   factor: 0.5

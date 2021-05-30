@@ -155,7 +155,7 @@ class QM9Dataset(Dataset):
                                     'dist_embedding',
                                     'mol_id', 'targets',
                                     'one_hot_bond_types', 'edge_indices', 'smiles', 'atomic_number_long']
-        self.qm9_directory = 'data/Molecules/QM9'
+        self.qm9_directory = 'dataset/QM9'
         self.processed_file = 'qm9_processed.pt'
         self.distances_file = 'qm9_distances.pt'
         self.raw_qm9_file = 'qm9.csv'
