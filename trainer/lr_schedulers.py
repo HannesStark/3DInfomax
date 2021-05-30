@@ -18,7 +18,6 @@ class WarmUpWrapper:
         self.optim = optimizer
         self._step = 0
         self.interpolation = interpolation
-        self.interpolation_start_value = 0
         self.warmup_steps = np.array(warmup_steps)
         self.total_warmup_steps = self.warmup_steps.sum()
         self.wrapped_scheduler = globals()[wrapped_scheduler](self.optim, **kwargs)
@@ -30,13 +29,14 @@ class WarmUpWrapper:
 
     def step(self, metrics=None):
         "Update parameters and lr"
-        if self._step <= self.total_warmup_steps:
+        if self._step < self.total_warmup_steps:
             warmup_phase = 0
             for steps in self.warmup_steps.cumsum():
                 if self._step >= steps:
                     warmup_phase += 1
             for i, p in enumerate(self.optim.param_groups):
-                if i <= warmup_phase:
+                # update all parameters if there is only one entry specified for the warmup steps otherwise only update the ones corresponding to the current warmup phase
+                if i <= warmup_phase or len(self.warmup_steps) == 1:
                     # interpolate between 0 and the final starting learning rate
                     interpolation_value = self._step - ([0] + list(self.warmup_steps.cumsum()))[warmup_phase] +1
                     if self.interpolation == 'linear':

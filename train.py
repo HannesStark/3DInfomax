@@ -120,7 +120,7 @@ def train_qm9(args, device, metrics_dict):
     train_idx = model_idx[:args.num_train]
     # for debugging purposes:
     # test_idx = all_idx[len(model_idx): len(model_idx) + 200]
-    # val_idx = all_idx[len(model_idx) + len(test_idx): len(model_idx) + len(test_idx)]
+    # val_idx = all_idx[len(model_idx) + len(test_idx): len(model_idx) + len(test_idx) + 200]
 
     model = globals()[args.model_type](node_dim=all_data[0][0].ndata['f'].shape[1],
                                        edge_dim=all_data[0][0].edata['w'].shape[1] if args.use_e_features else 0,
@@ -175,10 +175,13 @@ def train_qm9(args, device, metrics_dict):
                                                avg_d=all_data.avg_degree,
                                                **args.model3d_parameters)
         print('3D model trainable params: ', sum(p.numel() for p in model3d.parameters() if p.requires_grad))
-        # all_named_parameters
-        # normal_params = [v for k, v in model.named_parameters() if 'batch_norm' in k]
-        # batch_norm_params = [v for k, v in model.named_parameters() if 'batch_norm' in k]
-        optim = globals()[args.optimizer](list(model.parameters()) + list(model3d.parameters()),
+        all_named_parameters = itertools.chain(model.named_parameters(), model3d.named_parameters())
+        ic(all_named_parameters)
+        ic(args.optimizer_params)
+        normal_params = [v for k, v in all_named_parameters if not 'batch_norm' in k]
+        batch_norm_params = [v for k, v in all_named_parameters if 'batch_norm' in k]
+        optim = globals()[args.optimizer]([{'params': batch_norm_params, 'weight_decay': 0},
+                                           {'params': normal_params}],
                                           **args.optimizer_params)
         ssl_trainer = BYOLTrainer if args.ssl_mode == 'byol' else SelfSupervisedTrainer
         trainer = ssl_trainer(model=model,
@@ -222,7 +225,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/6.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/contrastive_debug.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
