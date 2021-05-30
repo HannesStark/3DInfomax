@@ -1,6 +1,6 @@
-experiment_name: 'tune_EGNN_hidden_dim30_final'
+experiment_name: 'tune_3DNet_Batchnorm_Adam_80000_pretrain_samples'
 
-pretrain_checkpoint: runs/PNA_NTXent_EGNN_hidden_dim30_25-05_09-38-47/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_NTXent_3DNet_Batchnorm_Adam_80000_pretrain_samples_29-05_07-49-40/best_checkpoint.pt
 transfer_layers:
   - gnn
 
