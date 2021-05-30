@@ -158,10 +158,10 @@ def train_qm9(args, device, metrics_dict):
     val_loader = DataLoader(Subset(all_data, val_idx), batch_size=args.batch_size, collate_fn=collate_function)
     test_loader = DataLoader(Subset(all_data, test_idx), batch_size=args.batch_size, collate_fn=collate_function)
 
+    metrics_dict.update({'mae_denormalized': QM9DenormalizedL1(dataset=all_data),
+                    'mse_denormalized': QM9DenormalizedL2(dataset=all_data)})
     metrics = {metric: metrics_dict[metric] for metric in args.metrics if metric != 'qm9_properties'}
     tensorboard_functions = {function: TENSORBOARD_FUNCTIONS[function] for function in args.tensorboard_functions}
-    metrics.update({'mae_denormalized': QM9DenormalizedL1(dataset=all_data),
-                    'mse_denormalized': QM9DenormalizedL2(dataset=all_data)})
     if 'qm9_properties' in args.metrics:
         metrics.update(
             {task: QM9SingleTargetDenormalizedL1(dataset=all_data, task=task) for task in all_data.target_tasks})
