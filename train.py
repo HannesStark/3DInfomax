@@ -199,7 +199,7 @@ def train_qm9(args, device, metrics_dict):
         transferred_params = [v for k, v in model.named_parameters() if k in pretrained_gnn_dict.keys()]
         new_params = [v for k, v in model.named_parameters() if
                       k not in pretrained_gnn_dict.keys() and 'batch_norm' not in k]
-        batch_norm_params = [v for k, v in model.named_parameters() if 'batch_norm' in k]
+        batch_norm_params = [v for k, v in model.named_parameters() if 'batch_norm' in k and k not in pretrained_gnn_dict.keys()]
 
         transfer_lr = args.optimizer_params['lr'] if args.transferred_lr == None else args.transferred_lr
         # the order of the params here determines in which order they will start being updated during warmup when using ordered warmup in the warmupwrapper
