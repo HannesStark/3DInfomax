@@ -139,7 +139,8 @@ def train_qm9(args, device, metrics_dict):
         # get all the weights that have something from 'args.transfer_layers' in their keys name
         # but only if they do not contain 'teacher' and remove 'student.' which we need for loading from BYOLWrapper
         pretrained_gnn_dict = {k.replace('student.', ''): v for k, v in checkpoint['model_state_dict'].items() if any(
-            transfer_layer in k for transfer_layer in args.transfer_layers) and 'teacher' not in k}
+            transfer_layer in k for transfer_layer in args.transfer_layers) and 'teacher' not in k and not any(
+            to_exclude in k for to_exclude in args.exclude_from_transfer)}
         ic(pretrained_gnn_dict.keys())
         model_state_dict = model.state_dict()
         model_state_dict.update(pretrained_gnn_dict)  # update the gnn layers with the pretrained weights
@@ -159,7 +160,7 @@ def train_qm9(args, device, metrics_dict):
     test_loader = DataLoader(Subset(all_data, test_idx), batch_size=args.batch_size, collate_fn=collate_function)
 
     metrics_dict.update({'mae_denormalized': QM9DenormalizedL1(dataset=all_data),
-                    'mse_denormalized': QM9DenormalizedL2(dataset=all_data)})
+                         'mse_denormalized': QM9DenormalizedL2(dataset=all_data)})
     metrics = {metric: metrics_dict[metric] for metric in args.metrics if metric != 'qm9_properties'}
     tensorboard_functions = {function: TENSORBOARD_FUNCTIONS[function] for function in args.tensorboard_functions}
     if 'qm9_properties' in args.metrics:
@@ -174,6 +175,9 @@ def train_qm9(args, device, metrics_dict):
                                                avg_d=all_data.avg_degree,
                                                **args.model3d_parameters)
         print('3D model trainable params: ', sum(p.numel() for p in model3d.parameters() if p.requires_grad))
+        # all_named_parameters
+        # normal_params = [v for k, v in model.named_parameters() if 'batch_norm' in k]
+        # batch_norm_params = [v for k, v in model.named_parameters() if 'batch_norm' in k]
         optim = globals()[args.optimizer](list(model.parameters()) + list(model3d.parameters()),
                                           **args.optimizer_params)
         ssl_trainer = BYOLTrainer if args.ssl_mode == 'byol' else SelfSupervisedTrainer
@@ -189,13 +193,17 @@ def train_qm9(args, device, metrics_dict):
                               tensorboard_functions=tensorboard_functions,
                               scheduler_step_per_batch=args.scheduler_step_per_batch)
     else:
-        transferred_params = [v for k, v in model.named_parameters() if
-                              any(transfer_name in k for transfer_name in args.transfer_layers)]
+        transferred_params = [v for k, v in model.named_parameters() if k in pretrained_gnn_dict.keys()]
         new_params = [v for k, v in model.named_parameters() if
-                      all(transfer_name not in k for transfer_name in args.transfer_layers)]
+                      k not in pretrained_gnn_dict.keys() and 'batch_norm' not in k]
+        batch_norm_params = [v for k, v in model.named_parameters() if 'batch_norm' in k]
+
         transfer_lr = args.optimizer_params['lr'] if args.transferred_lr == None else args.transferred_lr
-        optim = globals()[args.optimizer]([{'params': new_params},
-                                           {'params': transferred_params, 'lr': transfer_lr}], **args.optimizer_params)
+        # the order of the params here determines in which order they will start being updated during warmup when using ordered warmup in the warmupwrapper
+        optim = globals()[args.optimizer]([{'params': batch_norm_params, 'weight_decay': 0},
+                                           {'params': new_params},
+                                           {'params': transferred_params, 'lr': transfer_lr},
+                                           ], **args.optimizer_params)
         trainer = Trainer(model=model,
                           args=args,
                           metrics=metrics,
@@ -245,6 +253,8 @@ def parse_arguments():
     p.add_argument('--pretrain_checkpoint', type=str, help='Specify path to finetune from a pretrained checkpoint')
     p.add_argument('--transfer_layers', default=[],
                    help='strings contained in the keys of the weights that are transferred')
+    p.add_argument('--exclude_from_transfer', default=[],
+                   help='parameters that usually should not be transferred like batchnorm params')
     p.add_argument('--transferred_lr', type=float, default=None, help='set to use a different LR for transfer layers')
 
     p.add_argument('--features', default=[], help='types of input features like [atom_one_hot, hybridizations]')

@@ -5,28 +5,47 @@ import numpy as np
 class WarmUpWrapper:
     "Optim wrapper that implements lr."
 
-    def __init__(self, optimizer, wrapped_scheduler, warmup_steps, interpolation='cosine', **kwargs):
+    def __init__(self, optimizer, wrapped_scheduler, warmup_steps, interpolation='linear',
+                 **kwargs):
+        '''
+
+        :param optimizer:
+        :param wrapped_scheduler:
+        :param warmup_steps: is a list containing how many warmup steps should be done for each param group before updating all parameters
+        :param interpolation:
+        :param kwargs:
+        '''
         self.optim = optimizer
         self._step = 0
         self.interpolation = interpolation
-        self.warmup_steps = warmup_steps
+        self.interpolation_start_value = 0
+        self.warmup_steps = np.array(warmup_steps)
+        self.total_warmup_steps = self.warmup_steps.sum()
         self.wrapped_scheduler = globals()[wrapped_scheduler](self.optim, **kwargs)
         self.start_lrs = []
+        self.warmup_phase = 0
         for p in self.optim.param_groups:
             self.start_lrs.append(p['lr'])
+            p['lr'] = 0
 
     def step(self, metrics=None):
         "Update parameters and lr"
-        if self._step <= self.warmup_steps:
+        if self._step <= self.total_warmup_steps:
+            warmup_phase = 0
+            for steps in self.warmup_steps.cumsum():
+                if self._step >= steps:
+                    warmup_phase += 1
             for i, p in enumerate(self.optim.param_groups):
-                # interpolate between 0 and the final starting learning rate
-                if self.interpolation == 'linear':
-                    p['lr'] = self.start_lrs[i] * (self._step / self.warmup_steps)
-                elif self.interpolation == 'cosine':
-                    p['lr'] = self.start_lrs[i] * ((-np.cos((np.pi) * (self._step / self.warmup_steps)) + 1) * 0.5)
-                else:
-                    raise ValueError('interpolation not implemented:', self.interpolation)
-            self.optim.step()
+                if i <= warmup_phase:
+                    # interpolate between 0 and the final starting learning rate
+                    interpolation_value = self._step - ([0] + list(self.warmup_steps.cumsum()))[warmup_phase] +1
+                    if self.interpolation == 'linear':
+                        p['lr'] = self.start_lrs[i] * (interpolation_value / self.warmup_steps[warmup_phase])
+                    elif self.interpolation == 'cosine':
+                        p['lr'] = self.start_lrs[i] * (
+                                (-np.cos((np.pi) * (interpolation_value / self.warmup_steps[warmup_phase])) + 1) * 0.5)
+                    else:
+                        raise ValueError('interpolation not implemented:', self.interpolation)
         else:
             if metrics != None:
                 self.wrapped_scheduler.step(metrics=metrics)

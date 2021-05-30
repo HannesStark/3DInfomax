@@ -148,7 +148,7 @@ class Trainer():
                 self.optim.zero_grad()
                 self.optim_steps += 1
                 if self.lr_scheduler != None and (self.scheduler_step_per_batch or (isinstance(self.lr_scheduler,
-                                                                                               WarmUpWrapper) and self.lr_scheduler.warmup_steps > self.lr_scheduler._step)):  # step per batch if that is what we want to do or if we are using a warmup schedule and are still in the warmup period
+                                                                                               WarmUpWrapper) and self.lr_scheduler.total_warmup_steps > self.lr_scheduler._step)):  # step per batch if that is what we want to do or if we are using a warmup schedule and are still in the warmup period
                     self.lr_scheduler.step()
 
             with torch.no_grad():
