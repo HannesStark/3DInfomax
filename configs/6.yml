@@ -1,6 +1,6 @@
-experiment_name: 'tune_NTXent_EGNN_hidden_dim30_new_tuning_setup'
+experiment_name: 'tune_InfoNCE_EGNN_dropout025'
 
-pretrain_checkpoint: runs/PNA_NTXent_EGNN_hidden_dim30_25-05_09-38-47/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_InfoNCE_EGNN_dropout025_29-05_07-49-39/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
@@ -46,8 +46,7 @@ metrics:
 
 optimizer: Adam
 optimizer_params:
-  lr: 7.0e-5
-  weight_decay: 1.0e-11
+  lr: 1.0e-4
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper

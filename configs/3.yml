@@ -1,8 +1,11 @@
-experiment_name: 'tune_InfoNCE_variance1'
+experiment_name: 'tune_NTXent_EGNN_Batchnorm_Adam_80000_pretrain_samples'
 
-pretrain_checkpoint: runs/PNA_InfoNCE_variance1_28-05_07-38-18/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_NTXent_EGNN_Batchnorm_Adam_80000_pretrain_samples_29-05_07-49-39/best_checkpoint.pt
 transfer_layers:
   - gnn
+exclude_from_transfer:
+  - batch_norm
+
 
 num_epochs: 1000
 batch_size: 128
@@ -10,7 +13,7 @@ prefetch_graphs: True
 log_iterations: 30
 patience: 50
 loss_func: L1Loss
-num_train: 50000
+num_train: 20000
 targets:
   - homo
 features:
@@ -48,7 +51,8 @@ optimizer_params:
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: 1500
+  warmup_steps: [700,700,390]
+  interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
   factor: 0.5

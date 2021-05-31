@@ -42,10 +42,10 @@ def train(args):
                     'mae': MAE(),
                     'positive_similarity': PositiveSimilarity(),
                     'negative_similarity': NegativeSimilarity(),
-                    'f1_contrastive': F1Contrastive(threshold=0.5, device=device),
-                    'contrastive_accuracy': ContrastiveAccuracy(threshold=0.5),
-                    'true_negative_rate': TrueNegativeRate(threshold=0.5),
-                    'true_positive_rate': TruePositiveRate(threshold=0.5),
+                    'f1_contrastive': F1Contrastive(threshold=0.8752, device=device),
+                    'contrastive_accuracy': ContrastiveAccuracy(threshold=0.8752),
+                    'true_negative_rate': TrueNegativeRate(threshold=0.8752),
+                    'true_positive_rate': TruePositiveRate(threshold=0.8752),
                     'mean_predictor_loss': MeanPredictorLoss(globals()[args.loss_func](**args.loss_params)),
                     'uniformity': Uniformity(t=2),
                     'alignment': Alignment(alpha=2),
@@ -225,7 +225,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/contrastive_debug.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/7.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
