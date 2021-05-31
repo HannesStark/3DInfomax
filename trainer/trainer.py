@@ -18,7 +18,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from datetime import datetime
 
-from commons.utils import flatten_dict
+from commons.utils import flatten_dict, tensorboard_gradient_magnitude
 
 
 class Trainer():
@@ -152,7 +152,7 @@ class Trainer():
                     self.lr_scheduler.step()
 
             with torch.no_grad():
-                if i % args.log_iterations == args.log_iterations - 1 and optim != None:  # log every log_iterations during train
+                if self.optim_steps % args.log_iterations == args.log_iterations - 1 and optim != None:  # log every log_iterations during train
                     metrics_results = self.evaluate_metrics(predictions, targets, batch)
                     metrics_results[type(self.loss_func).__name__] = loss.item()
                     self.run_tensorboard_functions(predictions, targets, step=self.optim_steps, data_split='train')
@@ -175,7 +175,8 @@ class Trainer():
         return total_metrics, epoch_predictions, epoch_targets
 
     def after_optim_step(self):
-        pass
+        if self.optim_steps % self.args.log_iterations == self.args.log_iterations - 1:
+            tensorboard_gradient_magnitude(self.optim, self.writer, self.optim_steps)
 
     def evaluate_metrics(self, predictions, targets, batch=None) -> Dict[str, float]:
         metric_results = {}
@@ -205,7 +206,7 @@ class Trainer():
 
     def run_tensorboard_functions(self, predictions, targets, step, data_split):
         for key, tensorboard_function in self.tensorboard_functions.items():
-            tensorboard_function(predictions, targets, self.writer, step, data_split= data_split)
+            tensorboard_function(predictions, targets, self.writer, step, data_split=data_split)
 
     def evaluation(self, data_loader: DataLoader, data_split: str = ''):
         """

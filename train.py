@@ -248,6 +248,7 @@ def parse_arguments():
                    help='step every batch if true step every epoch otherwise')
     p.add_argument('--log_iterations', type=int, default=-1,
                    help='log every log_iterations iterations (-1 for only logging after each epoch)')
+    p.add_argument('--expensive_log_iterations', type=int, default=100, help='frequency with which to do expensive logging operations')
     p.add_argument('--metrics', default=[], help='tensorboard metrics [mae, mae_denormalized, qm9_properties ...]')
     p.add_argument('--main_metric', default='mae_denormalized', help='for early stopping etc.')
     p.add_argument('--main_metric_goal', type=str, default='min', help='controls early stopping. [max, min]')

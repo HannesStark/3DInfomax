@@ -1,3 +1,4 @@
+from commons.utils import tensorboard_gradient_magnitude
 from trainer.self_supervised_trainer import SelfSupervisedTrainer
 
 
@@ -18,3 +19,5 @@ class BYOLTrainer(SelfSupervisedTrainer):
 
     def after_optim_step(self):
         self.model.ma_teacher_update()
+        if self.optim_steps % self.args.log_iterations == self.args.log_iterations - 1:
+            tensorboard_gradient_magnitude(self.optim, self.writer, self.optim_steps)
