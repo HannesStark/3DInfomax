@@ -24,7 +24,7 @@ class ZINCDataset(Dataset):
 
     def __init__(self, split, device='cuda:0', normalize=False, prefetch_graphs=True, **kwargs):
 
-        self.zinc_directory = 'data/Molecules/ZINC'
+        self.zinc_directory = 'dataset/ZINC'
         self.normalize = normalize
         self.device = device
 

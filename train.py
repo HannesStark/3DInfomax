@@ -1,5 +1,7 @@
 import argparse
 import os
+from itertools import chain
+
 from icecream import install
 
 from commons.utils import seed_all, get_random_indices, TENSORBOARD_FUNCTIONS
@@ -141,7 +143,6 @@ def train_qm9(args, device, metrics_dict):
         pretrained_gnn_dict = {k.replace('student.', ''): v for k, v in checkpoint['model_state_dict'].items() if any(
             transfer_layer in k for transfer_layer in args.transfer_layers) and 'teacher' not in k and not any(
             to_exclude in k for to_exclude in args.exclude_from_transfer)}
-        ic(pretrained_gnn_dict.keys())
         model_state_dict = model.state_dict()
         model_state_dict.update(pretrained_gnn_dict)  # update the gnn layers with the pretrained weights
         model.load_state_dict(model_state_dict)
@@ -175,11 +176,10 @@ def train_qm9(args, device, metrics_dict):
                                                avg_d=all_data.avg_degree,
                                                **args.model3d_parameters)
         print('3D model trainable params: ', sum(p.numel() for p in model3d.parameters() if p.requires_grad))
-        all_named_parameters = itertools.chain(model.named_parameters(), model3d.named_parameters())
-        ic(all_named_parameters)
-        ic(args.optimizer_params)
-        normal_params = [v for k, v in all_named_parameters if not 'batch_norm' in k]
-        batch_norm_params = [v for k, v in all_named_parameters if 'batch_norm' in k]
+
+        normal_params = [v for k, v in chain(model.named_parameters(), model3d.named_parameters()) if not 'batch_norm' in k]
+        batch_norm_params = [v for k, v in chain(model.named_parameters(), model3d.named_parameters()) if 'batch_norm' in k]
+
         optim = globals()[args.optimizer]([{'params': batch_norm_params, 'weight_decay': 0},
                                            {'params': normal_params}],
                                           **args.optimizer_params)
@@ -225,7 +225,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/7.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/contrastive_debug.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
