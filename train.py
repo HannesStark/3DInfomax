@@ -11,6 +11,8 @@ from trainer.byol_wrapper import BYOLwrapper
 
 import seaborn
 
+from trainer.self_supervised_alternating_trainer import SelfSupervisedAlternatingTrainer
+
 install()
 seaborn.set_theme()
 
@@ -183,7 +185,12 @@ def train_qm9(args, device, metrics_dict):
         optim = globals()[args.optimizer]([{'params': batch_norm_params, 'weight_decay': 0},
                                            {'params': normal_params}],
                                           **args.optimizer_params)
-        ssl_trainer = BYOLTrainer if args.ssl_mode == 'byol' else SelfSupervisedTrainer
+        if args.ssl_mode == 'byol':
+            ssl_trainer = BYOLTrainer
+        elif args.ssl_mode == 'alternating':
+            ssl_trainer = SelfSupervisedAlternatingTrainer
+        elif args.ssl_mode == 'contrastive':
+            ssl_trainer = SelfSupervisedTrainer
         trainer = ssl_trainer(model=model,
                               model3d=model3d,
                               args=args,
@@ -225,7 +232,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/contrastive_debug.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/15.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
@@ -284,7 +291,7 @@ def parse_arguments():
 
     p.add_argument('--model3d_type', type=str, default=None, help='Classname of one of the models in the models dir')
     p.add_argument('--model3d_parameters', type=dict, help='dictionary of model parameters')
-    p.add_argument('--ssl_mode', type=str, default='contrastive', help='[contrastive, byol]')
+    p.add_argument('--ssl_mode', type=str, default='contrastive', help='[contrastive, byol, alternating]')
     p.add_argument('--train_sampler', type=str, default=None, help='any of pytorchs samplers or a custom sampler')
 
     p.add_argument('--eval_on_test', type=bool, default=True, help='runs evaluation on test set if true')
