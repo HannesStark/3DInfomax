@@ -1,6 +1,5 @@
-experiment_name: 'NTXent_EGNN_hidden_dim30_alternating'
+experiment_name: 'NTXent_EGNN_tiny_1layer'
 
-ssl_mode: alternating
 num_epochs: 1000
 batch_size: 500
 prefetch_graphs: True
@@ -39,6 +38,10 @@ metrics:
   - contrastive_accuracy
   - true_negative_rate
   - true_positive_rate
+  - uniformity
+  - alignment
+  - batch_variance
+  - dimension_covariance
 main_metric: loss
 collate_function: contrastive_collate
 
@@ -46,7 +49,7 @@ optimizer: SGD
 optimizer_params:
   lr: 5.0e-5
   momentum: 0.95
-  weight_decay: 1.0e-4
+  weight_decay: 1.0e-9
 
 
 scheduler_step_per_batch: False
@@ -92,6 +95,7 @@ model_parameters:
     - min
     - max
     - mean
+    - sum
   pretrans_layers: 2
   posttrans_layers: 1
   residual: True
@@ -101,18 +105,20 @@ model3d_type: 'EGNN'
 model3d_parameters:
   target_dim: 256
   hidden_dim: 30
-  propagation_depth: 3
+  propagation_depth: 1
+  fourier_encodings: 4
   dropout: 0.0
   readout_batchnorm: True
   batch_norm: True
   # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
   batch_norm_momentum: 0.97
   readout_hidden_dim: 128
-  readout_layers: 2
+  readout_layers: 1
   readout_aggregators:
     - min
     - max
     - mean
+    - sum
 
 
 # continue training from checkpoint:

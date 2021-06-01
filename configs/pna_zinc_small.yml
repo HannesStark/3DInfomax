@@ -34,30 +34,26 @@ lr_scheduler_params:
 model_type: 'PNA'
 model_parameters:
   target_dim: 1
-  hidden_dim: 90
+  hidden_dim: 65
   mid_batch_norm: True
   last_batch_norm: True
   readout_batchnorm: True
-  readout_hidden_dim: 90
+  readout_hidden_dim: 50
   readout_layers: 2
   dropout: 0.0
-  propagation_depth: 6
+  propagation_depth: 4
   aggregators:
     - mean
     - max
-    - min
-    - std
     - sum
   scalers:
     - identity
-    - amplification
-    - attenuation
   readout_aggregators:
     - min
     - max
     - mean
     - sum
-  pretrans_layers: 2
+  pretrans_layers: 1
   posttrans_layers: 1
   residual: True
 

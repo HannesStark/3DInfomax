@@ -1,4 +1,4 @@
-experiment_name: 'NTXent_small_EGNN'
+experiment_name: 'NTXent_small_EGNN_mean_aggregation'
 
 num_epochs: 1000
 batch_size: 500
@@ -38,6 +38,10 @@ metrics:
   - contrastive_accuracy
   - true_negative_rate
   - true_positive_rate
+  - uniformity
+  - alignment
+  - batch_variance
+  - dimension_covariance
 main_metric: loss
 collate_function: contrastive_collate
 
@@ -50,7 +54,7 @@ optimizer_params:
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: 700
+  warmup_steps: [700]
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
   cooldown: 20

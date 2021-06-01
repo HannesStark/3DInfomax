@@ -65,13 +65,13 @@ def train(args):
 
 def train_zinc(args, device, metrics_dict):
     train_data = ZINCDataset(split='train', device=device, prefetch_graphs=args.prefetch_graphs)
-    val_data = ZINCDataset(split='train', device=device, prefetch_graphs=args.prefetch_graphs)
-    test_data = ZINCDataset(split='train', device=device, prefetch_graphs=args.prefetch_graphs)
+    val_data = ZINCDataset(split='val', device=device, prefetch_graphs=args.prefetch_graphs)
+    test_data = ZINCDataset(split='test', device=device, prefetch_graphs=args.prefetch_graphs)
 
     model = globals()[args.model_type](node_dim=train_data[0][0].ndata['f'].shape[1],
                                        edge_dim=train_data[0][0].edata['w'].shape[1] if args.use_e_features else 0,
                                        **args.model_parameters)
-
+    print('model trainable params: ', sum(p.numel() for p in model.parameters() if p.requires_grad))
     collate_function = globals()[args.collate_function]
     if args.train_sampler != None:
         sampler = globals()[args.train_sampler](data_source=train_data, batch_size=args.batch_size,
@@ -232,7 +232,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/15.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/6.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
