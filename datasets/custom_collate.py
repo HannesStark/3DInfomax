@@ -38,6 +38,19 @@ def random_3d_node_drop_collate(batch: List[Tuple]):
 
     return batched_graph, batched_graph3d
 
+def random_2d_node_drop_collate(batch: List[Tuple]):
+    graphs, graphs3d = map(list, zip(*batch))
+    device = graphs3d[0].device
+    for graph in graphs:
+        remove_number = torch.randint(low=0, high=11, size=(1,))
+        if remove_number > 0:
+            remove_indices = torch.randint(low=0, high=graph.number_of_nodes(), size=(remove_number.data,), device=device)
+            graph.remove_nodes(remove_indices)
+    batched_graph = dgl.batch(graphs)
+    batched_graph3d = dgl.batch(graphs3d)
+
+    return batched_graph, batched_graph3d
+
 
 def padded_collate(batch):
     """

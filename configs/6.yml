@@ -1,4 +1,4 @@
-experiment_name: 'tune_NTXent_EGNN_hidden_dim30_LR5'
+experiment_name: 'tune_NTXent_EGNN_hidden_dim30_LR5_weightdecay6'
 
 pretrain_checkpoint: runs/PNA_NTXent_EGNN_hidden_dim30_25-05_09-38-47/best_checkpoint.pt
 transfer_layers:
@@ -47,7 +47,7 @@ metrics:
 optimizer: Adam
 optimizer_params:
   lr: 1.0e-5
-  weight_decay: 1.0e-10
+  weight_decay: 1.0e-6
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper

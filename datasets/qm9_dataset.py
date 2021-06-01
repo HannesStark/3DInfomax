@@ -19,7 +19,6 @@ from commons.spherical_encoding import dist_emb
 hartree2eV = physical_constants['hartree-electron volt relationship'][0]
 
 
-
 class QM9Dataset(Dataset):
     """The QM9 Dataset. It loads the specified types of data into memory. The processed data is saved in eV units.
 
@@ -118,10 +117,10 @@ class QM9Dataset(Dataset):
         which is the stuff that is commonly predicted by papers like DimeNet, Equivariant GNNs, Spherical message passing
         The returned targets will be in the order specified by this list
     features:
-        possible features are ['implicit-valence','degree','hybridization','chirality','mass','electronegativity','aromatic-bond','formal-charge','radical-electron','in-ring','atomic-number', 'pos-enc', 'vec1', 'vec2', 'vec3', 'vec-1', 'vec-2', 'vec-3', 'inv_vec1', 'inv_vec2', 'inv_vec3', 'inv_vec-1', 'inv_vec-2', 'inv_vec-3']
+        possible features are ['standard_normal_noise', 'implicit-valence','degree','hybridization','chirality','mass','electronegativity','aromatic-bond','formal-charge','radical-electron','in-ring','atomic-number', 'pos-enc', 'vec1', 'vec2', 'vec3', 'vec-1', 'vec-2', 'vec-3', 'inv_vec1', 'inv_vec2', 'inv_vec3', 'inv_vec-1', 'inv_vec-2', 'inv_vec-3']
 
     features3d:
-        possible features are ['implicit-valence','degree','hybridization','chirality','mass','electronegativity','aromatic-bond','formal-charge','radical-electron','in-ring','atomic-number', 'pos-enc', 'vec1', 'vec2', 'vec3', 'vec-1', 'vec-2', 'vec-3', 'inv_vec1', 'inv_vec2', 'inv_vec3', 'inv_vec-1', 'inv_vec-2', 'inv_vec-3']
+        possible features are ['standard_normal_noise', 'implicit-valence','degree','hybridization','chirality','mass','electronegativity','aromatic-bond','formal-charge','radical-electron','in-ring','atomic-number', 'pos-enc', 'vec1', 'vec2', 'vec3', 'vec-1', 'vec-2', 'vec-3', 'inv_vec1', 'inv_vec2', 'inv_vec3', 'inv_vec-1', 'inv_vec-2', 'inv_vec-3']
     e_features:
         possible are ['bond-type-onehot','stereo','conjugated','in-ring-edges']
     others: list
@@ -209,6 +208,10 @@ class QM9Dataset(Dataset):
 
         if features and 'constant_ones' in features or features3d and 'constant_ones' in features3d:
             data_dict['constant_ones'] = torch.ones_like(data_dict['atomic_number_long'], dtype=torch.float)
+        if features and 'standard_normal_noise' in features or features3d and 'standard_normal_noise' in features3d:
+            data_dict['standard_normal_noise'] = torch.normal(
+                mean=torch.zeros_like(data_dict['atomic_number_long'], dtype=torch.float),
+                std=torch.ones_like(data_dict['atomic_number_long'], dtype=torch.float))
 
         if self.pos_dir:
             self.pos_enc = data_dict['pos-enc']
@@ -450,15 +453,15 @@ class QM9Dataset(Dataset):
                                                   disconnected_comp=True)
             positional_encodings.append(pos_enc)
 
-            mol_coordinates = coordinates[total_atoms:total_atoms+n_atoms]
+            mol_coordinates = coordinates[total_atoms:total_atoms + n_atoms]
             dist_matrix = torch.cdist(mol_coordinates, mol_coordinates)
             inv_dist_matrix = 1 / (torch.eye(dist_matrix.shape[0]) + dist_matrix) - torch.eye(dist_matrix.shape[0])
             e, v = torch.symeig(inv_dist_matrix, eigenvectors=True)
-            inv_distance_eigvectors['inv_vec1'].append(v[1].abs()[:,None])
-            inv_distance_eigvectors['inv_vec2'].append(v[2].abs()[:,None])
-            inv_distance_eigvectors['inv_vec-1'].append(v[-1][:,None])
-            inv_distance_eigvectors['inv_vec-2'].append(v[-2][:,None])
-            inv_distance_eigvectors['inv_vec-3'].append(v[-3][:,None])
+            inv_distance_eigvectors['inv_vec1'].append(v[1].abs()[:, None])
+            inv_distance_eigvectors['inv_vec2'].append(v[2].abs()[:, None])
+            inv_distance_eigvectors['inv_vec-1'].append(v[-1][:, None])
+            inv_distance_eigvectors['inv_vec-2'].append(v[-2][:, None])
+            inv_distance_eigvectors['inv_vec-3'].append(v[-3][:, None])
             e, v = torch.symeig(dist_matrix, eigenvectors=True)
             distance_eigvectors['vec1'].append(v[1].abs()[:, None])
             distance_eigvectors['vec2'].append(v[2].abs()[:, None])
@@ -554,5 +557,3 @@ class QM9Dataset(Dataset):
                     'pairwise_indices': torch.cat(pairwise_indices, dim=1),
                     'pairwise_slices': torch.tensor(pairwise_slices, dtype=torch.long), },
                    os.path.join(self.qm9_directory, 'processed', self.distances_file))
-
-

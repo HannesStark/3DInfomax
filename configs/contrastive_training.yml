@@ -55,7 +55,7 @@ optimizer_params:
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: 1500
+  warmup_steps: [1500]
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
   cooldown: 20
@@ -104,20 +104,19 @@ model_parameters:
 model3d_type: 'EGNN'
 model3d_parameters:
   target_dim: 256
-  hidden_dim: 70
+  hidden_dim: 30
   propagation_depth: 3
   dropout: 0.0
   readout_batchnorm: True
   batch_norm: True
   # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
-  batch_norm_momentum: 0.96
+  batch_norm_momentum: 0.97
   readout_hidden_dim: 128
   readout_layers: 2
   readout_aggregators:
     - min
     - max
     - mean
-    - sum
 
 
 
