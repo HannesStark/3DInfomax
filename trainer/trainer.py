@@ -26,7 +26,7 @@ class Trainer():
                  device: torch.device, tensorboard_functions: Dict[str, Callable],
                  optim=None, main_metric_goal: str = 'min', loss_func=torch.nn.MSELoss(),
                  scheduler_step_per_batch: bool = True):
-        self.optim = optim
+
         self.args = args
         self.device = device
         self.model = model.to(self.device)
@@ -36,10 +36,11 @@ class Trainer():
         self.main_metric = type(self.loss_func).__name__ if main_metric == 'loss' else main_metric
         self.main_metric_goal = main_metric_goal
         self.scheduler_step_per_batch = scheduler_step_per_batch
-        if self.args.lr_scheduler:  # Needs "from torch.optim.lr_scheduler import *" to work
-            self.lr_scheduler = globals()[args.lr_scheduler](self.optim, **args.lr_scheduler_params)
-        else:
-            self.lr_scheduler = None
+        self.initialize_optimizer(optim)
+        self.initialize_scheduler()
+
+
+
 
         if args.checkpoint:
             checkpoint = torch.load(args.checkpoint, map_location=self.device)
@@ -86,10 +87,7 @@ class Trainer():
                 metrics, val_predictions, val_targets = self.predict(val_loader, epoch)
                 val_loss = metrics[type(self.loss_func).__name__]
                 if self.lr_scheduler != None and not self.scheduler_step_per_batch:
-                    try:
-                        self.lr_scheduler.step(metrics=val_loss)
-                    except:
-                        self.lr_scheduler.step()
+                    self.step_schedulers(metrics=val_loss)
 
                 self.tensorboard_log(metrics, data_split='val', epoch=epoch, log_hparam=True, step=self.optim_steps)
                 val_score = metrics[self.main_metric]
@@ -117,6 +115,16 @@ class Trainer():
         predictions = self.model(*tuple(batch[:-1]))  # foward the rest of the batch to the model
         return self.loss_func(predictions, targets), predictions, targets
 
+    def process_batch(self, batch, optim):
+        loss, predictions, targets = self.forward_pass(batch)
+        if optim != None:  # run backpropagation if an optimizer is provided
+            loss.backward()
+            self.optim.step()
+            self.after_optim_step()  # overwrite to do stuff before zeroing out grads
+            self.optim.zero_grad()
+            self.optim_steps += 1
+        return loss, predictions, targets
+
     def predict(self, data_loader: DataLoader, epoch: int = 0, optim: torch.optim.Optimizer = None,
                 return_predictions: bool = False) -> Tuple[Dict, Union[torch.Tensor, None], Union[torch.Tensor, None]]:
         """
@@ -140,16 +148,7 @@ class Trainer():
         epoch_predictions = []
         for i, batch in enumerate(data_loader):
             batch = [element.to(self.device) for element in batch]
-            loss, predictions, targets = self.forward_pass(batch)
-            if optim != None:  # run backpropagation if an optimizer is provided
-                loss.backward()
-                self.optim.step()
-                self.after_optim_step()  # overwrite to do stuff before zeroing out grads
-                self.optim.zero_grad()
-                self.optim_steps += 1
-                if self.lr_scheduler != None and (self.scheduler_step_per_batch or (isinstance(self.lr_scheduler,
-                                                                                               WarmUpWrapper) and self.lr_scheduler.total_warmup_steps > self.lr_scheduler._step)):  # step per batch if that is what we want to do or if we are using a warmup schedule and are still in the warmup period
-                    self.lr_scheduler.step()
+            loss, predictions, targets = self.process_batch(batch, optim)
 
             with torch.no_grad():
                 if self.optim_steps % args.log_iterations == args.log_iterations - 1 and optim != None:  # log every log_iterations during train
@@ -177,6 +176,9 @@ class Trainer():
     def after_optim_step(self):
         if self.optim_steps % self.args.log_iterations == self.args.log_iterations - 1:
             tensorboard_gradient_magnitude(self.optim, self.writer, self.optim_steps)
+        if self.lr_scheduler != None and (self.scheduler_step_per_batch or (isinstance(self.lr_scheduler,
+                                                                                       WarmUpWrapper) and self.lr_scheduler.total_warmup_steps > self.lr_scheduler._step)):  # step per batch if that is what we want to do or if we are using a warmup schedule and are still in the warmup period
+            self.step_schedulers()
 
     def evaluate_metrics(self, predictions, targets, batch=None) -> Dict[str, float]:
         metric_results = {}
@@ -225,6 +227,34 @@ class Trainer():
                 file.write(f'{key}: {value}\n')
                 print(f'{key}: {value}')
 
+    def initialize_optimizer(self, optim):
+        transferred_keys = [k for k in self.model.state_dict().keys() if
+                            any(transfer_layer in k for transfer_layer in self.args.transfer_layers) and not any(
+                                to_exclude in k for to_exclude in self.args.exclude_from_transfer)]
+        transferred_params = [v for k, v in self.model.named_parameters() if k in transferred_keys]
+        new_params = [v for k, v in self.model.named_parameters() if
+                      k not in transferred_keys and 'batch_norm' not in k]
+        batch_norm_params = [v for k, v in self.model.named_parameters() if
+                             'batch_norm' in k and k not in transferred_keys]
+
+        transfer_lr = self.args.optimizer_params['lr'] if self.args.transferred_lr == None else self.args.transferred_lr
+        # the order of the params here determines in which order they will start being updated during warmup when using ordered warmup in the warmupwrapper
+        self.optim = optim([{'params': batch_norm_params, 'weight_decay': 0},
+                            {'params': new_params},
+                            {'params': transferred_params, 'lr': transfer_lr}], **self.args.optimizer_params)
+
+    def step_schedulers(self, metrics=None):
+        try:
+            self.lr_scheduler.step(metrics=metrics)
+        except:
+            self.lr_scheduler.step()
+
+    def initialize_scheduler(self):
+        if self.args.lr_scheduler:  # Needs "from torch.optim.lr_scheduler import *" to work
+            self.lr_scheduler = globals()[self.args.lr_scheduler](self.optim, **self.args.lr_scheduler_params)
+        else:
+            self.lr_scheduler = None
+
     def save_checkpoint(self, epoch: int, checkpoint_name: str):
         """
         Saves checkpoint of model in the logdir of the summarywriter/ in the used rundir
@@ -259,3 +289,6 @@ class Trainer():
             'optimizer_state_dict': self.optim.state_dict(),
             'scheduler_state_dict': None if self.lr_scheduler == None else self.lr_scheduler.state_dict()
         }, os.path.join(self.writer.log_dir, checkpoint_name))
+
+
+

@@ -1,4 +1,4 @@
-experiment_name: 'NTXent_EGNN_hidden_dim30_lower_weight_decay_and_none_for_BNparams_Tau01'
+experiment_name: 'NTXent_EGNN_atomic_numbers'
 
 num_epochs: 1000
 batch_size: 500
@@ -22,7 +22,7 @@ features:
   - 'in-ring'
   - 'atomic-number'
 features3d:
-  - 'constant_ones'
+  - 'atomic-number'
 e_features:
   - 'bond-type-onehot'
   - 'stereo'
@@ -38,6 +38,10 @@ metrics:
   - contrastive_accuracy
   - true_negative_rate
   - true_positive_rate
+  - uniformity
+  - alignment
+  - batch_variance
+  - dimension_covariance
 main_metric: loss
 collate_function: contrastive_collate
 
@@ -45,7 +49,7 @@ optimizer: SGD
 optimizer_params:
   lr: 5.0e-5
   momentum: 0.95
-  weight_decay: 1.0e-11
+  weight_decay: 1.0e-4
 
 
 scheduler_step_per_batch: False
@@ -73,7 +77,7 @@ model_parameters:
   last_batch_norm: True
   readout_batchnorm: True
   # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
-  batch_norm_momentum: 0.97
+  batch_norm_momentum: 0.96
   readout_hidden_dim: 90
   readout_layers: 2
   dropout: 0.0
@@ -91,6 +95,7 @@ model_parameters:
     - min
     - max
     - mean
+    - sum
   pretrans_layers: 2
   posttrans_layers: 1
   residual: True
@@ -112,6 +117,7 @@ model3d_parameters:
     - min
     - max
     - mean
+
 
 
 # continue training from checkpoint:

@@ -2,7 +2,7 @@ experiment_name: 'baseline_sum_aggregator'
 
 num_epochs: 1000
 batch_size: 128
-prefetch_graphs: True
+prefetch_graphs: False
 log_iterations: 30
 patience: 50
 num_train: 50000
@@ -46,7 +46,7 @@ optimizer_params:
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: 1500
+  warmup_steps: [1500]
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
   factor: 0.5
@@ -71,7 +71,6 @@ model_parameters:
     - max
     - min
     - std
-    - sum
   scalers:
     - identity
     - amplification

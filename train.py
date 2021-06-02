@@ -11,6 +11,7 @@ from trainer.byol_wrapper import BYOLwrapper
 
 import seaborn
 
+from trainer.philosophy_trainer import PhilosophyTrainer
 from trainer.self_supervised_alternating_trainer import SelfSupervisedAlternatingTrainer
 
 install()
@@ -179,47 +180,40 @@ def train_qm9(args, device, metrics_dict):
                                                **args.model3d_parameters)
         print('3D model trainable params: ', sum(p.numel() for p in model3d.parameters() if p.requires_grad))
 
-        normal_params = [v for k, v in chain(model.named_parameters(), model3d.named_parameters()) if not 'batch_norm' in k]
-        batch_norm_params = [v for k, v in chain(model.named_parameters(), model3d.named_parameters()) if 'batch_norm' in k]
-
-        optim = globals()[args.optimizer]([{'params': batch_norm_params, 'weight_decay': 0},
-                                           {'params': normal_params}],
-                                          **args.optimizer_params)
+        critic = None
         if args.ssl_mode == 'byol':
             ssl_trainer = BYOLTrainer
         elif args.ssl_mode == 'alternating':
             ssl_trainer = SelfSupervisedAlternatingTrainer
         elif args.ssl_mode == 'contrastive':
             ssl_trainer = SelfSupervisedTrainer
+        elif args.ssl_mode == 'philosophy':
+            ssl_trainer = PhilosophyTrainer
+            critic = globals()[args.critic_type](node_dim=all_data[0][1].ndata['f'].shape[1],
+                                               edge_dim=all_data[0][1].edata['w'].shape[
+                                                   1] if args.use_e_features else 0,
+                                               avg_d=all_data.avg_degree,
+                                               **args.critic_parameters)
         trainer = ssl_trainer(model=model,
                               model3d=model3d,
+                              critic=critic,
                               args=args,
                               metrics=metrics,
                               main_metric=args.main_metric,
                               main_metric_goal=args.main_metric_goal,
-                              optim=optim,
+                              optim=globals()[args.optimizer],
                               loss_func=globals()[args.loss_func](**args.loss_params),
+                              critic_loss=globals()[args.critic_loss](**args.critic_loss_params),
                               device=device,
                               tensorboard_functions=tensorboard_functions,
                               scheduler_step_per_batch=args.scheduler_step_per_batch)
     else:
-        transferred_params = [v for k, v in model.named_parameters() if k in pretrained_gnn_dict.keys()]
-        new_params = [v for k, v in model.named_parameters() if
-                      k not in pretrained_gnn_dict.keys() and 'batch_norm' not in k]
-        batch_norm_params = [v for k, v in model.named_parameters() if 'batch_norm' in k and k not in pretrained_gnn_dict.keys()]
-
-        transfer_lr = args.optimizer_params['lr'] if args.transferred_lr == None else args.transferred_lr
-        # the order of the params here determines in which order they will start being updated during warmup when using ordered warmup in the warmupwrapper
-        optim = globals()[args.optimizer]([{'params': batch_norm_params, 'weight_decay': 0},
-                                           {'params': new_params},
-                                           {'params': transferred_params, 'lr': transfer_lr},
-                                           ], **args.optimizer_params)
         trainer = Trainer(model=model,
                           args=args,
                           metrics=metrics,
                           main_metric=args.main_metric,
                           main_metric_goal=args.main_metric_goal,
-                          optim=optim,
+                          optim=globals()[args.optimizer],
                           loss_func=globals()[args.loss_func](**args.loss_params),
                           device=device,
                           tensorboard_functions=tensorboard_functions,
@@ -232,7 +226,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/pna_zinc_small.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/philosophy.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
@@ -246,6 +240,8 @@ def parse_arguments():
     p.add_argument('--seed_data', type=int, default=123, help='if you want to use a different seed for the datasplit')
     p.add_argument('--loss_func', type=str, default='MSELoss', help='Class name of torch.nn like [MSELoss, L1Loss]')
     p.add_argument('--loss_params', type=dict, default={}, help='parameters with keywords of the chosen loss function')
+    p.add_argument('--critic_loss', type=str, default='MSELoss', help='Class name of torch.nn like [MSELoss, L1Loss]')
+    p.add_argument('--critic_loss_params', type=dict, default={}, help='parameters with keywords of the chosen loss function')
     p.add_argument('--optimizer', type=str, default='Adam', help='Class name of torch.optim like [Adam, SGD, AdamW]')
     p.add_argument('--optimizer_params', type=dict, help='parameters with keywords of the chosen optimizer like lr')
     p.add_argument('--lr_scheduler', type=str,
@@ -291,7 +287,9 @@ def parse_arguments():
 
     p.add_argument('--model3d_type', type=str, default=None, help='Classname of one of the models in the models dir')
     p.add_argument('--model3d_parameters', type=dict, help='dictionary of model parameters')
-    p.add_argument('--ssl_mode', type=str, default='contrastive', help='[contrastive, byol, alternating]')
+    p.add_argument('--critic_type', type=str, default=None, help='Classname of one of the models in the models dir')
+    p.add_argument('--critic_parameters', type=dict, help='dictionary of model parameters')
+    p.add_argument('--ssl_mode', type=str, default='contrastive', help='[contrastive, byol, alternating, philosophy]')
     p.add_argument('--train_sampler', type=str, default=None, help='any of pytorchs samplers or a custom sampler')
 
     p.add_argument('--eval_on_test', type=bool, default=True, help='runs evaluation on test set if true')

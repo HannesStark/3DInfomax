@@ -1,4 +1,5 @@
 from commons.utils import tensorboard_gradient_magnitude
+from trainer.lr_schedulers import WarmUpWrapper
 from trainer.self_supervised_trainer import SelfSupervisedTrainer
 
 
@@ -21,3 +22,6 @@ class BYOLTrainer(SelfSupervisedTrainer):
         self.model.ma_teacher_update()
         if self.optim_steps % self.args.log_iterations == self.args.log_iterations - 1:
             tensorboard_gradient_magnitude(self.optim, self.writer, self.optim_steps)
+        if self.lr_scheduler != None and (self.scheduler_step_per_batch or (isinstance(self.lr_scheduler,
+                                                                                       WarmUpWrapper) and self.lr_scheduler.total_warmup_steps > self.lr_scheduler._step)):  # step per batch if that is what we want to do or if we are using a warmup schedule and are still in the warmup period
+            self.lr_scheduler.step()

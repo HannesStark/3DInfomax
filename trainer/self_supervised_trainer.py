@@ -1,4 +1,5 @@
 import os
+from itertools import chain
 from typing import Dict, Callable
 
 import torch
@@ -10,10 +11,11 @@ class SelfSupervisedTrainer(Trainer):
     def __init__(self, model, model3d, args, metrics: Dict[str, Callable], main_metric: str,
                  device: torch.device, tensorboard_functions: Dict[str, Callable],
                  optim=None, main_metric_goal: str = 'min', loss_func=torch.nn.MSELoss,
-                 scheduler_step_per_batch: bool = True):
+                 scheduler_step_per_batch: bool = True, **kwargs):
         self.model3d = model3d.to(device)  # move to device before loading optim params in super class
         super(SelfSupervisedTrainer, self).__init__(model, args, metrics, main_metric, device, tensorboard_functions,
                                                     optim, main_metric_goal, loss_func, scheduler_step_per_batch)
+
         if args.checkpoint:
             checkpoint = torch.load(args.checkpoint, map_location=self.device)
             self.model3d.load_state_dict(checkpoint['model3d_state_dict'])
@@ -43,6 +45,16 @@ class SelfSupervisedTrainer(Trainer):
             for key, metric in self.metrics.items():
                 metric_results[key] = metric(z2d, z3d).item()
         return metric_results
+
+    def initialize_optimizer(self, optim):
+        normal_params = [v for k, v in chain(self.model.named_parameters(), self.model3d.named_parameters()) if
+                         not 'batch_norm' in k]
+        batch_norm_params = [v for k, v in chain(self.model.named_parameters(), self.model3d.named_parameters()) if
+                             'batch_norm' in k]
+
+        self.optim = optim([{'params': batch_norm_params, 'weight_decay': 0},
+                            {'params': normal_params}],
+                           **self.args.optimizer_params)
 
     def save_model_state(self, epoch: int, checkpoint_name: str):
         torch.save({
