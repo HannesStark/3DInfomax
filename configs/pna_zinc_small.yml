@@ -22,7 +22,7 @@ optimizer_params:
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [1500]
+  warmup_steps: [100]
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
   factor: 0.5
@@ -37,8 +37,8 @@ model_parameters:
   hidden_dim: 50
   mid_batch_norm: True
   last_batch_norm: True
-  readout_batchnorm: True
-  readout_hidden_dim: 50
+  readout_batchnorm: False
+  readout_hidden_dim: 80
   readout_layers: 2
   dropout: 0.0
   propagation_depth: 4

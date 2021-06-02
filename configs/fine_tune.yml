@@ -83,10 +83,10 @@ model_parameters:
     - amplification
     - attenuation
   readout_aggregators:
-    - sum
     - min
     - max
     - mean
+    - sum
   pretrans_layers: 2
   posttrans_layers: 1
   residual: True
