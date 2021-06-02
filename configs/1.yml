@@ -1,6 +1,6 @@
-experiment_name: 'tune_NTXent_EGNN_hidden_dim30_new_tuning_setup'
+experiment_name: 'tune_NTXent_EGNN_weight_decaye8_BNmomentum096'
 
-pretrain_checkpoint: runs/PNA_NTXent_EGNN_hidden_dim30_25-05_09-38-47/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_NTXent_EGNN_weight_decaye8_BNmomentum096_31-05_09-36-39/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:

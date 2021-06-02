@@ -1,6 +1,6 @@
-experiment_name: 'tune_NTXent_EGNN_hidden_dim30_new_tuning_setup'
+experiment_name: 'tune_NTXent_EGNN_tiny_1layer'
 
-pretrain_checkpoint: runs/PNA_NTXent_EGNN_hidden_dim30_25-05_09-38-47/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_NTXent_EGNN_tiny_1layer_01-06_07-50-53/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
