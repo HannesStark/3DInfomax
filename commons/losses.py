@@ -13,11 +13,11 @@ class CriticLoss(_Loss):
         super(CriticLoss, self).__init__()
     def forward(self, z2, reconstruction, **kwargs):
         batch_size, metric_dim, repeats = reconstruction.size()
-        z2_norm = F.normalize(z2.repeat(1,1, repeats).view(batch_size,-1), dim=-1, p=2)
-        reconstruction_norm = F.normalize(reconstruction.view(batch_size,-1), dim=-1, p=2)
+        z2_norm = F.normalize(z2.repeat(1,1, repeats), dim=1, p=2)
+        reconstruction_norm = F.normalize(reconstruction, dim=1, p=2)
         loss = (((z2_norm - reconstruction_norm) ** 2).sum(dim=-1)).mean()
 
-        return loss
+        return -loss
 
 class BarlowTwinsLoss(_Loss):
     def __init__(self, scale_loss=1 / 32, lambd=3.9e-3, uniformity_reg=0, variance_reg=0, covariance_reg=0) -> None:
