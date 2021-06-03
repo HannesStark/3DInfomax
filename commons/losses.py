@@ -8,15 +8,18 @@ from torch.nn.modules.loss import _Loss, L1Loss, MSELoss
 import numpy as np
 import torch.nn.functional as F
 
+
 class CriticLoss(_Loss):
     def __init__(self) -> None:
         super(CriticLoss, self).__init__()
+
     def forward(self, z2, reconstruction, **kwargs):
         batch_size, metric_dim, repeats = reconstruction.size()
-        z2_norm = F.normalize(z2, dim=1, p=2)[...,None].repeat(1,1, repeats)
+        z2_norm = F.normalize(z2, dim=1, p=2)[..., None].repeat(1, 1, repeats)
         reconstruction_norm = F.normalize(reconstruction, dim=1, p=2)
         loss = (((z2_norm - reconstruction_norm) ** 2).sum(dim=1)).mean()
         return loss
+
 
 class BarlowTwinsLoss(_Loss):
     def __init__(self, scale_loss=1 / 32, lambd=3.9e-3, uniformity_reg=0, variance_reg=0, covariance_reg=0) -> None:
@@ -355,6 +358,30 @@ class NTXentLocalGlobal(_Loss):
         loss = - torch.log(loss).mean()
 
         return loss
+
+
+class NTXentGlobalLocal(_Loss):
+    '''
+        this is just the NTXentLocalGlobal with arguments switched around
+        Args:
+            z1, z2: Tensor of shape [batch_size, z_dim]
+            tau: Float. Usually in (0,1].
+            norm: Boolean. Whether to apply normlization.
+        '''
+
+    def __init__(self, **kwargs) -> None:
+        super(NTXentGlobalLocal, self).__init__()
+        self.ntxent_local_global = NTXentLocalGlobal(**kwargs)
+
+    def forward(self, zg, zn, nodes_per_graph) -> Tensor:
+        '''
+        Args:
+            zg: Tensor of shape [n_graphs, z_dim].
+            zn: Tensor of shape [n_nodes, z_dim].
+            batch: Tensor of shape [n_graphs].
+        '''
+
+        return self.ntxent_local_global(zn, zg, nodes_per_graph)
 
 
 class SampleLossWrapper(_Loss):

@@ -13,6 +13,7 @@ from models.base_layers import MLP
 class Net3D(nn.Module):
     def __init__(self, node_dim, edge_dim, hidden_dim, target_dim, readout_aggregators: List[str],
                  batch_norm=False,
+                 node_wise_output_layers=2,
                  readout_batchnorm=True, batch_norm_momentum=0.1, reduce_func='sum',
                  dropout=0.0, propagation_depth: int = 4, readout_layers: int = 2, readout_hidden_dim=None,
                  fourier_encodings=0,
@@ -56,18 +57,20 @@ class Net3D(nn.Module):
                            mid_activation=activation, reduce_func=reduce_func, message_net_layers=message_net_layers,
                            update_net_layers=update_net_layers))
 
-        self.node_wise_output_network = MLP(
-            in_dim=hidden_dim,
-            hidden_size=hidden_dim,
-            out_dim=hidden_dim,
-            mid_batch_norm=batch_norm,
-            last_batch_norm=batch_norm,
-            batch_norm_momentum=batch_norm_momentum,
-            layers=2,
-            mid_activation=activation,
-            dropout=dropout,
-            last_activation='None',
-        )
+        self.node_wise_output_layers = node_wise_output_layers
+        if self.node_wise_output_layers > 0:
+            self.node_wise_output_network = MLP(
+                in_dim=hidden_dim,
+                hidden_size=hidden_dim,
+                out_dim=hidden_dim,
+                mid_batch_norm=batch_norm,
+                last_batch_norm=batch_norm,
+                batch_norm_momentum=batch_norm_momentum,
+                layers=node_wise_output_layers,
+                mid_activation=activation,
+                dropout=dropout,
+                last_activation='None',
+            )
         if readout_hidden_dim == None:
             readout_hidden_dim = hidden_dim
         self.readout_aggregators = readout_aggregators
@@ -86,7 +89,8 @@ class Net3D(nn.Module):
         for mp_layer in self.mp_layers:
             mp_layer(graph)
 
-        graph.apply_nodes(self.output_node_func)
+        if self.node_wise_output_layers > 0:
+            graph.apply_nodes(self.output_node_func)
 
         readouts_to_cat = [dgl.readout_nodes(graph, 'f', op=aggr) for aggr in self.readout_aggregators]
         readout = torch.cat(readouts_to_cat, dim=-1)

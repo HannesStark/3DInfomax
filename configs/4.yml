@@ -1,21 +1,14 @@
-experiment_name: 'tune_NTXent_EGNN_sum_readout_small_egnn_lower_lr_final'
-
-pretrain_checkpoint: runs/PNA_NTXent_EGNN_sum_readout_small_egnn_lower_lr_01-06_07-50-53/best_checkpoint.pt
-transfer_layers:
-  - gnn
-exclude_from_transfer:
-  - batch_norm
-
+experiment_name: 'NTXent_tiny_1layer_nodewise_output_10hidden_dim'
 
 num_epochs: 1000
-batch_size: 128
+batch_size: 500
 prefetch_graphs: True
-log_iterations: 30
-patience: 50
-loss_func: L1Loss
+log_iterations: 50
+patience: 35
+loss_func: NTXent
+loss_params:
+  tau: 0.1
 num_train: 50000
-targets:
-  - homo
 features:
   - 'implicit-valence'
   - 'degree'
@@ -28,37 +21,47 @@ features:
   - 'radical-electron'
   - 'in-ring'
   - 'atomic-number'
+features3d:
+  - 'constant_ones'
 e_features:
   - 'bond-type-onehot'
   - 'stereo'
   - 'conjugated'
   - 'in-ring-edges'
-
-
 required_data:
   - mol_graph
-  - targets
+  - complete_graph3d
 metrics:
-  - mae_denormalized
-  - pearsonr
-  - rsquared
-  - qm9_properties
+  - positive_similarity
+  - negative_similarity
+  - f1_contrastive
+  - contrastive_accuracy
+  - true_negative_rate
+  - true_positive_rate
+  - uniformity
+  - alignment
+  - batch_variance
+  - dimension_covariance
+main_metric: loss
+collate_function: contrastive_collate
 
 optimizer: Adam
 optimizer_params:
-  lr: 7.0e-5
-  weight_decay: 1.0e-11
+  lr: 8.0e-5
+  weight_decay: 5.0e-7
+
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [700,700,390]
-  interpolation: 'linear'
+  warmup_steps: [700]
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
-  factor: 0.5
+  cooldown: 20
+  factor: 0.6
   patience: 25
-  min_lr: 5.0e-6
+  min_lr: 1.0e-6
+  threshold: 1.0e-4
   mode: 'min'
   verbose: True
 
@@ -67,10 +70,15 @@ lr_scheduler_params:
 # Model parameters
 model_type: 'PNA'
 model_parameters:
-  target_dim: 1
+  target_dim: 256
   hidden_dim: 90
   mid_batch_norm: True
   last_batch_norm: True
+  readout_batchnorm: True
+  # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
+  batch_norm_momentum: 0.96
+  readout_hidden_dim: 90
+  readout_layers: 2
   dropout: 0.0
   propagation_depth: 6
   aggregators:
@@ -86,10 +94,34 @@ model_parameters:
     - min
     - max
     - mean
-    - sum
   pretrans_layers: 2
   posttrans_layers: 1
   residual: True
+
+# Model parameters
+model3d_type: 'Net3D'
+model3d_parameters:
+  target_dim: 256
+  hidden_dim: 10
+  hidden_edge_dim: 10
+  node_wise_output_layers: 1
+  message_net_layers: 1
+  update_net_layers: 1
+  reduce_func: 'mean'
+  fourier_encodings: 4
+  propagation_depth: 1
+  dropout: 0.0
+  batch_norm: True
+  readout_batchnorm: True
+  # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
+  batch_norm_momentum: 0.96
+  readout_hidden_dim: 10
+  readout_layers: 1
+  readout_aggregators:
+    - min
+    - max
+    - mean
+
 
 
 # continue training from checkpoint:
