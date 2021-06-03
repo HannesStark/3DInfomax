@@ -1,5 +1,5 @@
 # continue training from checkpoint:
-checkpoint: runs/BYOLwrapper_byol_variance1/last_checkpoint.pt
+checkpoint: runs/BYOLwrapper_byol_variance1_27-05_17-16-43/last_checkpoint.pt
 
 tensorboard_functions:
   - singular_values
