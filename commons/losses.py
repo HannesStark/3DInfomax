@@ -13,11 +13,10 @@ class CriticLoss(_Loss):
         super(CriticLoss, self).__init__()
     def forward(self, z2, reconstruction, **kwargs):
         batch_size, metric_dim, repeats = reconstruction.size()
-        z2_norm = F.normalize(z2.repeat(1,1, repeats), dim=1, p=2)
+        z2_norm = F.normalize(z2, dim=1, p=2)[...,None].repeat(1,1, repeats)
         reconstruction_norm = F.normalize(reconstruction, dim=1, p=2)
-        loss = (((z2_norm - reconstruction_norm) ** 2).sum(dim=-1)).mean()
-
-        return -loss
+        loss = (((z2_norm - reconstruction_norm) ** 2).sum(dim=1)).mean()
+        return loss
 
 class BarlowTwinsLoss(_Loss):
     def __init__(self, scale_loss=1 / 32, lambd=3.9e-3, uniformity_reg=0, variance_reg=0, covariance_reg=0) -> None:
@@ -59,6 +58,7 @@ class CosineSimilarityLoss(_Loss):
 
     def forward(self, z1, z2, **kwargs) -> Tensor:
         # see the "Bootstrap your own latent" paper equation 2 for the loss"
+        # this loss is equivalent to 2 - 2*cosine_similarity
         x = F.normalize(z1, dim=-1, p=2)
         y = F.normalize(z2, dim=-1, p=2)
         loss = (((x - y) ** 2).sum(dim=-1)).mean()

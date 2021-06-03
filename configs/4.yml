@@ -1,4 +1,4 @@
-experiment_name: 'tune_NTXent_EGNN_sum_readout_small_egnn_lower_lr'
+experiment_name: 'tune_NTXent_EGNN_sum_readout_small_egnn_lower_lr_final'
 
 pretrain_checkpoint: runs/PNA_NTXent_EGNN_sum_readout_small_egnn_lower_lr_01-06_07-50-53/best_checkpoint.pt
 transfer_layers:

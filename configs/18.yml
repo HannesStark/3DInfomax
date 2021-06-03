@@ -1,4 +1,4 @@
-experiment_name: 'philosophy_debug'
+experiment_name: 'philosophy'
 
 ssl_mode: philosophy
 num_epochs: 1000

@@ -1,4 +1,4 @@
-experiment_name: 'tune_NTXent_EGNN_hidden_dim30_lower_weight_decay_and_none_for_BNparams_Tau01'
+experiment_name: 'tune_NTXent_EGNN_hidden_dim30_lower_weight_decay_and_none_for_BNparams_Tau01_final'
 
 pretrain_checkpoint: runs/PNA_NTXent_EGNN_hidden_dim30_lower_weight_decay_and_none_for_BNparams_Tau01_31-05_09-36-39/best_checkpoint.pt
 transfer_layers:

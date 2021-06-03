@@ -1,4 +1,4 @@
-experiment_name: 'tune_NTXent_3dNet_hidden_dim10'
+experiment_name: 'tune_NTXent_3dNet_hidden_dim10_final'
 
 pretrain_checkpoint: runs/PNA_NTXent_3dNet_hidden_dim10_01-06_08-09-20/best_checkpoint.pt
 transfer_layers:

@@ -1,4 +1,4 @@
-experiment_name: 'tune_NTXent_EGNN_tiny_1layer'
+experiment_name: 'tune_NTXent_EGNN_tiny_1layer_final'
 
 pretrain_checkpoint: runs/PNA_NTXent_EGNN_tiny_1layer_01-06_07-50-53/best_checkpoint.pt
 transfer_layers:

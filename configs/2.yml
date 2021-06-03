@@ -1,4 +1,4 @@
-experiment_name: 'tune_NTXent_tiny_3dnet_with_sum_aggregation'
+experiment_name: 'tune_NTXent_tiny_3dnet_with_sum_aggregation_final'
 
 pretrain_checkpoint: runs/PNA_NTXent_tiny_3dnet_with_sum_aggregation_01-06_07-50-54/best_checkpoint.pt
 transfer_layers:

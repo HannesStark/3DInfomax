@@ -1,4 +1,4 @@
-experiment_name: 'tune_NTXent_EGNN_3layer_random_2d_node_drop'
+experiment_name: 'tune_NTXent_EGNN_3layer_random_2d_node_drop_final'
 
 pretrain_checkpoint: runs/PNA_NTXent_EGNN_3layer_random_2d_node_drop_01-06_12-18-03/best_checkpoint.pt
 transfer_layers:

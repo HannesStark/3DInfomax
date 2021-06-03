@@ -1,4 +1,4 @@
-experiment_name: 'tune_NTXent_EGNN_3layer_dropout01'
+experiment_name: 'tune_NTXent_EGNN_3layer_dropout01_final'
 
 pretrain_checkpoint: runs/PNA_NTXent_EGNN_3layer_dropout01_01-06_12-18-01/best_checkpoint.pt
 transfer_layers:

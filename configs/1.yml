@@ -1,4 +1,4 @@
-experiment_name: 'tune_NTXent_EGNN_weight_decaye8_BNmomentum096'
+experiment_name: 'tune_NTXent_EGNN_weight_decaye8_BNmomentum096_final'
 
 pretrain_checkpoint: runs/PNA_NTXent_EGNN_weight_decaye8_BNmomentum096_31-05_09-36-39/best_checkpoint.pt
 transfer_layers:
