@@ -1,5 +1,5 @@
 # continue training from checkpoint:
-checkpoint: runs/PNA_NTXent_tiny_3dnet_01-06_08-09-17/last_checkpoint.pt
+checkpoint: runs/PNA_NTXent_3dNet_with_sum_aggregation_01-06_08-09-17/last_checkpoint.pt
 
 tensorboard_functions:
   - singular_values

@@ -1,5 +1,5 @@
 # continue training from checkpoint:
-checkpoint: runs/PNA_NTXent_EGNN_hidden_dim30_alternating_31-05_11-36-31/last_checkpoint.pt
+checkpoint: runs/PNA_NTXent_3dNet_hidden_dim10_01-06_08-09-20/last_checkpoint.pt
 
 tensorboard_functions:
   - singular_values

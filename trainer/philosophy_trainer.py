@@ -1,4 +1,3 @@
-
 from typing import Tuple, Union, Dict
 
 import torch
@@ -10,6 +9,7 @@ from trainer.self_supervised_trainer import SelfSupervisedTrainer
 
 
 class PhilosophyTrainer(SelfSupervisedTrainer):
+    # TODO: implement loading of checkpoints to continue training. The current problem is that only one optimizer and one scheduler will be saved. We need to overwrite save model and move the scheduler and optim loading from statedict into the initialize_optim and initialize_scheduler functions instead of having them in the constructor of Trainer
     def __init__(self, critic, critic_loss, device: torch.device, **kwargs):
         self.critic = critic.to(device)
         super(PhilosophyTrainer, self).__init__(device=device, **kwargs)
@@ -30,7 +30,7 @@ class PhilosophyTrainer(SelfSupervisedTrainer):
     def process_batch(self, batch, optim):
         peasant_loss, philosopher_loss, critic_loss, view2d, view3d = self.forward_pass(batch)
         if optim != None:  # run backpropagation if an optimizer is provided
-            peasant_loss.backward(inputs=list(self.model.parameters()),retain_graph=True)
+            peasant_loss.backward(inputs=list(self.model.parameters()), retain_graph=True)
             self.optim.step()
             philosopher_loss.backward(inputs=list(self.model3d.parameters()), retain_graph=True)
             self.optim3d.step()
@@ -81,7 +81,8 @@ class PhilosophyTrainer(SelfSupervisedTrainer):
                     self.run_tensorboard_functions(predictions, targets, step=self.optim_steps, data_split='train')
                     self.tensorboard_log(metrics_results, data_split='train', step=self.optim_steps, epoch=epoch)
                     print('[Epoch %d; Iter %5d/%5d] %s: peasant_loss: %.7f' % (epoch,
-                                                                       i + 1, len(data_loader), 'train', peasant_loss.item()))
+                                                                               i + 1, len(data_loader), 'train',
+                                                                               peasant_loss.item()))
                 if optim == None:  # during validation or testing when we want to average metrics over all the data in that dataloader
                     metrics_results = self.evaluate_metrics(predictions, targets, batch)
                     metrics_results[type(self.loss_func).__name__] = peasant_loss.item()
@@ -98,7 +99,6 @@ class PhilosophyTrainer(SelfSupervisedTrainer):
         epoch_predictions = torch.cat(epoch_predictions, dim=0) if return_predictions else None
         epoch_targets = torch.cat(epoch_targets, dim=0) if return_predictions else None
         return total_metrics, epoch_predictions, epoch_targets
-
 
     def initialize_optimizer(self, optim):
         normal_params = [v for k, v in self.model.named_parameters() if not 'batch_norm' in k]
