@@ -1,5 +1,96 @@
-# continue training from checkpoint:
-checkpoint: runs/PNA_NTXent_3dNet_hidden_dim10_01-06_08-09-20/last_checkpoint.pt
+experiment_name: 'tune_NTXent_tiny_no_nodewise_output'
 
-tensorboard_functions:
-  - singular_values
+pretrain_checkpoint: runs/PNA_NTXent_tiny_no_nodewise_output_03-06_08-59-06/best_checkpoint.pt
+transfer_layers:
+  - gnn
+exclude_from_transfer:
+  - batch_norm
+
+
+num_epochs: 1000
+batch_size: 128
+prefetch_graphs: True
+log_iterations: 30
+patience: 50
+loss_func: L1Loss
+num_train: 50000
+targets:
+  - homo
+features:
+  - 'implicit-valence'
+  - 'degree'
+  - 'hybridization'
+  - 'chirality'
+  - 'mass'
+  - 'electronegativity'
+  - 'aromatic-bond'
+  - 'formal-charge'
+  - 'radical-electron'
+  - 'in-ring'
+  - 'atomic-number'
+e_features:
+  - 'bond-type-onehot'
+  - 'stereo'
+  - 'conjugated'
+  - 'in-ring-edges'
+
+
+required_data:
+  - mol_graph
+  - targets
+metrics:
+  - mae_denormalized
+  - pearsonr
+  - rsquared
+  - qm9_properties
+
+optimizer: Adam
+optimizer_params:
+  lr: 7.0e-5
+  weight_decay: 1.0e-11
+
+scheduler_step_per_batch: False
+lr_scheduler: WarmUpWrapper
+lr_scheduler_params:
+  warmup_steps: [700,700,390]
+  interpolation: 'linear'
+  # parameters of scheduler to run after warmup
+  wrapped_scheduler: ReduceLROnPlateau
+  factor: 0.5
+  patience: 25
+  min_lr: 5.0e-6
+  mode: 'min'
+  verbose: True
+
+
+
+# Model parameters
+model_type: 'PNA'
+model_parameters:
+  target_dim: 1
+  hidden_dim: 90
+  mid_batch_norm: True
+  last_batch_norm: True
+  dropout: 0.0
+  propagation_depth: 6
+  aggregators:
+    - mean
+    - max
+    - min
+    - std
+  scalers:
+    - identity
+    - amplification
+    - attenuation
+  readout_aggregators:
+    - min
+    - max
+    - mean
+    - sum
+  pretrans_layers: 2
+  posttrans_layers: 1
+  residual: True
+
+
+# continue training from checkpoint:
+#checkpoint: runs/PNAReadout_2_layer_03-04_15-29-07/last_checkpoint.pt
