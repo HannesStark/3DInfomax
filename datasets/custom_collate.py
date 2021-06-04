@@ -19,11 +19,15 @@ def pairwise_distance_collate(batch: List[Tuple]):
 
 
 def contrastive_collate(batch: List[Tuple]):
-    graphs, graphs3d = map(list, zip(*batch))
+    # optionally take targets
+    graphs, graphs3d, *targets = map(list, zip(*batch))
     batched_graph = dgl.batch(graphs)
     batched_graph3d = dgl.batch(graphs3d)
 
-    return batched_graph, batched_graph3d
+    if targets:
+        return batched_graph, batched_graph3d, torch.stack(*targets)
+    else:
+        return batched_graph, batched_graph3d
 
 def random_3d_node_drop_collate(batch: List[Tuple]):
     graphs, graphs3d = map(list, zip(*batch))

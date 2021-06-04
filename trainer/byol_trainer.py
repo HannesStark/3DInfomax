@@ -8,7 +8,7 @@ class BYOLTrainer(SelfSupervisedTrainer):
         super(BYOLTrainer, self).__init__(**kwargs)
 
     def forward_pass(self, batch):
-        graph, info3d = tuple(batch)
+        graph, info3d, *targets = tuple(batch)
         prediction2d_student, projection2d_teacher = self.model(graph)  # foward the rest of the batch to the model
         prediction3d_student, projection3d_teacher = self.model3d(info3d)
 
@@ -20,7 +20,7 @@ class BYOLTrainer(SelfSupervisedTrainer):
 
     def after_optim_step(self):
         self.model.ma_teacher_update()
-        if self.optim_steps % self.args.log_iterations == self.args.log_iterations - 1:
+        if self.optim_steps % self.args.log_iterations == 0:
             tensorboard_gradient_magnitude(self.optim, self.writer, self.optim_steps)
         if self.lr_scheduler != None and (self.scheduler_step_per_batch or (isinstance(self.lr_scheduler,
                                                                                        WarmUpWrapper) and self.lr_scheduler.total_warmup_steps > self.lr_scheduler._step)):  # step per batch if that is what we want to do or if we are using a warmup schedule and are still in the warmup period

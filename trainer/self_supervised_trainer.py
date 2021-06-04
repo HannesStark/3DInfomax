@@ -21,7 +21,7 @@ class SelfSupervisedTrainer(Trainer):
             self.model3d.load_state_dict(checkpoint['model3d_state_dict'])
 
     def forward_pass(self, batch):
-        graph, info3d = tuple(batch)
+        graph, info3d, *targets = tuple(batch)
         view2d = self.model(graph)  # foward the rest of the batch to the model
         view3d = self.model3d(info3d)
         loss = self.loss_func(view2d, view3d, nodes_per_graph=graph.batch_num_nodes())
@@ -45,6 +45,32 @@ class SelfSupervisedTrainer(Trainer):
             for key, metric in self.metrics.items():
                 metric_results[key] = metric(z2d, z3d).item()
         return metric_results
+
+    def run_per_epoch_evaluations(self, data_loader):
+        print('fitting linear probe')
+        representations = []
+        targets = []
+        for batch in data_loader:
+            batch = [element.to(self.device) for element in batch]
+            loss, view2d, view3d = self.process_batch(batch, optim=None)
+            representations.append(view2d)
+            targets.append(batch[-1])
+            if len(representations) * len(view2d) >= self.args.linear_probing_samples:
+                break
+        representations = torch.cat(representations, dim=0)
+        targets = torch.cat(targets, dim=0)
+        if len(representations) >= representations.shape[-1]:
+            X, _ = torch.lstsq(targets, representations)
+            X, _ = torch.lstsq(targets, representations)
+            sol = X[:representations.shape[-1]]
+            pred = representations @ sol
+            mean_absolute_error = (pred - targets).abs().mean()
+            self.writer.add_scalar('linear_probe_mae', mean_absolute_error.item(), self.optim_steps)
+        else:
+            raise ValueError(
+                f'We have less linear_probing_samples {len(representations)} than the metric dimension {representations.shape[-1]}. Linear probing cannot be used.')
+
+        print('finish fitting linear probe')
 
     def initialize_optimizer(self, optim):
         normal_params = [v for k, v in chain(self.model.named_parameters(), self.model3d.named_parameters()) if

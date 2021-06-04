@@ -39,9 +39,6 @@ class Trainer():
         self.initialize_optimizer(optim)
         self.initialize_scheduler()
 
-
-
-
         if args.checkpoint:
             checkpoint = torch.load(args.checkpoint, map_location=self.device)
             self.writer = SummaryWriter(os.path.dirname(args.checkpoint))
@@ -66,6 +63,9 @@ class Trainer():
         for key, value in flatten_dict(self.hparams).items():
             print(f'{key}: {value}')
 
+    def run_per_epoch_evaluations(self, loader):
+        pass
+
     def train(self, train_loader: DataLoader, val_loader: DataLoader):
         """
         Train and simultaneously evaluate on the val_loader and then estimate the stderr on eval_data if it is provided
@@ -88,6 +88,9 @@ class Trainer():
                 val_loss = metrics[type(self.loss_func).__name__]
                 if self.lr_scheduler != None and not self.scheduler_step_per_batch:
                     self.step_schedulers(metrics=val_loss)
+
+                if self.args.eval_per_epochs > 0 and epoch % self.args.eval_per_epochs == 0:
+                    self.run_per_epoch_evaluations(val_loader)
 
                 self.tensorboard_log(metrics, data_split='val', epoch=epoch, log_hparam=True, step=self.optim_steps)
                 val_score = metrics[self.main_metric]
@@ -151,7 +154,7 @@ class Trainer():
             loss, predictions, targets = self.process_batch(batch, optim)
 
             with torch.no_grad():
-                if self.optim_steps % args.log_iterations == args.log_iterations - 1 and optim != None:  # log every log_iterations during train
+                if self.optim_steps % args.log_iterations == 0 and optim != None:  # log every log_iterations during train
                     metrics_results = self.evaluate_metrics(predictions, targets, batch)
                     metrics_results[type(self.loss_func).__name__] = loss.item()
                     self.run_tensorboard_functions(predictions, targets, step=self.optim_steps, data_split='train')
@@ -165,8 +168,8 @@ class Trainer():
                     for key, value in metrics_results.items():
                         total_metrics[key] += value
                 if return_predictions:
-                    epoch_predictions.append(predictions.detach().cpu())
-                    epoch_targets.append(targets.detach().cpu())
+                    epoch_predictions.append(predictions.detach())
+                    epoch_targets.append(targets.detach())
 
         total_metrics = {k: v / len(data_loader) for k, v in total_metrics.items()}
         epoch_predictions = torch.cat(epoch_predictions, dim=0) if return_predictions else None
@@ -174,7 +177,7 @@ class Trainer():
         return total_metrics, epoch_predictions, epoch_targets
 
     def after_optim_step(self):
-        if self.optim_steps % self.args.log_iterations == self.args.log_iterations - 1:
+        if self.optim_steps % self.args.log_iterations == 0:
             tensorboard_gradient_magnitude(self.optim, self.writer, self.optim_steps)
         if self.lr_scheduler != None and (self.scheduler_step_per_batch or (isinstance(self.lr_scheduler,
                                                                                        WarmUpWrapper) and self.lr_scheduler.total_warmup_steps > self.lr_scheduler._step)):  # step per batch if that is what we want to do or if we are using a warmup schedule and are still in the warmup period
@@ -289,6 +292,3 @@ class Trainer():
             'optimizer_state_dict': self.optim.state_dict(),
             'scheduler_state_dict': None if self.lr_scheduler == None else self.lr_scheduler.state_dict()
         }, os.path.join(self.writer.log_dir, checkpoint_name))
-
-
-

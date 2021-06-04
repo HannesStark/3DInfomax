@@ -8,7 +8,7 @@ class SelfSupervisedAlternatingTrainer(SelfSupervisedTrainer):
         super(SelfSupervisedAlternatingTrainer, self).__init__(**kwargs)
 
     def forward_pass(self, batch):
-        graph, info3d = tuple(batch)
+        graph, info3d, *targets = tuple(batch)
         if self.optim_steps % 2 == 0:
             view2d = self.model(graph)
             with torch.no_grad():

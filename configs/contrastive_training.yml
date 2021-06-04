@@ -9,6 +9,8 @@ loss_func: NTXent
 loss_params:
   tau: 0.1
 num_train: 50000
+targets:
+  - homo
 features:
   - 'implicit-valence'
   - 'degree'
@@ -31,6 +33,7 @@ e_features:
 required_data:
   - mol_graph
   - complete_graph3d
+  - targets
 metrics:
   - positive_similarity
   - negative_similarity
@@ -43,6 +46,8 @@ metrics:
   - batch_variance
   - dimension_covariance
 main_metric: loss
+eval_per_epochs: 1
+linear_probing_samples: 3000
 collate_function: contrastive_collate
 
 optimizer: Adam

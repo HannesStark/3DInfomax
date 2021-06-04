@@ -124,8 +124,8 @@ def train_qm9(args, device, metrics_dict):
     val_idx = all_idx[len(model_idx) + len(test_idx):]
     train_idx = model_idx[:args.num_train]
     # for debugging purposes:
-    # test_idx = all_idx[len(model_idx): len(model_idx) + 200]
-    # val_idx = all_idx[len(model_idx) + len(test_idx): len(model_idx) + len(test_idx) + 200]
+    test_idx = all_idx[len(model_idx): len(model_idx) + 200]
+    val_idx = all_idx[len(model_idx) + len(test_idx): len(model_idx) + len(test_idx) + 3000]
 
     model = globals()[args.model_type](node_dim=all_data[0][0].ndata['f'].shape[1],
                                        edge_dim=all_data[0][0].edata['w'].shape[1] if args.use_e_features else 0,
@@ -190,10 +190,10 @@ def train_qm9(args, device, metrics_dict):
         elif args.ssl_mode == 'philosophy':
             ssl_trainer = PhilosophyTrainer
             critic = globals()[args.critic_type](node_dim=all_data[0][1].ndata['f'].shape[1],
-                                               edge_dim=all_data[0][1].edata['w'].shape[
-                                                   1] if args.use_e_features else 0,
-                                               avg_d=all_data.avg_degree,
-                                               **args.critic_parameters)
+                                                 edge_dim=all_data[0][1].edata['w'].shape[
+                                                     1] if args.use_e_features else 0,
+                                                 avg_d=all_data.avg_degree,
+                                                 **args.critic_parameters)
         trainer = ssl_trainer(model=model,
                               model3d=model3d,
                               critic=critic,
@@ -226,7 +226,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/6.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/contrastive_debug.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
@@ -241,7 +241,8 @@ def parse_arguments():
     p.add_argument('--loss_func', type=str, default='MSELoss', help='Class name of torch.nn like [MSELoss, L1Loss]')
     p.add_argument('--loss_params', type=dict, default={}, help='parameters with keywords of the chosen loss function')
     p.add_argument('--critic_loss', type=str, default='MSELoss', help='Class name of torch.nn like [MSELoss, L1Loss]')
-    p.add_argument('--critic_loss_params', type=dict, default={}, help='parameters with keywords of the chosen loss function')
+    p.add_argument('--critic_loss_params', type=dict, default={},
+                   help='parameters with keywords of the chosen loss function')
     p.add_argument('--optimizer', type=str, default='Adam', help='Class name of torch.optim like [Adam, SGD, AdamW]')
     p.add_argument('--optimizer_params', type=dict, help='parameters with keywords of the chosen optimizer like lr')
     p.add_argument('--lr_scheduler', type=str,
@@ -251,7 +252,12 @@ def parse_arguments():
                    help='step every batch if true step every epoch otherwise')
     p.add_argument('--log_iterations', type=int, default=-1,
                    help='log every log_iterations iterations (-1 for only logging after each epoch)')
-    p.add_argument('--expensive_log_iterations', type=int, default=100, help='frequency with which to do expensive logging operations')
+    p.add_argument('--expensive_log_iterations', type=int, default=100,
+                   help='frequency with which to do expensive logging operations')
+    p.add_argument('--eval_per_epochs', type=int, default=0,
+                   help='frequency with which to do run the function run_eval_per_epoch that can do some expensive calculations on the val set or sth like that. If this is zero, then the function will never be called')
+    p.add_argument('--linear_probing_samples', type=int, default=500,
+                   help='number of samples to use for linear probing in the run_eval_per_epoch function of the self supervised trainer')
     p.add_argument('--metrics', default=[], help='tensorboard metrics [mae, mae_denormalized, qm9_properties ...]')
     p.add_argument('--main_metric', default='mae_denormalized', help='for early stopping etc.')
     p.add_argument('--main_metric_goal', type=str, default='min', help='controls early stopping. [max, min]')

@@ -16,7 +16,7 @@ class PhilosophyTrainer(SelfSupervisedTrainer):
         self.critic_loss_func = critic_loss
 
     def forward_pass(self, batch):
-        graph, info3d = tuple(batch)
+        graph, info3d, *targets = tuple(batch)
         view2d = self.model(graph)
         view3d = self.model3d(info3d)
 
