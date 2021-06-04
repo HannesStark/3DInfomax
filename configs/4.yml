@@ -1,10 +1,6 @@
 # continue training from checkpoint:
 checkpoint: runs/PNALocal_NTXentLocalGlobal_tiny_3dnet_03-06_08-59-05/last_checkpoint.pt
 targets:
-  - homo
 required_data:
-  - mol_graph
-  - complete_graph3d
-  - targets
-eval_per_epochs: 1
+eval_per_epochs: 0
 linear_probing_samples: 3000
