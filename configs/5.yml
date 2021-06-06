@@ -1,4 +1,4 @@
-experiment_name: 'NTXent_tiny_1layer_nodewise_output_10hidden_dim'
+experiment_name: 'NTXent_micro_no_fourier'
 
 num_epochs: 1000
 batch_size: 500
@@ -108,7 +108,7 @@ model3d_parameters:
   message_net_layers: 1
   update_net_layers: 1
   reduce_func: 'mean'
-  fourier_encodings: 4
+  fourier_encodings: 0
   propagation_depth: 1
   dropout: 0.0
   batch_norm: True
