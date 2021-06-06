@@ -1,10 +1,4 @@
 # continue training from checkpoint:
-checkpoint: runs/PNA_NTXentGlobalLocal_tiny_3dnet_03-06_08-59-11/last_checkpoint.pt
-targets:
-  - homo
-required_data:
-  - mol_graph
-  - complete_graph3d
-  - targets
-eval_per_epochs: 1
-linear_probing_samples: 3000
+checkpoint: runs/PNA_tune_NTXent_tiny_1layer_nodewise_output_10hidden_dim_final_04-06_16-55-21/last_checkpoint.pt
+tensorboard_functions:
+  - singular_values
