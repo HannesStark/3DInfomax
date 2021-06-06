@@ -1,9 +1,9 @@
-experiment_name: 'NTXent_distance_aggregator'
+experiment_name: 'NTXent_DistanceEncoder'
 
 num_epochs: 1000
 batch_size: 500
 prefetch_graphs: True
-log_iterations: 50
+log_iterations: 30
 patience: 35
 loss_func: NTXent
 loss_params:
@@ -30,7 +30,7 @@ e_features:
   - 'in-ring-edges'
 required_data:
   - mol_graph
-  - complete_graph3d
+  - pairwise_distances
 metrics:
   - positive_similarity
   - negative_similarity
@@ -43,7 +43,7 @@ metrics:
   - batch_variance
   - dimension_covariance
 main_metric: loss
-collate_function: contrastive_collate
+collate_function: padded_distances_collate
 
 optimizer: Adam
 optimizer_params:
@@ -99,15 +99,11 @@ model_parameters:
   residual: True
 
 # Model parameters
-model3d_type: 'DistanceAggregator'
+model3d_type: 'DistanceEncoder'
 model3d_parameters:
   target_dim: 256
   hidden_dim: 10
-  hidden_edge_dim: 10
-  node_wise_output_layers: 1
-  reduce_func: 'mean'
   fourier_encodings: 4
-  propagation_depth: 1
   dropout: 0.0
   batch_norm: True
   readout_batchnorm: True
@@ -115,12 +111,3 @@ model3d_parameters:
   batch_norm_momentum: 0.96
   readout_hidden_dim: 10
   readout_layers: 1
-  readout_aggregators:
-    - min
-    - max
-    - mean
-
-
-
-# continue training from checkpoint:
-#checkpoint: runs/PNAReadout_2_layer_03-04_15-29-07/last_checkpoint.pt
