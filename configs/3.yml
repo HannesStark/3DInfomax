@@ -1,4 +1,4 @@
 # continue training from checkpoint:
-checkpoint: runs/PNA_tune_NTXentGlobalLocal_tiny_3dnet_04-06_16-55-21/last_checkpoint.pt
+checkpoint: runs/PNA_NTXentGlobalLocal_tiny_3dnet_03-06_08-59-11/last_checkpoint.pt
 tensorboard_functions:
   - singular_values

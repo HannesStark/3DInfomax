@@ -1,4 +1,4 @@
 # continue training from checkpoint:
-checkpoint: runs/PNA_tune_NTXent_tiny_1layer_nodewise_output_10hidden_dim_final_04-06_16-55-21/last_checkpoint.pt
+checkpoint: runs/PNA_NTXent_tiny_1layer_nodewise_output_10hidden_dim_03-06_08-59-03/last_checkpoint.pt
 tensorboard_functions:
   - singular_values
