@@ -1,4 +1,4 @@
-experiment_name: 'tune_NTXent_tiny_no_nodewise_output'
+experiment_name: 'tune_NTXent_tiny_no_nodewise_output_final'
 
 pretrain_checkpoint: runs/PNA_NTXent_tiny_no_nodewise_output_03-06_08-59-06/best_checkpoint.pt
 transfer_layers:
