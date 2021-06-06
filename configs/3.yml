@@ -39,7 +39,7 @@ metrics:
   - true_negative_rate
   - true_positive_rate
   - uniformity
-  - alignment
+ # - alignment
   - batch_variance
   - dimension_covariance
 main_metric: loss
