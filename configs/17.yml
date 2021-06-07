@@ -1,6 +1,6 @@
-experiment_name: 'tune_NTXent_tiny_1layer_nodewise_output_10hidden_dim_final'
+experiment_name: 'tune_NTXent_distance_aggregator'
 
-pretrain_checkpoint: runs/PNA_NTXent_tiny_1layer_nodewise_output_10hidden_dim_03-06_08-59-03/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_NTXent_distance_aggregator_06-06_12-23-56/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:

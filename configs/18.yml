@@ -1,6 +1,6 @@
-experiment_name: 'tune_NTXent_tiny_3dnet_10hiddendim_final'
+experiment_name: 'tune_NTXent_micro_no_fourier'
 
-pretrain_checkpoint: runs/PNA_NTXent_tiny_3dnet_10hiddendim_03-06_08-59-06/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_NTXent_micro_no_fourier_06-06_09-22-11/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:

@@ -1,6 +1,6 @@
-experiment_name: 'tune_NTXentGlobalLocal_tiny_3dnet_final'
+experiment_name: 'tune_NTXent_micro_sum_readout'
 
-pretrain_checkpoint: runs/PNA_NTXentGlobalLocal_tiny_3dnet_03-06_08-59-11/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_NTXent_micro_sum_readout_06-06_08-21-46/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
