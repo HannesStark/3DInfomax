@@ -1,14 +1,14 @@
-experiment_name: 'NTXent_covariance01'
+experiment_name: 'VICReg'
 
 num_epochs: 1000
 batch_size: 500
 prefetch_graphs: True
 log_iterations: 50
 patience: 35
-loss_func: NTXent
+loss_func: RegularizationLoss
 loss_params:
-  tau: 0.1
-  covariance_reg: 0.1
+  variance_reg: 1
+  covariance_reg: 0.04
 num_train: 50000
 features:
   - 'implicit-valence'
@@ -71,7 +71,7 @@ lr_scheduler_params:
 # Model parameters
 model_type: 'PNA'
 model_parameters:
-  target_dim: 256
+  target_dim: 4000
   hidden_dim: 90
   mid_batch_norm: True
   last_batch_norm: True
@@ -102,7 +102,7 @@ model_parameters:
 # Model parameters
 model3d_type: 'Net3D'
 model3d_parameters:
-  target_dim: 256
+  target_dim: 4000
   hidden_dim: 10
   hidden_edge_dim: 10
   node_wise_output_layers: 1
