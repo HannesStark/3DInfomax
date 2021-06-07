@@ -1,3 +1,3 @@
 # continue training from checkpoint:
-checkpoint: runs/PNA_tune_NTXent_tiny_1layer_nodewise_output_10hidden_dim_final_04-06_16-55-21/last_checkpoint.pt
+checkpoint: runs/PNA_tune_NTXent_tiny_1layer_nodewise_output_10hidden_dim_04-06_16-55-21/last_checkpoint.pt
 num_epochs: 1
