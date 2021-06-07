@@ -1,4 +1,4 @@
-experiment_name: 'NTXentExtraNegatives10_weight10'
+experiment_name: 'NTXentExtraNegatives10'
 
 num_epochs: 1000
 batch_size: 500
@@ -8,7 +8,7 @@ patience: 35
 loss_func: NTXentExtraNegatives
 loss_params:
   tau: 0.1
-  extra_negatives_weight: 10
+  extra_negatives_weight: 50
 num_train: 50000
 features:
   - 'implicit-valence'

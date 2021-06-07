@@ -1,3 +1,4 @@
+import copy
 from typing import List, Tuple
 
 import dgl
@@ -23,6 +24,27 @@ def contrastive_collate(batch: List[Tuple]):
     graphs, graphs3d, *targets = map(list, zip(*batch))
     batched_graph = dgl.batch(graphs)
     batched_graph3d = dgl.batch(graphs3d)
+
+    if targets:
+        return batched_graph, batched_graph3d, torch.stack(*targets)
+    else:
+        return batched_graph, batched_graph3d
+
+def noised3d_collate(batch: List[Tuple]):
+    # optionally take targets
+    std = 0.4
+    num_noised = 10
+
+    graphs, graphs3d, *targets = map(list, zip(*batch))
+    batched_graph = dgl.batch(graphs)
+    batched_graph3d = dgl.batch(graphs3d)
+    graphs3d_noised = [batched_graph3d]
+    for i in range(num_noised):
+        copy_graph = copy.deepcopy(batched_graph3d)
+        copy_graph.edata['w'] += torch.randn_like(copy_graph.edata['w'])*std
+        graphs3d_noised.append(copy_graph)
+
+    batched_graph3d = dgl.batch(graphs3d_noised)
 
     if targets:
         return batched_graph, batched_graph3d, torch.stack(*targets)

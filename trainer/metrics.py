@@ -125,6 +125,8 @@ class Alignment(nn.Module):
         self.alpha = alpha
 
     def forward(self, x1: Tensor, x2: Tensor, pos_mask: Tensor = None) -> Tensor:
+        if x1.shape != x2.shape and pos_mask == None: # if we have noisy samples our x2 has them appended at the end so we just take the non noised ones to calculate the similaritiy
+            x2 = x2[:len(x1)]
         return (x1 - x2).norm(dim=1).pow(self.alpha).mean()
 
 
@@ -144,6 +146,8 @@ class TruePositiveRate(nn.Module):
 
     def forward(self, x1: Tensor, x2: Tensor, pos_mask: Tensor = None) -> Tensor:
         batch_size, _ = x1.size()
+        if x1.shape != x2.shape and pos_mask == None: # if we have noisy samples our x2 has them appended at the end so we just take the non noised ones to calculate the similaritiy
+            x2 = x2[:batch_size]
         sim_matrix = torch.einsum('ik,jk->ij', x1, x2)
 
         x1_abs = x1.norm(dim=1)
@@ -167,6 +171,8 @@ class TrueNegativeRate(nn.Module):
 
     def forward(self, x1: Tensor, x2: Tensor, pos_mask: Tensor = None) -> Tensor:
         batch_size, _ = x1.size()
+        if x1.shape != x2.shape and pos_mask == None: # if we have noisy samples our x2 has them appended at the end so we just take the non noised ones to calculate the similaritiy
+            x2 = x2[:batch_size]
         sim_matrix = torch.einsum('ik,jk->ij', x1, x2)
 
         x1_abs = x1.norm(dim=1)
@@ -191,6 +197,8 @@ class ContrastiveAccuracy(nn.Module):
 
     def forward(self, x1: Tensor, x2: Tensor, pos_mask: Tensor = None) -> Tensor:
         batch_size, _ = x1.size()
+        if x1.shape != x2.shape and pos_mask == None: # if we have noisy samples our x2 has them appended at the end so we just take the non noised ones to calculate the similaritiy
+            x2 = x2[:batch_size]
         sim_matrix = torch.einsum('ik,jk->ij', x1, x2)
 
         x1_abs = x1.norm(dim=1)
@@ -216,6 +224,8 @@ class F1Contrastive(nn.Module):
 
     def forward(self, x1: Tensor, x2: Tensor, pos_mask: Tensor = None) -> Tensor:
         batch_size, _ = x1.size()
+        if x1.shape != x2.shape and pos_mask == None: # if we have noisy samples our x2 has them appended at the end so we just take the non noised ones to calculate the similaritiy
+            x2 = x2[:batch_size]
         sim_matrix = torch.einsum('ik,jk->ij', x1, x2)
 
         x1_abs = x1.norm(dim=1)
@@ -238,6 +248,9 @@ class PositiveSimilarity(nn.Module):
         super(PositiveSimilarity, self).__init__()
 
     def forward(self, x1: Tensor, x2: Tensor, pos_mask: Tensor = None) -> Tensor:
+        if x1.shape != x2.shape and pos_mask == None: # if we have noisy samples our x2 has them appended at the end so we just take the non noised ones to calculate the similaritiy
+            x2 = x2[:len(x1)]
+
         if pos_mask != None:  # if we are comparing local with global
             batch_size, _ = x1.size()
             sim_matrix = torch.einsum('ik,jk->ij', x1, x2)
@@ -258,6 +271,8 @@ class NegativeSimilarity(nn.Module):
 
     def forward(self, x1: Tensor, x2: Tensor, pos_mask: Tensor = None) -> Tensor:
         batch_size, _ = x1.size()
+        if x1.shape != x2.shape and pos_mask == None: # if we have noisy samples our x2 has them appended at the end so we just take the non noised ones to calculate the similaritiy
+            x2 = x2[:batch_size]
         sim_matrix = torch.einsum('ik,jk->ij', x1, x2)
 
         x1_abs = x1.norm(dim=1)
