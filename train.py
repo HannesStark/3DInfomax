@@ -73,7 +73,8 @@ def train_zinc(args, device, metrics_dict):
                                        edge_dim=train_data[0][0].edata['w'].shape[1] if args.use_e_features else 0,
                                        **args.model_parameters)
     print('model trainable params: ', sum(p.numel() for p in model.parameters() if p.requires_grad))
-    collate_function = globals()[args.collate_function]
+    collate_function = globals()[args.collate_function] if args.collate_params == {} else globals()[
+        args.collate_function](**args.collate_params)
     if args.train_sampler != None:
         sampler = globals()[args.train_sampler](data_source=train_data, batch_size=args.batch_size,
                                                 indices=range(len(train_data)))
