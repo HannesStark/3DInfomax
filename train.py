@@ -150,8 +150,7 @@ def train_qm9(args, device, metrics_dict):
         model_state_dict.update(pretrained_gnn_dict)  # update the gnn layers with the pretrained weights
         model.load_state_dict(model_state_dict)
     print('model trainable params: ', sum(p.numel() for p in model.parameters() if p.requires_grad))
-    print(len(train_idx))
-    print(f'Training on {len(train_idx)} samples from the model sequences')
+
     collate_function = globals()[args.collate_function]
 
     if args.train_sampler != None:
