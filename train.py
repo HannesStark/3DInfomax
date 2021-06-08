@@ -152,7 +152,8 @@ def train_qm9(args, device, metrics_dict):
     print('model trainable params: ', sum(p.numel() for p in model.parameters() if p.requires_grad))
 
     print(f'Training on {len(train_idx)} samples from the model sequences')
-    collate_function = globals()[args.collate_function]
+    collate_function = globals()[args.collate_function] if args.collate_params == {} else globals()[
+        args.collate_function](**args.collate_params)
 
     if args.train_sampler != None:
         sampler = globals()[args.train_sampler](data_source=all_data, batch_size=args.batch_size, indices=train_idx)
@@ -228,7 +229,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/2.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/contrastive_training_noised_3d.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
@@ -271,7 +272,6 @@ def parse_arguments():
     p.add_argument('--exclude_from_transfer', default=[],
                    help='parameters that usually should not be transferred like batchnorm params')
     p.add_argument('--transferred_lr', type=float, default=None, help='set to use a different LR for transfer layers')
-
     p.add_argument('--features', default=[], help='types of input features like [atom_one_hot, hybridizations]')
     p.add_argument('--features3d', default=[],
                    help='types of input features like [atom_one_hot, hybridizations, constant_ones] but returned when appending 3d to the names in required data')
@@ -283,6 +283,8 @@ def parse_arguments():
     p.add_argument('--required_data', default=[],
                    help='what will be included in a batch like [mol_graph, targets, mol_graph3d]')
     p.add_argument('--collate_function', default='graph_collate', help='the collate function to use for DataLoader')
+    p.add_argument('--collate_params', type=dict, default={},
+                   help='parameters with keywords of the chosen collate function')
     p.add_argument('--use_e_features', default=True, type=bool, help='ignore edge features if set to False')
     p.add_argument('--targets', default=[], help='properties that should be predicted')
     p.add_argument('--device', type=str, default='cuda', help='What device to train on: cuda or cpu')

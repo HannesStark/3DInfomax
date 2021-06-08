@@ -1,8 +1,8 @@
-experiment_name: 'NTXentExtraNegatives10'
+experiment_name: 'NTXentExtraNegatives10_std02'
 
 num_epochs: 1000
 batch_size: 500
-prefetch_graphs: True
+prefetch_graphs: False
 log_iterations: 30
 patience: 35
 loss_func: NTXentExtraNegatives
@@ -44,7 +44,11 @@ metrics:
   - batch_variance
   - dimension_covariance
 main_metric: loss
-collate_function: noised3d_collate
+
+collate_function: Noised3dCollate
+collate_params:
+  std: 0.2
+  num_noised: 10
 
 optimizer: Adam
 optimizer_params:

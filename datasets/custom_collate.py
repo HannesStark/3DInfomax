@@ -30,52 +30,67 @@ def contrastive_collate(batch: List[Tuple]):
     else:
         return batched_graph, batched_graph3d
 
-def noised3d_collate(batch: List[Tuple]):
-    # optionally take targets
-    std = 0.4
-    num_noised = 10
 
-    graphs, graphs3d, *targets = map(list, zip(*batch))
-    batched_graph = dgl.batch(graphs)
-    batched_graph3d = dgl.batch(graphs3d)
-    graphs3d_noised = [batched_graph3d]
-    for i in range(num_noised):
-        copy_graph = copy.deepcopy(batched_graph3d)
-        copy_graph.edata['w'] += torch.randn_like(copy_graph.edata['w'])*std
-        graphs3d_noised.append(copy_graph)
+class Noised3dCollate(object):
+    def __init__(self, std, num_noised):
+        self.std = std
+        self.num_noised = num_noised
 
-    batched_graph3d = dgl.batch(graphs3d_noised)
+    def __call__(self, batch: List[Tuple]):
 
-    if targets:
-        return batched_graph, batched_graph3d, torch.stack(*targets)
-    else:
+        graphs, graphs3d, *targets = map(list, zip(*batch))
+        batched_graph = dgl.batch(graphs)
+        batched_graph3d = dgl.batch(graphs3d)
+        graphs3d_noised = [batched_graph3d]
+        for i in range(self.num_noised):
+            copy_graph = copy.deepcopy(batched_graph3d)
+            copy_graph.edata['w'] += torch.randn_like(copy_graph.edata['w']) * self.std
+            graphs3d_noised.append(copy_graph)
+
+        batched_graph3d = dgl.batch(graphs3d_noised)
+
+        if targets:
+            return batched_graph, batched_graph3d, torch.stack(*targets)
+        else:
+            return batched_graph, batched_graph3d
+
+
+class NodeDrop3dCollate(object):
+    def __init__(self, num_drop):
+        self.num_drop = num_drop
+
+    def __call__(self, batch: List[Tuple]):
+        graphs, graphs3d = map(list, zip(*batch))
+        device = graphs3d[0].device
+        for graph3d in graphs3d:
+            remove_number = torch.randint(low=0, high=self.num_drop, size=(1,))
+            if remove_number > 0:
+                remove_indices = torch.randint(low=0, high=graph3d.number_of_nodes(), size=(remove_number.data,),
+                                               device=device)
+                graph3d.remove_nodes(remove_indices)
+        batched_graph = dgl.batch(graphs)
+        batched_graph3d = dgl.batch(graphs3d)
+
         return batched_graph, batched_graph3d
 
-def random_3d_node_drop_collate(batch: List[Tuple]):
-    graphs, graphs3d = map(list, zip(*batch))
-    device = graphs3d[0].device
-    for graph3d in graphs3d:
-        remove_number = torch.randint(low=0, high=11, size=(1,))
-        if remove_number > 0:
-            remove_indices = torch.randint(low=0, high=graph3d.number_of_nodes(), size=(remove_number.data,), device=device)
-            graph3d.remove_nodes(remove_indices)
-    batched_graph = dgl.batch(graphs)
-    batched_graph3d = dgl.batch(graphs3d)
 
-    return batched_graph, batched_graph3d
+class NodeDrop2dCollate(object):
+    def __init__(self, num_drop):
+        self.num_drop = num_drop
 
-def random_2d_node_drop_collate(batch: List[Tuple]):
-    graphs, graphs3d = map(list, zip(*batch))
-    device = graphs3d[0].device
-    for graph in graphs:
-        remove_number = torch.randint(low=0, high=11, size=(1,))
-        if remove_number > 0:
-            remove_indices = torch.randint(low=0, high=graph.number_of_nodes(), size=(remove_number.data,), device=device)
-            graph.remove_nodes(remove_indices)
-    batched_graph = dgl.batch(graphs)
-    batched_graph3d = dgl.batch(graphs3d)
+    def __call__(self, batch: List[Tuple]):
+        graphs, graphs3d = map(list, zip(*batch))
+        device = graphs3d[0].device
+        for graph in graphs:
+            remove_number = torch.randint(low=0, high=self.num_drop, size=(1,))
+            if remove_number > 0:
+                remove_indices = torch.randint(low=0, high=graph.number_of_nodes(), size=(remove_number.data,),
+                                               device=device)
+                graph.remove_nodes(remove_indices)
+        batched_graph = dgl.batch(graphs)
+        batched_graph3d = dgl.batch(graphs3d)
 
-    return batched_graph, batched_graph3d
+        return batched_graph, batched_graph3d
 
 
 def padded_collate(batch):
@@ -94,6 +109,7 @@ def padded_collate(batch):
     mask = torch.arange(features.shape[1])[None, :] >= n_atoms[:, None]  # [batch_size, n_atoms]
     return features, mask, target
 
+
 def padded_distances_collate(batch):
     """
     Takes list of tuples with molecule features of variable sizes (different n_atoms) and pads them with zeros for processing as a sequence
@@ -108,4 +124,4 @@ def padded_distances_collate(batch):
     n_dist = torch.tensor([len(dist) for dist in distances])
     mask = torch.arange(padded.shape[1])[None, :] >= n_dist[:, None]  # [batch_size, n_atoms]
     batched_graph = dgl.batch(graphs)
-    return batched_graph,  padded, mask
+    return batched_graph, padded, mask
