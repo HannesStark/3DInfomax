@@ -1,7 +1,7 @@
-experiment_name: ''
+experiment_name: 'Net3d'
 
 num_epochs: 1000
-batch_size: 240
+batch_size: 250
 prefetch_graphs: True
 log_iterations: 20
 patience: 200
@@ -36,26 +36,30 @@ metrics:
   - contrastive_accuracy
   - true_negative_rate
   - true_positive_rate
+  - uniformity
+  - alignment
+  - batch_variance
+  - dimension_covariance
 main_metric: loss
 collate_function: contrastive_collate
 
 optimizer: Adam
 optimizer_params:
-  lr: 1.0e-4
-  weight_decay: 6.0e-8
+  lr: 8.0e-5
+  weight_decay: 5.0e-7
 
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: 1500
+  warmup_steps: [700]
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
   cooldown: 20
   factor: 0.6
   patience: 25
   min_lr: 1.0e-6
-  threshold: 1.0e-5
+  threshold: 1.0e-4
   mode: 'min'
   verbose: True
 
@@ -69,7 +73,7 @@ model_parameters:
   predictor_hidden_size: 256
   predictor_batchnorm: True
   metric_dim: 256
-  ma_decay: 0.9995 #moving average decay
+  ma_decay: 0.995 #moving average decay
 
   model_type: 'PNA'
   model_parameters:
@@ -78,7 +82,10 @@ model_parameters:
     mid_batch_norm: True
     last_batch_norm: True
     readout_batchnorm: True
-    readout_layers: 1
+    # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
+    batch_norm_momentum: 0.96
+    readout_hidden_dim: 90
+    readout_layers: 2
     dropout: 0.0
     propagation_depth: 6
     aggregators:
@@ -105,21 +112,30 @@ model3d_parameters:
   predictor_hidden_size: 256
   predictor_batchnorm: True
   metric_dim: 256
-  ma_decay: 0.9995 #moving average decay
+  ma_decay: 0.995 #moving average decay
 
-  model_type: 'EGNN'
-  model_parameters:
+  model3d_type: 'Net3D'
+  model3d_parameters:
     target_dim: 256
-    hidden_dim: 128
-    propagation_depth: 7
+    hidden_dim: 10
+    hidden_edge_dim: 10
+    node_wise_output_layers: 1
+    message_net_layers: 1
+    update_net_layers: 1
+    reduce_func: 'mean'
+    fourier_encodings: 4
+    propagation_depth: 1
     dropout: 0.0
+    batch_norm: True
     readout_batchnorm: True
+    # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
+    batch_norm_momentum: 0.96
+    readout_hidden_dim: 10
     readout_layers: 1
     readout_aggregators:
       - min
       - max
       - mean
-    batch_norm: True
 
 
 # continue training from checkpoint:

@@ -31,7 +31,7 @@ def contrastive_collate(batch: List[Tuple]):
         return batched_graph, batched_graph3d
 
 
-class Noised3dCollate(object):
+class NoisedDistancesCollate(object):
     def __init__(self, std, num_noised):
         self.std = std
         self.num_noised = num_noised
@@ -54,6 +54,28 @@ class Noised3dCollate(object):
         else:
             return batched_graph, batched_graph3d
 
+class NoisedCoordinatesCollate(object):
+    def __init__(self, std, num_noised):
+        self.std = std
+        self.num_noised = num_noised
+
+    def __call__(self, batch: List[Tuple]):
+
+        graphs, graphs3d, *targets = map(list, zip(*batch))
+        batched_graph = dgl.batch(graphs)
+        batched_graph3d = dgl.batch(graphs3d)
+        graphs3d_noised = [batched_graph3d]
+        for i in range(self.num_noised):
+            copy_graph = copy.deepcopy(batched_graph3d)
+            copy_graph.edata['w'] += torch.randn_like(copy_graph.edata['w']) * self.std
+            graphs3d_noised.append(copy_graph)
+
+        batched_graph3d = dgl.batch(graphs3d_noised)
+
+        if targets:
+            return batched_graph, batched_graph3d, torch.stack(*targets)
+        else:
+            return batched_graph, batched_graph3d
 
 class NodeDrop3dCollate(object):
     def __init__(self, num_drop):

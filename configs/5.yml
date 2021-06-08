@@ -1,3 +1,142 @@
+experiment_name: 'Net3d'
+
+num_epochs: 1000
+batch_size: 250
+prefetch_graphs: True
+log_iterations: 20
+patience: 200
+loss_func: CosineSimilarityLoss
+num_train: 50000
+features:
+  - 'implicit-valence'
+  - 'degree'
+  - 'hybridization'
+  - 'chirality'
+  - 'mass'
+  - 'electronegativity'
+  - 'aromatic-bond'
+  - 'formal-charge'
+  - 'radical-electron'
+  - 'in-ring'
+  - 'atomic-number'
+features3d:
+  - 'constant_ones'
+e_features:
+  - 'bond-type-onehot'
+  - 'stereo'
+  - 'conjugated'
+  - 'in-ring-edges'
+required_data:
+  - mol_graph
+  - complete_graph3d
+metrics:
+  - positive_similarity
+  - negative_similarity
+  - f1_contrastive
+  - contrastive_accuracy
+  - true_negative_rate
+  - true_positive_rate
+  - uniformity
+  - alignment
+  - batch_variance
+  - dimension_covariance
+main_metric: loss
+collate_function: contrastive_collate
+
+optimizer: Adam
+optimizer_params:
+  lr: 8.0e-5
+  weight_decay: 5.0e-7
+
+
+scheduler_step_per_batch: False
+lr_scheduler: WarmUpWrapper
+lr_scheduler_params:
+  warmup_steps: [700]
+  # parameters of scheduler to run after warmup
+  wrapped_scheduler: ReduceLROnPlateau
+  cooldown: 20
+  factor: 0.6
+  patience: 25
+  min_lr: 1.0e-6
+  threshold: 1.0e-4
+  mode: 'min'
+  verbose: True
+
+
+# self supervision mode either byol or contrastive
+ssl_mode: 'byol'
+# Model parameters
+model_type: 'BYOLwrapper'
+model_parameters:
+  predictor_layers: 1
+  predictor_hidden_size: 256
+  predictor_batchnorm: True
+  metric_dim: 256
+  ma_decay: 0.995 #moving average decay
+
+  model_type: 'PNA'
+  model_parameters:
+    target_dim: 256
+    hidden_dim: 90
+    mid_batch_norm: True
+    last_batch_norm: True
+    readout_batchnorm: True
+    # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
+    batch_norm_momentum: 0.96
+    readout_hidden_dim: 90
+    readout_layers: 2
+    dropout: 0.0
+    propagation_depth: 6
+    aggregators:
+      - mean
+      - max
+      - min
+      - std
+    scalers:
+      - identity
+      - amplification
+      - attenuation
+    readout_aggregators:
+      - min
+      - max
+      - mean
+    pretrans_layers: 2
+    posttrans_layers: 1
+    residual: True
+
+# Model parameters
+model3d_type: 'BYOLwrapper'
+model3d_parameters:
+  predictor_layers: 1
+  predictor_hidden_size: 256
+  predictor_batchnorm: True
+  metric_dim: 256
+  ma_decay: 0.995 #moving average decay
+
+  model_type: 'Net3D'
+  model_parameters:
+    target_dim: 256
+    hidden_dim: 10
+    hidden_edge_dim: 10
+    node_wise_output_layers: 1
+    message_net_layers: 1
+    update_net_layers: 1
+    reduce_func: 'mean'
+    fourier_encodings: 4
+    propagation_depth: 1
+    dropout: 0.0
+    batch_norm: True
+    readout_batchnorm: True
+    # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
+    batch_norm_momentum: 0.96
+    readout_hidden_dim: 10
+    readout_layers: 1
+    readout_aggregators:
+      - min
+      - max
+      - mean
+
+
 # continue training from checkpoint:
-checkpoint: runs/PNA_tune_NTXent_tiny_no_nodewise_output_04-06_16-55-21/last_checkpoint.pt
-num_epochs: 1
+#checkpoint: runs/PNAReadout_2_layer_03-04_15-29-07/last_checkpoint.pt

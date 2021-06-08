@@ -26,7 +26,9 @@ class BYOLwrapper(nn.Module):
         super(BYOLwrapper, self).__init__()
         self.student = globals()[model_type](**model_parameters, **kwargs)
         self.teacher = copy.deepcopy(self.student)
-        self.predictor = MLP(in_dim=model_parameters['target_dim'], hidden_size=predictor_hidden_size,
+        self.predictor_layers = predictor_layers
+        if predictor_layers > 0:
+            self.predictor = MLP(in_dim=model_parameters['target_dim'], hidden_size=predictor_hidden_size,
                           mid_batch_norm=predictor_batchnorm, out_dim=metric_dim,
                           layers=predictor_layers)
         self.ma_decay = ma_decay
@@ -40,7 +42,10 @@ class BYOLwrapper(nn.Module):
     def forward(self, graph: dgl.DGLGraph):
         graph_t = copy.deepcopy(graph)
         projection_s = self.student(graph)
-        prediction_s = self.predictor(projection_s)
+        if self.predictor_layers >0:
+            prediction_s = self.predictor(projection_s)
+        else:
+            prediction_s = projection_s
 
         with torch.no_grad():
             projection_t = self.teacher(graph_t)

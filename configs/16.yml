@@ -1,19 +1,12 @@
-experiment_name: 'tune_NTXentGlobalLocal_micro_3dnet'
-
-pretrain_checkpoint: runs/PNA_NTXentGlobalLocal_micro_3dnet_06-06_08-45-34/best_checkpoint.pt
-transfer_layers:
-  - gnn
-exclude_from_transfer:
-  - batch_norm
-
+experiment_name: 'all_data'
 
 num_epochs: 1000
-batch_size: 128
+batch_size: 96
 prefetch_graphs: True
 log_iterations: 30
 patience: 50
+num_train: 100000
 loss_func: L1Loss
-num_train: 50000
 targets:
   - homo
 features:
@@ -28,69 +21,42 @@ features:
   - 'radical-electron'
   - 'in-ring'
   - 'atomic-number'
-e_features:
-  - 'bond-type-onehot'
-  - 'stereo'
-  - 'conjugated'
-  - 'in-ring-edges'
-
-
 required_data:
-  - mol_graph
+  - complete_graph
   - targets
 metrics:
   - mae_denormalized
   - pearsonr
   - rsquared
   - qm9_properties
+  - mean_predictor_loss
 
 optimizer: Adam
 optimizer_params:
-  lr: 7.0e-5
-  weight_decay: 1.0e-11
+  lr: 1.0e-3
+  weight_decay: 1.0e-16
 
-scheduler_step_per_batch: False
-lr_scheduler: WarmUpWrapper
+lr_scheduler: CosineAnnealingLR
+step_per_batch: False
 lr_scheduler_params:
-  warmup_steps: [700,700,390]
-  interpolation: 'linear'
-  # parameters of scheduler to run after warmup
-  wrapped_scheduler: ReduceLROnPlateau
-  factor: 0.5
-  patience: 25
-  min_lr: 5.0e-6
-  mode: 'min'
-  verbose: True
-
-
+  T_max: 1000
 
 # Model parameters
-model_type: 'PNA'
+model_type: 'EGNN'
 model_parameters:
   target_dim: 1
-  hidden_dim: 90
-  mid_batch_norm: True
-  last_batch_norm: True
+  hidden_dim: 128
+  reduce_func: 'sum'
+  fourier_encodings: 0
+  propagation_depth: 7
   dropout: 0.0
-  propagation_depth: 6
-  aggregators:
-    - mean
-    - max
-    - min
-    - std
-  scalers:
-    - identity
-    - amplification
-    - attenuation
+  readout_batchnorm: True
+  readout_hidden_dim: 128
+  readout_layers: 2
   readout_aggregators:
-    - min
-    - max
-    - mean
     - sum
-  pretrans_layers: 2
-  posttrans_layers: 1
-  residual: True
+  batch_norm: True
 
 
 # continue training from checkpoint:
-#checkpoint: runs/PNAReadout_2_layer_03-04_15-29-07/last_checkpoint.pt
+#checkpoint: runs/EGNN_batchnorm_02-04_16-04-30/last_checkpoint.pt

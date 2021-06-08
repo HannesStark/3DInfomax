@@ -45,7 +45,7 @@ metrics:
   - dimension_covariance
 main_metric: loss
 
-collate_function: Noised3dCollate
+collate_function: NoisedDistancesCollate
 collate_params:
   std: 0.2
   num_noised: 10
