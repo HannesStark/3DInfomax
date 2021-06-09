@@ -1,4 +1,4 @@
 # continue training from checkpoint:
 checkpoint: runs/PNA_VICReg_4000metric_dim_08-06_06-58-47/last_checkpoint.pt
 tensorboard_functions:
-  - singular_value
+  - singular_values
