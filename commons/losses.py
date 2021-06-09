@@ -29,7 +29,7 @@ class BarlowTwinsLoss(_Loss):
         self.lambd = lambd
         self.uniformity_reg = uniformity_reg
         self.variance_reg = variance_reg
-        self.covariancec_reg = covariance_reg
+        self.covariance_reg = covariance_reg
 
     def forward(self, z1: torch.Tensor, z2: torch.Tensor, **kwargs) -> Tensor:
         batch_size, metric_dim = z1.size()
@@ -45,8 +45,8 @@ class BarlowTwinsLoss(_Loss):
         loss = on_diag + self.lambd * off_diag
         if self.variance_reg > 0:
             loss += self.variance_reg * (std_loss(z1) + std_loss(z2))
-        if self.covariancec_reg > 0:
-            loss += self.covariancec_reg * (cov_loss(z1) + cov_loss(z2))
+        if self.covariance_reg > 0:
+            loss += self.covariance_reg * (cov_loss(z1) + cov_loss(z2))
         if self.uniformity_reg > 0:
             loss += self.uniformity_reg * uniformity_loss(z1, z2)
         return loss
@@ -57,7 +57,7 @@ class CosineSimilarityLoss(_Loss):
         super(CosineSimilarityLoss, self).__init__()
         self.uniformity_reg = uniformity_reg
         self.variance_reg = variance_reg
-        self.covariancec_reg = covariance_reg
+        self.covariance_reg = covariance_reg
 
     def forward(self, z1, z2, **kwargs) -> Tensor:
         # see the "Bootstrap your own latent" paper equation 2 for the loss"
@@ -67,8 +67,8 @@ class CosineSimilarityLoss(_Loss):
         loss = (((x - y) ** 2).sum(dim=-1)).mean()
         if self.variance_reg > 0:
             loss += self.variance_reg * (std_loss(z1) + std_loss(z2))
-        if self.covariancec_reg > 0:
-            loss += self.covariancec_reg * (cov_loss(z1) + cov_loss(z2))
+        if self.covariance_reg > 0:
+            loss += self.covariance_reg * (cov_loss(z1) + cov_loss(z2))
         if self.uniformity_reg > 0:
             loss += self.uniformity_reg * uniformity_loss(z1, z2)
         return loss
@@ -87,7 +87,7 @@ class RegularizationLoss(_Loss):
         super(RegularizationLoss, self).__init__()
         self.uniformity_reg = uniformity_reg
         self.variance_reg = variance_reg
-        self.covariancec_reg = covariance_reg
+        self.covariance_reg = covariance_reg
         self.mse_loss = torch.nn.MSELoss()
 
     def forward(self, z1, z2, **kwargs) -> Tensor:
@@ -95,8 +95,8 @@ class RegularizationLoss(_Loss):
         loss = self.mse_loss(z1, z2)
         if self.variance_reg > 0:
             loss += self.variance_reg * (std_loss(z1) + std_loss(z2))
-        if self.covariancec_reg > 0:
-            loss += self.covariancec_reg * (cov_loss(z1) + cov_loss(z2))
+        if self.covariance_reg > 0:
+            loss += self.covariance_reg * (cov_loss(z1) + cov_loss(z2))
         if self.uniformity_reg > 0:
             loss += self.uniformity_reg * uniformity_loss(z1, z2)
         return loss
@@ -117,7 +117,7 @@ class NTXent(_Loss):
         self.tau = tau
         self.uniformity_reg = uniformity_reg
         self.variance_reg = variance_reg
-        self.covariancec_reg = covariance_reg
+        self.covariance_reg = covariance_reg
 
     def forward(self, z1, z2, **kwargs) -> Tensor:
         batch_size, _ = z1.size()
@@ -135,8 +135,8 @@ class NTXent(_Loss):
 
         if self.variance_reg > 0:
             loss += self.variance_reg * (std_loss(z1) + std_loss(z2))
-        if self.covariancec_reg > 0:
-            loss += self.covariancec_reg * (cov_loss(z1) + cov_loss(z2))
+        if self.covariance_reg > 0:
+            loss += self.covariance_reg * (cov_loss(z1) + cov_loss(z2))
         if self.uniformity_reg > 0:
             loss += self.uniformity_reg * uniformity_loss(z1, z2)
         return loss
@@ -157,7 +157,7 @@ class NTXentExtraNegatives(_Loss):
         self.tau = tau
         self.uniformity_reg = uniformity_reg
         self.variance_reg = variance_reg
-        self.covariancec_reg = covariance_reg
+        self.covariance_reg = covariance_reg
         self.extra_negatives_weight= extra_negatives_weight
 
     def forward(self, z1, z2, **kwargs) -> Tensor:
@@ -191,8 +191,8 @@ class NTXentExtraNegatives(_Loss):
 
         if self.variance_reg > 0:
             loss += self.variance_reg * (std_loss(z1) + std_loss(z2))
-        if self.covariancec_reg > 0:
-            loss += self.covariancec_reg * (cov_loss(z1) + cov_loss(z2))
+        if self.covariance_reg > 0:
+            loss += self.covariance_reg * (cov_loss(z1) + cov_loss(z2))
         if self.uniformity_reg > 0:
             loss += self.uniformity_reg * uniformity_loss(z1, z2)
         return loss
@@ -265,7 +265,7 @@ class InfoNCE(_Loss):
         self.tau = tau
         self.uniformity_reg = uniformity_reg
         self.variance_reg = variance_reg
-        self.covariancec_reg = covariance_reg
+        self.covariance_reg = covariance_reg
 
     def forward(self, z1, z2, **kwargs) -> Tensor:
         batch_size, _ = z1.size()
@@ -282,8 +282,8 @@ class InfoNCE(_Loss):
         loss = - torch.log(loss).mean()
         if self.variance_reg > 0:
             loss += self.variance_reg * (std_loss(z1) + std_loss(z2))
-        if self.covariancec_reg > 0:
-            loss += self.covariancec_reg * (cov_loss(z1) + cov_loss(z2))
+        if self.covariance_reg > 0:
+            loss += self.covariance_reg * (cov_loss(z1) + cov_loss(z2))
         if self.uniformity_reg > 0:
             loss += self.uniformity_reg * uniformity_loss(z1, z2)
         return loss

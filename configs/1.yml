@@ -8,7 +8,7 @@ patience: 35
 loss_func: NTXent
 loss_params:
   tau: 0.1
-  covariancec_reg: 1
+  covariance_reg: 1
 num_train: 50000
 features:
   - 'implicit-valence'
