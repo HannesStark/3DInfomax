@@ -37,7 +37,7 @@ optimizer_params:
   weight_decay: 1.0e-16
 
 lr_scheduler: CosineAnnealingLR
-step_per_batch: False
+scheduler_step_per_batch: False
 lr_scheduler_params:
   T_max: 1000
 

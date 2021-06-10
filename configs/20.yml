@@ -1,6 +1,6 @@
-experiment_name: 'tune_NTXent_micro_sum_readout'
+experiment_name: 'tune_NTXent_tiny_no_nodewise_output_lowLR'
 
-pretrain_checkpoint: runs/PNA_NTXent_micro_sum_readout_06-06_08-21-46/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_NTXent_tiny_no_nodewise_output_03-06_08-59-06/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
@@ -46,7 +46,7 @@ metrics:
 
 optimizer: Adam
 optimizer_params:
-  lr: 7.0e-5
+  lr: 1.0e-5
   weight_decay: 1.0e-11
 
 scheduler_step_per_batch: False
@@ -57,8 +57,8 @@ lr_scheduler_params:
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
   factor: 0.5
-  patience: 25
-  min_lr: 5.0e-6
+  patience: 30
+  min_lr: 5.0e-7
   mode: 'min'
   verbose: True
 
