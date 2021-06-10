@@ -1,0 +1,69 @@
+experiment_name: 'edge_feat'
+
+num_epochs: 1000
+batch_size: 100
+prefetch_graphs: True
+log_iterations: 30
+patience: 50
+num_train: 500000
+loss_func: L1Loss
+targets:
+  - homo
+features:
+  - 'implicit-valence'
+  - 'degree'
+  - 'hybridization'
+  - 'chirality'
+  - 'mass'
+  - 'electronegativity'
+  - 'aromatic-bond'
+  - 'formal-charge'
+  - 'radical-electron'
+  - 'in-ring'
+  - 'atomic-number'
+e_features:
+  - 'bond-type-onehot'
+  - 'stereo'
+  - 'conjugated'
+  - 'in-ring-edges'
+required_data:
+  - complete_graph
+  - targets
+metrics:
+  - mae_denormalized
+  - pearsonr
+  - rsquared
+  - qm9_properties
+  - mean_predictor_loss
+
+optimizer: Adam
+optimizer_params:
+  lr: 1.0e-3
+  weight_decay: 1.0e-16
+
+lr_scheduler: CosineAnnealingLR
+step_per_batch: False
+lr_scheduler_params:
+  T_max: 1000
+
+# Model parameters
+model_type: 'EGNNEdges'
+model_parameters:
+  target_dim: 1
+  hidden_dim: 128
+  reduce_func: 'sum'
+  propagation_depth: 7
+  dropout: 0.0
+  readout_batchnorm: True
+  readout_hidden_dim: 128
+  readout_layers: 2
+  readout_aggregators:
+    - min
+    - max
+    - mean
+    - sum
+  batch_norm: True
+
+
+# continue training from checkpoint:
+#checkpoint: runs/EGNN_batchnorm_02-04_16-04-30/last_checkpoint.pt

@@ -83,7 +83,7 @@ class Net3D(nn.Module):
     def forward(self, graph: dgl.DGLGraph):
         graph.apply_nodes(self.input_node_func)
         if self.fourier_encodings > 0:
-            graph.edata['w'] = fourier_encode_dist(graph.edata['w'], num_encodings=self.fourier_encodings)
+            graph.edata['d'] = fourier_encode_dist(graph.edata['d'], num_encodings=self.fourier_encodings)
         graph.apply_edges(self.input_edge_func)
 
         for mp_layer in self.mp_layers:
@@ -103,7 +103,7 @@ class Net3D(nn.Module):
         return {'f': F.silu(self.input(nodes.data['f']))}
 
     def input_edge_func(self, edges):
-        return {'w': F.silu(self.edge_input(edges.data['w']))}
+        return {'d': F.silu(self.edge_input(edges.data['d']))}
 
 
 class Net3DLayer(nn.Module):
@@ -150,9 +150,9 @@ class Net3DLayer(nn.Module):
 
     def message_function(self, edges):
         message_input = torch.cat(
-            [edges.src['f'], edges.dst['f'], edges.data['w']], dim=-1)
+            [edges.src['f'], edges.dst['f'], edges.data['d']], dim=-1)
         message = self.message_network(message_input)
-        edges.data['w'] += message
+        edges.data['d'] += message
         edge_weight = torch.sigmoid(self.soft_edge_network(message))
         return {'m': message * edge_weight}
 

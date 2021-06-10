@@ -377,8 +377,15 @@ class QM9Dataset(Dataset):
             g = self.get_complete_graph(idx, pairwise_start, n_atoms).to(self.device)
             g.ndata['f'] = self.features_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
-            g.edata['w'] = self.dist_dict['pairwise_distances'][
+            g.edata['d'] = self.dist_dict['pairwise_distances'][
                            pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)].unsqueeze(-1).to(self.device)
+            if self.e_features_tensor != None:
+                bond_features = self.e_features_tensor[e_start: e_end].to(self.device)
+                e_features = torch.zeros((n_atoms * (n_atoms - 1),bond_features.shape[1]), device=self.device)
+                edge_indices = self.edge_indices[:, e_start: e_end]
+                bond_indices = edge_indices[0]*(n_atoms-1) + edge_indices[1]
+                e_features[bond_indices] = bond_features
+                g.edata['w'] = e_features
             if self.dist_embedding:
                 g.edata['d_rbf'] = self.dist_embedder(g.edata['w']).to(self.device)
             if self.pos_dir:
@@ -388,8 +395,15 @@ class QM9Dataset(Dataset):
             g = self.get_complete_graph(idx, pairwise_start, n_atoms).to(self.device)
             g.ndata['f'] = self.features3d_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
-            g.edata['w'] = self.dist_dict['pairwise_distances'][
+            g.edata['d'] = self.dist_dict['pairwise_distances'][
                            pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)].unsqueeze(-1).to(self.device)
+            if self.e_features3d_tensor != None:
+                bond_features = self.e_features3d_tensor[e_start: e_end].to(self.device)
+                e_features = torch.zeros((n_atoms * (n_atoms - 1),bond_features.shape[1]))
+                edge_indices = self.edge_indices[:, e_start: e_end]
+                bond_indices = edge_indices[0]*(n_atoms-1) + edge_indices[1]
+                e_features[bond_indices] = bond_features
+                g.edata['w'] = e_features
             if self.dist_embedding:
                 g.edata['d_rbf'] = self.dist_embedder(g.edata['w']).to(self.device)
             if self.pos_dir:
