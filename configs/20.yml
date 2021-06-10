@@ -2,7 +2,7 @@ experiment_name: 'baseline_no_residual'
 
 num_epochs: 1000
 batch_size: 128
-prefetch_graphs: False
+prefetch_graphs: True
 log_iterations: 30
 patience: 50
 num_train: 50000
