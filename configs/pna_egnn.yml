@@ -1,8 +1,8 @@
-experiment_name: 'baseline'
+experiment_name: 'baseline_sum_aggregator'
 
 num_epochs: 1000
-batch_size: 128
-prefetch_graphs: True
+batch_size: 4
+prefetch_graphs: False
 log_iterations: 30
 patience: 50
 num_train: 50000

@@ -147,6 +147,7 @@ class QM9Dataset(Dataset):
                  normalize: bool = True, device='cuda:0', dist_embedding: bool = False, num_radial: int = 6,
                  prefetch_graphs=True, transform=None, **kwargs):
         self.return_type_options = ['mol_graph', 'complete_graph', 'mol_graph3d', 'complete_graph3d',
+                                    'mol_complete_graph',
                                     'se3Transformer_graph', 'se3Transformer_graph3d',
                                     'pairwise_distances', 'pairwise_distances_squared',
                                     'pairwise_indices',
@@ -232,7 +233,7 @@ class QM9Dataset(Dataset):
 
         self.require_distances = any(return_type in self.return_types for return_type in
                                      ['dist_embedding', 'pairwise_distances', 'pairwise_indices', 'complete_graph',
-                                      'complete_graph3d'])
+                                      'complete_graph3d', 'mol_complete_graph'])
         if self.require_distances:
             if not os.path.exists(os.path.join(self.qm9_directory, 'processed', self.distances_file)):
                 self.process_distances()
@@ -261,6 +262,20 @@ class QM9Dataset(Dataset):
                 pairwise_indices = self.dist_dict['pairwise_indices'][:,
                                    pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)]
                 self.complete_graphs.append(dgl.graph((pairwise_indices[0], pairwise_indices[1])))
+        if self.prefetch_graphs and (
+                'mol_complete_graph' in self.return_types or 'mol_complete_graph3d' in self.return_types):
+            print(
+                'Load mol_complete_graph graphs into memory (set prefetch_graphs to False to load them on the fly => slower training)')
+            self.mol_complete_graphs = []
+            for idx in tqdm(range(len(self.meta_dict['edge_slices']) - 1)):
+                e_start = self.meta_dict['edge_slices'][idx]
+                e_end = self.meta_dict['edge_slices'][idx + 1]
+                edge_indices = self.edge_indices[:, e_start: e_end]
+                pairwise_start = self.dist_dict['pairwise_slices'][idx]
+                n_atoms = self.meta_dict['n_atoms'][idx]
+                pairwise_indices = self.dist_dict['pairwise_indices'][:,
+                                   pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)]
+                self.mol_complete_graphs.append(dgl.heterograph({('atom', 'bond', 'atom'): (edge_indices[0], edge_indices[1]),('atom', 'complete', 'atom'): (pairwise_indices[0], pairwise_indices[1])}))
         print('Finish loading data into memory')
 
         self.avg_degree = data_dict['avg_degree']
@@ -326,6 +341,17 @@ class QM9Dataset(Dataset):
             g = dgl.graph((pairwise_indices[0], pairwise_indices[1]))
         return g
 
+    def get_mol_complete_graph(self, idx, e_start, e_end, pairwise_start, n_atoms):
+        if self.prefetch_graphs:
+            g = self.mol_complete_graphs[idx]
+        else:
+            edge_indices = self.edge_indices[:, e_start: e_end]
+            pairwise_indices = self.dist_dict['pairwise_indices'][:,
+                               pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)]
+            g = dgl.heterograph({('atom', 'bond', 'atom'): (edge_indices[0], edge_indices[1]),
+                                 ('atom', 'complete', 'atom'): (pairwise_indices[0], pairwise_indices[1])})
+        return g
+
     def data_by_type(self, idx, return_type, e_start, e_end, pairwise_start, start, n_atoms):
         if return_type == 'mol_graph':
             g = self.get_graph(idx, e_start, e_end).to(self.device)
@@ -364,6 +390,15 @@ class QM9Dataset(Dataset):
                            pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)].unsqueeze(-1).to(self.device)
             if self.dist_embedding:
                 g.edata['d_rbf'] = self.dist_embedder(g.edata['w']).to(self.device)
+            if self.pos_dir:
+                g.ndata['pos_dir'] = self.pos_enc[start: start + n_atoms].to(self.device)
+            return g
+        if return_type == 'mol_complete_graph':
+            g = self.get_mol_complete_graph(idx, e_start, e_end, pairwise_start, n_atoms).to(self.device)
+            g.ndata['f'] = self.features_tensor[start: start + n_atoms].to(self.device)
+            g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
+            if self.e_features_tensor != None:
+                g.edges['bond'].data['w'] = self.e_features_tensor[e_start: e_end].to(self.device)
             if self.pos_dir:
                 g.ndata['pos_dir'] = self.pos_enc[start: start + n_atoms].to(self.device)
             return g
