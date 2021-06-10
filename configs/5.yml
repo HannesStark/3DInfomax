@@ -1,8 +1,8 @@
 experiment_name: 'Net3d'
 
 num_epochs: 1000
-batch_size: 4
-prefetch_graphs: False
+batch_size: 250
+prefetch_graphs: True
 log_iterations: 20
 patience: 200
 loss_func: CosineSimilarityLoss

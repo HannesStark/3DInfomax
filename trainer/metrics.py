@@ -236,7 +236,6 @@ class F1Contrastive(nn.Module):
             targets = pos_mask.view(-1)
         else:  # if we are comparing global with global
             targets = torch.eye(batch_size, device=x1.device).view(-1)
-        ic(preds)
         return self.f1(preds, targets.long())
 
 

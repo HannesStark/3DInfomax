@@ -1,4 +1,4 @@
-experiment_name: 'NTXent_tiny_1layer_nodewise_output_10hidden_dim'
+experiment_name: 'NTXent_distance_aggregator_fixed_edge_order'
 
 num_epochs: 1000
 batch_size: 500
@@ -99,14 +99,12 @@ model_parameters:
   residual: True
 
 # Model parameters
-model3d_type: 'Net3D'
+model3d_type: 'DistanceAggregator'
 model3d_parameters:
   target_dim: 256
   hidden_dim: 10
   hidden_edge_dim: 10
   node_wise_output_layers: 1
-  message_net_layers: 1
-  update_net_layers: 1
   reduce_func: 'mean'
   fourier_encodings: 4
   propagation_depth: 1
@@ -121,6 +119,7 @@ model3d_parameters:
     - min
     - max
     - mean
+
 
 
 
