@@ -67,7 +67,7 @@ class DistanceAggregator(nn.Module):
 
     def forward(self, graph: dgl.DGLGraph):
         if self.fourier_encodings > 0:
-            graph.edata['w'] = fourier_encode_dist(graph.edata['w'], num_encodings=self.fourier_encodings)
+            graph.edata['d'] = fourier_encode_dist(graph.edata['d'], num_encodings=self.fourier_encodings)
         graph.apply_edges(self.input_edge_func)
 
         graph.update_all(message_func=self.message_function, reduce_func=self.reduce_func(msg='m', out='m_sum'))
@@ -83,10 +83,10 @@ class DistanceAggregator(nn.Module):
         return {'f': F.silu(self.input(nodes.data['f']))}
 
     def input_edge_func(self, edges):
-        return {'w': F.silu(self.edge_input(edges.data['w']))}
+        return {'d': F.silu(self.edge_input(edges.data['d']))}
 
     def message_function(self, edges):
-        return {'m': edges.data['w']}
+        return {'m': edges.data['d']}
 
     def output_node_func(self, nodes):
         return {'f': self.node_wise_output_network(nodes.data['m_sum'])}

@@ -182,7 +182,7 @@ def train_qm9(args, device, metrics_dict):
         model3d = globals()[args.model3d_type](
             node_dim=all_data[0][1].ndata['f'].shape[1] if isinstance(all_data[0][1], dgl.DGLGraph) else
             all_data[0][1].shape[-1],
-            edge_dim=all_data[0][1].edata['w'].shape[
+            edge_dim=all_data[0][1].edata['d'].shape[
                 1] if args.use_e_features and isinstance(all_data[0][1], dgl.DGLGraph) else 0,
             avg_d=all_data.avg_degree,
             **args.model3d_parameters)
@@ -234,7 +234,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/egnn_edges.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/5.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')

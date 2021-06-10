@@ -381,11 +381,13 @@ class QM9Dataset(Dataset):
                            pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)].unsqueeze(-1).to(self.device)
             if self.e_features_tensor != None:
                 bond_features = self.e_features_tensor[e_start: e_end].to(self.device)
-                e_features = torch.zeros((n_atoms * (n_atoms - 1),bond_features.shape[1]), device=self.device)
+                e_features = torch.zeros((n_atoms * n_atoms, bond_features.shape[1]), device=self.device)
                 edge_indices = self.edge_indices[:, e_start: e_end]
-                bond_indices = edge_indices[0]*(n_atoms-1) + edge_indices[1]
+                bond_indices = edge_indices[0]*n_atoms + edge_indices[1]
                 e_features[bond_indices] = bond_features
-                g.edata['w'] = e_features
+                pairwise_indices = self.dist_dict['pairwise_indices'][:,
+                                   pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)]
+                g.edata['w'] = e_features[pairwise_indices[0] * n_atoms + pairwise_indices[1]]
             if self.dist_embedding:
                 g.edata['d_rbf'] = self.dist_embedder(g.edata['w']).to(self.device)
             if self.pos_dir:
@@ -399,11 +401,13 @@ class QM9Dataset(Dataset):
                            pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)].unsqueeze(-1).to(self.device)
             if self.e_features3d_tensor != None:
                 bond_features = self.e_features3d_tensor[e_start: e_end].to(self.device)
-                e_features = torch.zeros((n_atoms * (n_atoms - 1),bond_features.shape[1]))
+                e_features = torch.zeros((n_atoms * n_atoms, bond_features.shape[1]), device=self.device)
                 edge_indices = self.edge_indices[:, e_start: e_end]
-                bond_indices = edge_indices[0]*(n_atoms-1) + edge_indices[1]
+                bond_indices = edge_indices[0] * n_atoms + edge_indices[1]
                 e_features[bond_indices] = bond_features
-                g.edata['w'] = e_features
+                pairwise_indices = self.dist_dict['pairwise_indices'][:,
+                                   pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)]
+                g.edata['w'] = e_features[pairwise_indices[0] * n_atoms + pairwise_indices[1]]
             if self.dist_embedding:
                 g.edata['d_rbf'] = self.dist_embedder(g.edata['w']).to(self.device)
             if self.pos_dir:
