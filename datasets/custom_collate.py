@@ -65,9 +65,12 @@ class NoisedCoordinatesCollate(object):
         batched_graph = dgl.batch(graphs)
         batched_graph3d = dgl.batch(graphs3d)
         graphs3d_noised = [batched_graph3d]
+        edges = batched_graph3d.all_edges()
         for i in range(self.num_noised):
             copy_graph = copy.deepcopy(batched_graph3d)
-            copy_graph.edata['w'] += torch.randn_like(copy_graph.edata['w']) * self.std
+            copy_graph.ndata['x'] += torch.randn_like(copy_graph.ndata['x']) * self.std
+            distances = torch.norm(copy_graph['x'][edges[0]] - copy_graph['x'][edges[1]],p=2,dim=-1)
+            copy_graph.edata['w'] = distances
             graphs3d_noised.append(copy_graph)
 
         batched_graph3d = dgl.batch(graphs3d_noised)

@@ -275,7 +275,9 @@ class QM9Dataset(Dataset):
                 n_atoms = self.meta_dict['n_atoms'][idx]
                 pairwise_indices = self.dist_dict['pairwise_indices'][:,
                                    pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)]
-                self.mol_complete_graphs.append(dgl.heterograph({('atom', 'bond', 'atom'): (edge_indices[0], edge_indices[1]),('atom', 'complete', 'atom'): (pairwise_indices[0], pairwise_indices[1])}))
+                self.mol_complete_graphs.append(dgl.heterograph(
+                    {('atom', 'bond', 'atom'): (edge_indices[0], edge_indices[1]),
+                     ('atom', 'complete', 'atom'): (pairwise_indices[0], pairwise_indices[1])}))
         print('Finish loading data into memory')
 
         self.avg_degree = data_dict['avg_degree']
@@ -476,9 +478,7 @@ class QM9Dataset(Dataset):
             # add hydrogen bonds to molecule because they are not in the smiles representation
             mol = Chem.AddHs(mol)
 
-            for key, item in goli.features.get_mol_edge_features(mol, list(e_features.keys())).items():
-                # repeat interleave for src dst and dst src edges (see below where we add the edges)
-                e_features[key].append(torch.tensor(item).repeat_interleave(2, dim=0))
+
             for key, item in goli.features.get_mol_atomic_features_float(mol, list(atom_float.keys())).items():
                 atom_float[key].append(torch.tensor(item)[:, None])
 
@@ -520,6 +520,10 @@ class QM9Dataset(Dataset):
 
             perm = (edge_index[0] * n_atoms + edge_index[1]).argsort()
             edge_index = edge_index[:, perm]
+
+            for key, item in goli.features.get_mol_edge_features(mol, list(e_features.keys())).items():
+                # repeat interleave for src dst and dst src edges (see above where we add the edges) and then reorder using perm
+                e_features[key].append(torch.tensor(item).repeat_interleave(2, dim=0)[perm])
 
             # get all 19 attributes that should be predicted, so we drop the first two entries (name and smiles)
             target = torch.tensor(molecules_df.iloc[data_qm9['id'][mol_idx]][2:], dtype=torch.float)

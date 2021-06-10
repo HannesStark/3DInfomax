@@ -1,19 +1,12 @@
-experiment_name: 'tune_NTXent_5hidden_dim_1layer_nodewise'
-
-pretrain_checkpoint: runs/PNA_NTXent_5hidden_dim_1layer_nodewise_06-06_08-21-47/best_checkpoint.pt
-transfer_layers:
-  - gnn
-exclude_from_transfer:
-  - batch_norm
-
+experiment_name: 'baseline'
 
 num_epochs: 1000
 batch_size: 128
 prefetch_graphs: True
 log_iterations: 30
 patience: 50
-loss_func: L1Loss
 num_train: 50000
+loss_func: L1Loss
 targets:
   - homo
 features:
@@ -35,6 +28,7 @@ e_features:
   - 'in-ring-edges'
 
 
+
 required_data:
   - mol_graph
   - targets
@@ -43,16 +37,16 @@ metrics:
   - pearsonr
   - rsquared
   - qm9_properties
+  - mean_predictor_loss
 
 optimizer: Adam
 optimizer_params:
-  lr: 7.0e-5
-  weight_decay: 1.0e-11
+  lr: 1.0e-4
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [700,700,390]
+  warmup_steps: [1500]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
@@ -62,15 +56,15 @@ lr_scheduler_params:
   mode: 'min'
   verbose: True
 
-
-
-# Model parameters
 model_type: 'PNA'
 model_parameters:
   target_dim: 1
   hidden_dim: 90
   mid_batch_norm: True
   last_batch_norm: True
+  readout_batchnorm: True
+  readout_hidden_dim: 90
+  readout_layers: 2
   dropout: 0.0
   propagation_depth: 6
   aggregators:

@@ -58,7 +58,7 @@ lr_scheduler_params:
   wrapped_scheduler: ReduceLROnPlateau
   factor: 0.5
   patience: 25
-  min_lr: 5.0e-6
+  min_lr: 1.0e-6
   mode: 'min'
   verbose: True
 
