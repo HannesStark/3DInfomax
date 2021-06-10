@@ -61,17 +61,17 @@ class EGNN(nn.Module):
                           out_dim=target_dim,
                           layers=readout_layers)
 
-    def forward(self, graph: dgl.DGLGraph):
-        graph.apply_nodes(self.input_node_func)
-        if self.fourier_encodings > 0:
-            graph.edata['w'] = fourier_encode_dist(graph.edata['w'], num_encodings=self.fourier_encodings).squeeze()
+    def forward(self, mol_graph: dgl.DGLGraph, complete_graph: dgl.DGLGraph):
+        complete_graph.apply_nodes(self.input_node_func)
+        mol_graph.apply_edges(self.input_edge_func)
+        mol_graph.ndata['f'] = complete_graph.ndata['f']
 
         for mp_layer in self.mp_layers:
-            mp_layer(graph)
+            mp_layer(mol_graph, complete_graph)
 
-        graph.apply_nodes(self.output_node_func)
+        complete_graph.apply_nodes(self.output_node_func)
 
-        readouts_to_cat = [dgl.readout_nodes(graph, 'f', op=aggr) for aggr in self.readout_aggregators]
+        readouts_to_cat = [dgl.readout_nodes(complete_graph, 'f', op=aggr) for aggr in self.readout_aggregators]
         readout = torch.cat(readouts_to_cat, dim=-1)
         return self.output(readout)
 
@@ -105,7 +105,7 @@ class EGCLayer(nn.Module):
         elif reduce_func=='mean':
             self.reduce_func = fn.mean
         else:
-            raise ValueError('reduce function not supportet: ', reduce_func)
+            raise ValueError('reduce function not supported: ', reduce_func)
         self.update_network = MLP(
             in_dim=hidden_dim,
             hidden_size=hidden_dim,

@@ -1,4 +1,4 @@
-experiment_name: 'tune_NTXentExtraNegatives10_std02'
+experiment_name: 'tune_NTXentExtraNegatives10_std02_later'
 
 pretrain_checkpoint: runs/PNA_NTXentExtraNegatives10_std02_08-06_07-43-34/best_checkpoint.pt
 transfer_layers:
