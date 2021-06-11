@@ -383,7 +383,7 @@ class QM9Dataset(Dataset):
                 bond_features = self.e_features_tensor[e_start: e_end].to(self.device)
                 e_features = torch.zeros((n_atoms * n_atoms, bond_features.shape[1]), device=self.device)
                 edge_indices = self.edge_indices[:, e_start: e_end]
-                bond_indices = edge_indices[0]*n_atoms + edge_indices[1]
+                bond_indices = edge_indices[0] * n_atoms + edge_indices[1]
                 e_features[bond_indices] = bond_features
                 pairwise_indices = self.dist_dict['pairwise_indices'][:,
                                    pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)]
@@ -477,12 +477,14 @@ class QM9Dataset(Dataset):
         atom_slices = [0]
         edge_slices = [0]
         atom_one_hot = []
+        total_eigvecs = []
+        total_eigvals = []
         e_features = {'bond-type-onehot': [], 'stereo': [], 'conjugated': [], 'in-ring': []}
         atom_float = {'implicit-valence': [], 'degree': [], 'hybridization': [], 'chirality': [], 'mass': [],
                       'electronegativity': [], 'aromatic-bond': [], 'formal-charge': [], 'radical-electron': [],
                       'in-ring': []}
-        inv_distance_eigvectors = {'inv_vec1': [], 'inv_vec2': [], 'inv_vec-1': [], 'inv_vec-2': [], 'inv_vec-3': []}
-        distance_eigvectors = {'vec1': [], 'vec2': [], 'vec-1': [], 'vec-2': [], 'vec-3': []}
+        # inv_distance_eigvectors = {'inv_vec1': [], 'inv_vec2': [], 'inv_vec-1': [], 'inv_vec-2': [], 'inv_vec-3': []}
+        # distance_eigvectors = {'vec1': [], 'vec2': [], 'vec-1': [], 'vec-2': [], 'vec-3': []}
         positional_encodings = []
         edge_indices = []  # edges of each molecule in coo format
         targets = []  # the 19 properties that should be predicted for the QM9 dataset
@@ -496,31 +498,49 @@ class QM9Dataset(Dataset):
             # add hydrogen bonds to molecule because they are not in the smiles representation
             mol = Chem.AddHs(mol)
 
-
             for key, item in goli.features.get_mol_atomic_features_float(mol, list(atom_float.keys())).items():
                 atom_float[key].append(torch.tensor(item)[:, None])
 
             adj = GetAdjacencyMatrix(mol, useBO=False, force=True)
-            adj = csr_matrix(adj)
-            pos_enc, _ = graph_positional_encoder(adj=adj, pos_type='laplacian_eigvec', num_pos=3, normalization=None,
+            adj_csr = csr_matrix(adj)
+            pos_enc, _ = graph_positional_encoder(adj=adj_csr, pos_type='laplacian_eigvec', num_pos=3,
+                                                  normalization=None,
                                                   disconnected_comp=True)
             positional_encodings.append(pos_enc)
 
-            mol_coordinates = coordinates[total_atoms:total_atoms + n_atoms]
-            dist_matrix = torch.cdist(mol_coordinates, mol_coordinates)
-            inv_dist_matrix = 1 / (torch.eye(dist_matrix.shape[0]) + dist_matrix) - torch.eye(dist_matrix.shape[0])
-            e, v = torch.symeig(inv_dist_matrix, eigenvectors=True)
-            inv_distance_eigvectors['inv_vec1'].append(v[1].abs()[:, None])
-            inv_distance_eigvectors['inv_vec2'].append(v[2].abs()[:, None])
-            inv_distance_eigvectors['inv_vec-1'].append(v[-1][:, None])
-            inv_distance_eigvectors['inv_vec-2'].append(v[-2][:, None])
-            inv_distance_eigvectors['inv_vec-3'].append(v[-3][:, None])
-            e, v = torch.symeig(dist_matrix, eigenvectors=True)
-            distance_eigvectors['vec1'].append(v[1].abs()[:, None])
-            distance_eigvectors['vec2'].append(v[2].abs()[:, None])
-            distance_eigvectors['vec-1'].append(v[-1][:, None])
-            distance_eigvectors['vec-2'].append(v[-2][:, None])
-            distance_eigvectors['vec-3'].append(v[-3][:, None])
+            max_freqs = 10
+            D = torch.diag(adj.sum(dim=0))
+            L = D - adj
+            N = D ** -0.5
+            L_sym = N @ L @ N
+            EigVals, EigVecs = torch.symeig(L_sym, eigenvectors=True)
+            idx = EigVals.argsort()[0: max_freqs]  # Keep up to the maximum desired number of frequencies
+            EigVals, EigVecs = EigVals[idx], torch.real(EigVecs[:, idx])
+
+            # Sort, normalize and pad EigenVectors
+            EigVecs = EigVecs[:, EigVals.argsort()]  # increasing order
+            EigVecs = F.normalize(EigVecs, p=2, dim=1, eps=1e-12, out=None)
+            if n_atoms < max_freqs:
+                EigVecs = F.pad(EigVecs, (0, max_freqs - n_atoms), value=float('nan'))
+
+            total_eigvecs.append(EigVecs)
+            total_eigvals.append(EigVals)
+
+            # mol_coordinates = coordinates[total_atoms:total_atoms + n_atoms]
+            # dist_matrix = torch.cdist(mol_coordinates, mol_coordinates)
+            # inv_dist_matrix = 1 / (torch.eye(dist_matrix.shape[0]) + dist_matrix) - torch.eye(dist_matrix.shape[0])
+            # e, v = torch.symeig(inv_dist_matrix, eigenvectors=True)
+            # inv_distance_eigvectors['inv_vec1'].append(v[1].abs()[:, None])
+            # inv_distance_eigvectors['inv_vec2'].append(v[2].abs()[:, None])
+            # inv_distance_eigvectors['inv_vec-1'].append(v[-1][:, None])
+            # inv_distance_eigvectors['inv_vec-2'].append(v[-2][:, None])
+            # inv_distance_eigvectors['inv_vec-3'].append(v[-3][:, None])
+            # e, v = torch.symeig(dist_matrix, eigenvectors=True)
+            # distance_eigvectors['vec1'].append(v[1].abs()[:, None])
+            # distance_eigvectors['vec2'].append(v[2].abs()[:, None])
+            # distance_eigvectors['vec-1'].append(v[-1][:, None])
+            # distance_eigvectors['vec-2'].append(v[-2][:, None])
+            # distance_eigvectors['vec-3'].append(v[-3][:, None])
 
             type_idx = []
             for atom in mol.GetAtoms():
@@ -555,8 +575,8 @@ class QM9Dataset(Dataset):
             atom_one_hot.append(F.one_hot(torch.tensor(type_idx), num_classes=len(self.atom_types)))
 
         data_dict = {}
-        data_dict.update(inv_distance_eigvectors)
-        data_dict.update(distance_eigvectors)
+        #data_dict.update(inv_distance_eigvectors)
+        #data_dict.update(distance_eigvectors)
         data_dict.update(e_features)
         data_dict.update(atom_float)
         for key, item in data_dict.items():
@@ -569,6 +589,7 @@ class QM9Dataset(Dataset):
                           'edge_slices': torch.tensor(edge_slices, dtype=torch.long),
                           'in-ring-edges': torch.cat(e_features['in-ring']),
                           'atomic-number': torch.cat(atom_one_hot).float(),
+                          'eigvectors': torch.cat(atom_one_hot).float(),
                           'pos-enc': torch.cat(positional_encodings).float(),
                           'edge_indices': torch.cat(edge_indices, dim=1),
                           'atomic_number_long': torch.tensor(data_qm9['Z'], dtype=torch.long)[:, None],

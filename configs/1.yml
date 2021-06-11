@@ -1,13 +1,13 @@
-experiment_name: 'philosophy_dropout08'
+experiment_name: 'NTXent_pretrain_egnn_edges'
 
-ssl_mode: philosophy
 num_epochs: 1000
 batch_size: 500
 prefetch_graphs: True
-log_iterations: 30
+log_iterations: 50
 patience: 35
-loss_func: RegularizationLoss
-critic_loss: CriticLoss
+loss_func: NTXent
+loss_params:
+  tau: 0.1
 num_train: 50000
 features:
   - 'implicit-valence'
@@ -29,7 +29,7 @@ e_features:
   - 'conjugated'
   - 'in-ring-edges'
 required_data:
-  - mol_graph
+  - complete_graph
   - complete_graph3d
 metrics:
   - positive_similarity
@@ -38,12 +38,16 @@ metrics:
   - contrastive_accuracy
   - true_negative_rate
   - true_positive_rate
+  - uniformity
+  - alignment
+  - batch_variance
+  - dimension_covariance
 main_metric: loss
 collate_function: contrastive_collate
 
 optimizer: Adam
 optimizer_params:
-  lr: 7.0e-5
+  lr: 8.0e-5
   weight_decay: 5.0e-7
 
 
@@ -64,35 +68,21 @@ lr_scheduler_params:
 
 
 # Model parameters
-model_type: 'PNA'
+model_type: 'EGNNEdges'
 model_parameters:
   target_dim: 256
-  hidden_dim: 90
-  mid_batch_norm: True
-  last_batch_norm: True
-  readout_batchnorm: True
-  # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
-  batch_norm_momentum: 0.96
-  readout_hidden_dim: 90
-  readout_layers: 2
+  hidden_dim: 128
+  reduce_func: 'sum'
+  propagation_depth: 7
   dropout: 0.0
-  propagation_depth: 6
-  aggregators:
-    - mean
-    - max
-    - min
-    - std
-  scalers:
-    - identity
-    - amplification
-    - attenuation
+  readout_batchnorm: True
+  readout_hidden_dim: 128
+  readout_layers: 2
   readout_aggregators:
     - min
     - max
     - mean
-  pretrans_layers: 2
-  posttrans_layers: 1
-  residual: True
+  batch_norm: True
 
 # Model parameters
 model3d_type: 'DistanceAggregator'
@@ -116,12 +106,7 @@ model3d_parameters:
     - max
     - mean
 
-# Model parameters
-critic_type: 'BasicCritic'
-critic_parameters:
-  metric_dim: 256
-  repeats: 10
-  dropout: 0.8
+
 
 
 # continue training from checkpoint:
