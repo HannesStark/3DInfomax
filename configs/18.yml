@@ -1,6 +1,6 @@
-experiment_name: 'tune_NTXent_micro_no_fourier'
+experiment_name: 'tune_byol_no_predictor_with_wrong_edge_order_pretraining'
 
-pretrain_checkpoint: runs/PNA_NTXent_micro_no_fourier_06-06_09-22-11/best_checkpoint.pt
+pretrain_checkpoint: runs/BYOLwrapper_no_predictor_08-06_09-54-30/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:

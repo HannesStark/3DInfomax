@@ -80,7 +80,6 @@ model_parameters:
     - min
     - max
     - mean
-    - sum
   pretrans_layers: 2
   posttrans_layers: 1
   residual: True
