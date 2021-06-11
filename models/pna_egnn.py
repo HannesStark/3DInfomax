@@ -38,28 +38,28 @@ class PNAEGNN(nn.Module):
                  dropout: float = 0.0,
                  posttrans_layers: int = 1,
                  pretrans_layers: int = 1,
-                 pretrans_complete_layers = 2,
+                 pretrans_complete_layers=2,
                  batch_norm_momentum=0.1,
                  **kwargs):
         super(PNAEGNN, self).__init__()
         self.node_gnn = PNAEGNNNet(node_dim=node_dim,
-                               edge_dim=edge_dim,
-                               hidden_dim=hidden_dim,
-                               aggregators=aggregators,
-                               scalers=scalers,
-                               residual=residual,
-                               pairwise_distances=pairwise_distances,
-                               activation=activation,
-                               last_activation=last_activation,
-                               mid_batch_norm=mid_batch_norm,
-                               last_batch_norm=last_batch_norm,
-                               propagation_depth=propagation_depth,
-                               dropout=dropout,
-                               posttrans_layers=posttrans_layers,
-                               pretrans_layers=pretrans_layers,
-                               pretrans_complete_layers=pretrans_complete_layers,
-                               batch_norm_momentum=batch_norm_momentum
-                               )
+                                   edge_dim=edge_dim,
+                                   hidden_dim=hidden_dim,
+                                   aggregators=aggregators,
+                                   scalers=scalers,
+                                   residual=residual,
+                                   pairwise_distances=pairwise_distances,
+                                   activation=activation,
+                                   last_activation=last_activation,
+                                   mid_batch_norm=mid_batch_norm,
+                                   last_batch_norm=last_batch_norm,
+                                   propagation_depth=propagation_depth,
+                                   dropout=dropout,
+                                   posttrans_layers=posttrans_layers,
+                                   pretrans_layers=pretrans_layers,
+                                   pretrans_complete_layers=pretrans_complete_layers,
+                                   batch_norm_momentum=batch_norm_momentum
+                                   )
         if readout_hidden_dim == None:
             readout_hidden_dim = hidden_dim
         self.readout_aggregators = readout_aggregators
@@ -92,7 +92,7 @@ class PNAEGNNNet(nn.Module):
                  dropout: float = 0.0,
                  posttrans_layers: int = 1,
                  pretrans_layers: int = 1,
-                 pretrans_complete_layers = 2,
+                 pretrans_complete_layers=2,
                  **kwargs):
         super(PNAEGNNNet, self).__init__()
         self.node_input_net = MLP(
@@ -124,23 +124,23 @@ class PNAEGNNNet(nn.Module):
         self.mp_layers = nn.ModuleList()
         for _ in range(propagation_depth):
             self.mp_layers.append(PNAEGNNLayer(in_dim=hidden_dim,
-                                           out_dim=int(hidden_dim),
-                                           in_dim_edges=hidden_dim,
-                                           aggregators=aggregators,
-                                           scalers=scalers,
-                                           pairwise_distances=pairwise_distances,
-                                           residual=residual,
-                                           dropout=dropout,
-                                           activation=activation,
-                                           last_activation=last_activation,
-                                           mid_batch_norm=mid_batch_norm,
-                                           last_batch_norm=last_batch_norm,
-                                           avg_d={"log": 1.0},
-                                           posttrans_layers=posttrans_layers,
-                                           pretrans_layers=pretrans_layers,
-                                           pretrans_complete_layers=pretrans_complete_layers,
-                                           batch_norm_momentum=batch_norm_momentum
-                                           ),
+                                               out_dim=int(hidden_dim),
+                                               in_dim_edges=hidden_dim,
+                                               aggregators=aggregators,
+                                               scalers=scalers,
+                                               pairwise_distances=pairwise_distances,
+                                               residual=residual,
+                                               dropout=dropout,
+                                               activation=activation,
+                                               last_activation=last_activation,
+                                               mid_batch_norm=mid_batch_norm,
+                                               last_batch_norm=last_batch_norm,
+                                               avg_d={"log": 1.0},
+                                               posttrans_layers=posttrans_layers,
+                                               pretrans_layers=pretrans_layers,
+                                               pretrans_complete_layers=pretrans_complete_layers,
+                                               batch_norm_momentum=batch_norm_momentum
+                                               ),
 
                                   )
         self.node_wise_output_network = MLP(
@@ -205,8 +205,6 @@ class PNAEGNNLayer(nn.Module):
         if in_dim != out_dim:
             self.residual = False
 
-        ic(in_dim_edges)
-        ic(in_dim)
         self.pretrans = MLP(
             in_dim=2 * in_dim + in_dim_edges,
             hidden_size=in_dim,
@@ -220,7 +218,7 @@ class PNAEGNNLayer(nn.Module):
             batch_norm_momentum=batch_norm_momentum
         )
         self.posttrans = MLP(
-            in_dim=(len(self.aggregators) * len(self.scalers) * 2 + 1) * in_dim ,
+            in_dim=(len(self.aggregators) * len(self.scalers) * 2 + 1) * in_dim,
             hidden_size=out_dim,
             out_dim=out_dim,
             layers=posttrans_layers,
@@ -254,7 +252,7 @@ class PNAEGNNLayer(nn.Module):
         g.apply_edges(self.pretrans_complete_edges, etype='complete')
 
         # aggregation
-        g.update_all(self.message_func, self.reduce_func,  etype='bond')
+        g.update_all(self.message_func, self.reduce_func, etype='bond')
         g.update_all(self.message_func_complete, self.reduce_func_complete, etype='complete')
 
         h = torch.cat([h, g.ndata['f_bond'], g.ndata['f_complete']], dim=-1)
