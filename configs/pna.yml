@@ -1,4 +1,4 @@
-experiment_name: 'baseline'
+experiment_name: 'baseline_few_features'
 
 num_epochs: 1000
 batch_size: 128
@@ -10,22 +10,10 @@ loss_func: L1Loss
 targets:
   - homo
 features:
-  - 'implicit-valence'
-  - 'degree'
-  - 'hybridization'
-  - 'chirality'
-  - 'mass'
-  - 'electronegativity'
-  - 'aromatic-bond'
-  - 'formal-charge'
-  - 'radical-electron'
-  - 'in-ring'
   - 'atomic-number'
 e_features:
   - 'bond-type-onehot'
-  - 'stereo'
-  - 'conjugated'
-  - 'in-ring-edges'
+
 
 
 

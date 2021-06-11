@@ -1,13 +1,13 @@
-experiment_name: 'NTXent'
+experiment_name: 'philosophy_dropout05'
 
+ssl_mode: philosophy
 num_epochs: 1000
 batch_size: 500
 prefetch_graphs: True
-log_iterations: 50
+log_iterations: 30
 patience: 35
-loss_func: NTXent
-loss_params:
-  tau: 0.1
+loss_func: RegularizationLoss
+critic_loss: CriticLoss
 num_train: 50000
 features:
   - 'implicit-valence'
@@ -29,7 +29,7 @@ e_features:
   - 'conjugated'
   - 'in-ring-edges'
 required_data:
-  - mol_complete_graph
+  - mol_graph
   - complete_graph3d
 metrics:
   - positive_similarity
@@ -38,16 +38,12 @@ metrics:
   - contrastive_accuracy
   - true_negative_rate
   - true_positive_rate
-  - uniformity
-  - alignment
-  - batch_variance
-  - dimension_covariance
 main_metric: loss
 collate_function: contrastive_collate
 
 optimizer: Adam
 optimizer_params:
-  lr: 8.0e-5
+  lr: 7.0e-5
   weight_decay: 5.0e-7
 
 
@@ -66,7 +62,9 @@ lr_scheduler_params:
   verbose: True
 
 
-model_type: 'PNAEGNN'
+
+# Model parameters
+model_type: 'PNA'
 model_parameters:
   target_dim: 256
   hidden_dim: 90
@@ -94,19 +92,15 @@ model_parameters:
     - mean
   pretrans_layers: 2
   posttrans_layers: 1
-  posttrans_complete_layers: 2
   residual: True
 
-
 # Model parameters
-model3d_type: 'Net3D'
+model3d_type: 'DistanceAggregator'
 model3d_parameters:
   target_dim: 256
   hidden_dim: 10
   hidden_edge_dim: 10
   node_wise_output_layers: 1
-  message_net_layers: 1
-  update_net_layers: 1
   reduce_func: 'mean'
   fourier_encodings: 4
   propagation_depth: 1
@@ -122,6 +116,12 @@ model3d_parameters:
     - max
     - mean
 
+# Model parameters
+critic_type: 'BasicCritic'
+critic_parameters:
+  metric_dim: 256
+  repeats: 10
+  dropout: 0.5
 
 
 # continue training from checkpoint:
