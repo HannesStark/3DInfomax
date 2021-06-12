@@ -1,7 +1,7 @@
 experiment_name: 'san'
 
 num_epochs: 1000
-batch_size: 64
+batch_size: 100
 prefetch_graphs: True
 log_iterations: 30
 patience: 50
