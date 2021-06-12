@@ -126,8 +126,8 @@ class EGCLayer(nn.Module):
                          apply_node_func=self.update_function)
 
     def message_function(self, edges):
-        distance_data = edges.data['d']
-        message_input = torch.cat([edges.src['f'], edges.dst['f'], distance_data], dim=-1)
+        squared_distance = torch.sum((edges.src['x'] - edges.dst['x']) ** 2, dim=-1)[:, None]
+        message_input = torch.cat([edges.src['f'], edges.dst['f'], squared_distance], dim=-1)
         message = self.message_network(message_input)
         edge_weight = torch.sigmoid(self.soft_edge_network(message))
         return {'m': message * edge_weight}

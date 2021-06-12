@@ -1,4 +1,4 @@
-experiment_name: 'all_data'
+experiment_name: 'all_data_use_x_instead_of_precomputed'
 
 num_epochs: 1000
 batch_size: 96
