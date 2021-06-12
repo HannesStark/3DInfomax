@@ -1,3 +1,2 @@
 # continue training from checkpoint:
-checkpoint: runs/PNA_NTXentExtraNegatives10_std02_08-06_07-43-34/last_checkpoint.pt
-collate_function: NoisedDistancesCollate
+checkpoint: runs/EGNNEdges_edge_feat_10-06_17-45-49/last_checkpoint.pt

@@ -9,7 +9,7 @@ exclude_from_transfer:
 
 num_epochs: 1000
 batch_size: 128
-prefetch_graphs: True
+prefetch_graphs: False
 log_iterations: 30
 patience: 50
 loss_func: L1Loss
@@ -36,7 +36,7 @@ e_features:
 
 
 required_data:
-  - mol_graph
+  - mol_complete_graph
   - targets
 metrics:
   - mae_denormalized
