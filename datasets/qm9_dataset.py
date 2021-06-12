@@ -233,7 +233,7 @@ class QM9Dataset(Dataset):
 
         self.require_distances = any(return_type in self.return_types for return_type in
                                      ['dist_embedding', 'pairwise_distances', 'pairwise_indices', 'complete_graph',
-                                      'complete_graph3d', 'mol_complete_graph'])
+                                      'complete_graph3d', 'mol_complete_graph', 'san_graph'])
         if self.require_distances:
             if not os.path.exists(os.path.join(self.qm9_directory, 'processed', self.distances_file)):
                 self.process_distances()
@@ -256,7 +256,8 @@ class QM9Dataset(Dataset):
                 e_end = self.meta_dict['edge_slices'][idx + 1]
                 edge_indices = self.edge_indices[:, e_start: e_end]
                 self.mol_graphs.append(dgl.graph((edge_indices[0], edge_indices[1])))
-        if self.prefetch_graphs and ('complete_graph' in self.return_types or 'complete_graph3d' in self.return_types):
+        if self.prefetch_graphs and (
+                'complete_graph' in self.return_types or 'complete_graph3d' in self.return_types or 'san_graph' in self.return_types):
             print(
                 'Load complete graphs into memory (set prefetch_graphs to False to load them on the fly => slower training)')
             self.complete_graphs = []
@@ -427,17 +428,23 @@ class QM9Dataset(Dataset):
                 g.ndata['pos_dir'] = self.pos_enc[start: start + n_atoms].to(self.device)
             return g
         if return_type == 'san_graph':
-            g = self.get_graph(idx, e_start, e_end).to(self.device)
+            g = self.get_complete_graph(idx, pairwise_start, n_atoms).to(self.device)
             g.ndata['f'] = self.features_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
-            eig_vals = self.eig_vals[start: start + n_atoms].to(self.device)
-            sign_flip = torch.rand(n_atoms, device=self.device)
+            eig_vals = self.eig_vals[idx].to(self.device)
+            sign_flip = torch.rand(eig_vals.shape[0], device=self.device)
             sign_flip[sign_flip >= 0.5] = 1.0
             sign_flip[sign_flip < 0.5] = -1.0
-            eig_vecs = self.eig_vecs[start: start + n_atoms].to(self.device) * sign_flip.unsqueeze(1)
+            eig_vecs = self.eig_vecs[start: start + n_atoms].to(self.device) * sign_flip.unsqueeze(0)
+            eig_vals = eig_vals.unsqueeze(0).repeat(n_atoms, 1)
             g.ndata['pos_enc'] = torch.stack([eig_vals, eig_vecs], dim=-1)
             if self.e_features_tensor != None:
-                g.edata['w'] = self.e_features_tensor[e_start: e_end].to(self.device)
+                e_features = self.e_features_tensor[e_start: e_end].to(self.device)
+                g.edata['w'] = torch.zeros(g.number_of_edges(), e_features.shape[1], dtype=torch.float32, device=self.device)
+                g.edata['real'] = torch.zeros(g.number_of_edges(), dtype=torch.long, device=self.device)
+                edge_indices = self.edge_indices[:, e_start: e_end].to(self.device)
+                g.edges[edge_indices[0], edge_indices[1]].data['w'] = e_features
+                g.edges[edge_indices[0], edge_indices[1]].data['real'] = torch.ones(e_features.shape[0], dtype=torch.long, device=self.device)  # This indicates real edges
             if self.pos_dir:
                 g.ndata['pos_dir'] = self.pos_enc[start: start + n_atoms].to(self.device)
             return g
@@ -531,8 +538,8 @@ class QM9Dataset(Dataset):
             adj = torch.tensor(adj).float()
             D = torch.diag(adj.sum(dim=0))
             L = D - adj
-            N = adj.sum(dim=0)** -0.5
-            L_sym = torch.eye(n_atoms) - N * L *N
+            N = adj.sum(dim=0) ** -0.5
+            L_sym = torch.eye(n_atoms) - N * L * N
             eig_vals, eig_vecs = torch.symeig(L_sym, eigenvectors=True)
             idx = eig_vals.argsort()[0: max_freqs]  # Keep up to the maximum desired number of frequencies
             eig_vals, eig_vecs = eig_vals[idx], eig_vecs[:, idx]
@@ -543,7 +550,6 @@ class QM9Dataset(Dataset):
             if n_atoms < max_freqs:
                 eig_vecs = F.pad(eig_vecs, (0, max_freqs - n_atoms), value=float('nan'))
                 eig_vals = F.pad(eig_vals, (0, max_freqs - n_atoms), value=float('nan'))
-
 
             total_eigvecs.append(eig_vecs)
             total_eigvals.append(eig_vals.unsqueeze(0))
@@ -597,8 +603,8 @@ class QM9Dataset(Dataset):
             atom_one_hot.append(F.one_hot(torch.tensor(type_idx), num_classes=len(self.atom_types)))
 
         data_dict = {}
-        #data_dict.update(inv_distance_eigvectors)
-        #data_dict.update(distance_eigvectors)
+        # data_dict.update(inv_distance_eigvectors)
+        # data_dict.update(distance_eigvectors)
         data_dict.update(e_features)
         data_dict.update(atom_float)
         for key, item in data_dict.items():

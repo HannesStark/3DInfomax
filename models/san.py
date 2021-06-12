@@ -110,9 +110,8 @@ class MultiHeadAttentionLayer(nn.Module):
     def propagate_attention(self, g):
 
         if self.full_graph:
-            real_ids = torch.nonzero(g.edata['real']).view(-1)
-            fake_ids = torch.nonzero(g.edata['real'] == 0).view(-1)
-
+            real_ids = torch.nonzero(g.edata['real']).squeeze()
+            fake_ids = torch.nonzero(g.edata['real'] == 0).squeeze()
         else:
             real_ids = g.edges(form='eid')
 
@@ -257,7 +256,8 @@ class GraphTransformerLayer(nn.Module):
 
 
 class SAN(nn.Module):
-    def __init__(self, node_dim, edge_dim, residual, readout, in_feat_dropout, dropout, layer_norm, batch_norm, device, gamma, full_graph,
+    def __init__(self, node_dim, edge_dim, residual, readout, in_feat_dropout, dropout, layer_norm, batch_norm, device,
+                 gamma, full_graph,
                  hidden_dim, n_heads, out_dim, propagation_depth):
         super().__init__()
 
@@ -321,18 +321,18 @@ class SAN(nn.Module):
 
 
 class SAN_NodeLPE(nn.Module):
-    def __init__(self, node_dim, edge_dim, readout_aggregators,residual, in_feat_dropout, dropout, layer_norm, batch_norm, device, gamma, full_graph,
-                 GT_hidden_dim, GT_n_heads, GT_out_dim, GT_layers, LPE_n_heads,LPE_layers, LPE_dim):
+    def __init__(self, node_dim, edge_dim, target_dim, readout_aggregators, readout_batchnorm, readout_layers,
+                 batch_norm_momentum, residual, in_feat_dropout, dropout, layer_norm, batch_norm, readout_hidden_dim,
+                 gamma, full_graph,
+                 GT_hidden_dim, GT_n_heads, GT_out_dim, GT_layers, LPE_n_heads, LPE_layers, LPE_dim, **kwargs):
         super().__init__()
 
-
         self.residual = residual
-        self.readout_aggregators =readout_aggregators
+        self.readout_aggregators = readout_aggregators
 
         self.layer_norm = layer_norm
         self.batch_norm = batch_norm
 
-        self.device = device
         self.in_feat_dropout = nn.Dropout(in_feat_dropout)
 
         self.embedding_h = MLP(in_dim=node_dim,
@@ -340,13 +340,13 @@ class SAN_NodeLPE(nn.Module):
                                layers=1,
                                out_dim=GT_hidden_dim - LPE_dim)
         self.embedding_e_real = MLP(in_dim=edge_dim,
-                               hidden_size=edge_dim,
-                               layers=1,
-                               out_dim=GT_hidden_dim)
+                                    hidden_size=edge_dim,
+                                    layers=1,
+                                    out_dim=GT_hidden_dim)
         self.embedding_e_fake = MLP(in_dim=edge_dim,
-                               hidden_size=edge_dim,
-                               layers=1,
-                               out_dim=GT_hidden_dim)
+                                    hidden_size=edge_dim,
+                                    layers=1,
+                                    out_dim=GT_hidden_dim)
 
         self.linear_A = nn.Linear(2, LPE_dim)
 
@@ -360,14 +360,12 @@ class SAN_NodeLPE(nn.Module):
         self.layers.append(
             GraphTransformerLayer(gamma, GT_hidden_dim, GT_out_dim, GT_n_heads, full_graph, dropout, self.layer_norm,
                                   self.batch_norm, self.residual))
-        self.output = MLP(in_dim=GT_out_dim,
-                             hidden_size=GT_out_dim,
-                             out_dim=1,
-                             device=device,
-                             layers=2)  # out dim for probability  # 1 out dim for probability
+        self.output = MLP(in_dim=GT_out_dim * len(self.readout_aggregators), hidden_size=readout_hidden_dim,
+                          mid_batch_norm=readout_batchnorm, out_dim=target_dim,
+                          layers=readout_layers,
+                          batch_norm_momentum=batch_norm_momentum)  # out dim for probability  # 1 out dim for probability
 
     def forward(self, g):
-
         # input embedding
         h = self.embedding_h(g.ndata['f'])
         e = self.embedding_e_real(g.edata['w'])
@@ -396,9 +394,8 @@ class SAN_NodeLPE(nn.Module):
         # Second Transformer
         for conv in self.layers:
             h, e = conv(g, h, e)
-        g.ndata['h'] = h
+        g.ndata['f'] = h
 
         readouts_to_cat = [dgl.readout_nodes(g, 'f', op=aggr) for aggr in self.readout_aggregators]
         readout = torch.cat(readouts_to_cat, dim=-1)
         return self.output(readout)
-
