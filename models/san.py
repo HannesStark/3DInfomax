@@ -256,79 +256,31 @@ class GraphTransformerLayer(nn.Module):
 
 
 class SAN(nn.Module):
-    def __init__(self, node_dim, edge_dim, residual, readout, in_feat_dropout, dropout, layer_norm, batch_norm, device,
-                 gamma, full_graph,
-                 hidden_dim, n_heads, out_dim, propagation_depth):
+    def __init__(self, GT_out_dim, readout_hidden_dim, readout_batchnorm, readout_aggregators, target_dim,
+                 readout_layers, batch_norm_momentum, **kwargs):
         super().__init__()
+        self.readout_aggregators = readout_aggregators
+        self.gnn = SAN_NodeLPE(GT_out_dim=GT_out_dim, batch_norm_momentum=batch_norm_momentum, **kwargs)
+        self.output = MLP(in_dim=GT_out_dim * len(self.readout_aggregators), hidden_size=readout_hidden_dim,
+                          mid_batch_norm=readout_batchnorm, out_dim=target_dim,
+                          layers=readout_layers,
+                          batch_norm_momentum=batch_norm_momentum)
 
-        self.residual = residual
-        self.readout = readout
+    def forward(self, g):
+        self.gnn(g)
 
-        self.readout = readout
-        self.layer_norm = layer_norm
-        self.batch_norm = batch_norm
-
-        self.device = device
-        self.in_feat_dropout = nn.Dropout(in_feat_dropout)
-
-        self.embedding_h = MLP(in_dim=node_dim,
-                               hidden_size=node_dim,
-                               layers=1,
-                               out_dim=hidden_dim)
-
-        self.embedding_e = MLP(in_dim=edge_dim,
-                               hidden_size=edge_dim,
-                               layers=1,
-                               out_dim=hidden_dim)
-
-        self.layers = nn.ModuleList([GraphTransformerLayer(gamma, hidden_dim, hidden_dim, n_heads, full_graph,
-                                                           dropout, self.layer_norm, self.batch_norm, self.residual) for
-                                     _ in range(propagation_depth - 1)])
-
-        self.layers.append(
-            GraphTransformerLayer(gamma, hidden_dim, out_dim, n_heads, full_graph, dropout, self.layer_norm,
-                                  self.batch_norm, self.residual))
-        self.MLP_layer = MLP(in_dim=out_dim,
-                             hidden_size=out_dim,
-                             out_dim=1,
-                             device=device,
-                             layers=2)  # out dim for probability
-
-    def forward(self, g, h, e):
-
-        # input embedding
-        h = self.embedding_h(h)
-        h = self.in_feat_dropout(h)
-        e = self.embedding_e(e)
-
-        # Second Transformer
-        for conv in self.layers:
-            h, e = conv(g, h, e)
-        g.ndata['h'] = h
-
-        if self.readout == "sum":
-            hg = dgl.sum_nodes(g, 'h')
-        elif self.readout == "max":
-            hg = dgl.max_nodes(g, 'h')
-        elif self.readout == "mean":
-            hg = dgl.mean_nodes(g, 'h')
-        else:
-            hg = dgl.mean_nodes(g, 'h')  # default readout is mean nodes
-
-        sig = nn.Sigmoid()
-
-        return sig(self.MLP_layer(hg))
+        readouts_to_cat = [dgl.readout_nodes(g, 'f', op=aggr) for aggr in self.readout_aggregators]
+        readout = torch.cat(readouts_to_cat, dim=-1)
+        return self.output(readout)
 
 
 class SAN_NodeLPE(nn.Module):
-    def __init__(self, node_dim, edge_dim, target_dim, readout_aggregators, readout_batchnorm, readout_layers,
-                 batch_norm_momentum, residual, in_feat_dropout, dropout, layer_norm, batch_norm, readout_hidden_dim,
-                 gamma, full_graph,
-                 GT_hidden_dim, GT_n_heads, GT_out_dim, GT_layers, LPE_n_heads, LPE_layers, LPE_dim, **kwargs):
+    def __init__(self, node_dim, edge_dim, batch_norm_momentum, residual, in_feat_dropout, dropout,
+                 layer_norm, batch_norm, gamma, full_graph, GT_hidden_dim, GT_n_heads, GT_out_dim, GT_layers,
+                 LPE_n_heads, LPE_layers, LPE_dim, **kwargs):
         super().__init__()
 
         self.residual = residual
-        self.readout_aggregators = readout_aggregators
 
         self.layer_norm = layer_norm
         self.batch_norm = batch_norm
@@ -360,10 +312,6 @@ class SAN_NodeLPE(nn.Module):
         self.layers.append(
             GraphTransformerLayer(gamma, GT_hidden_dim, GT_out_dim, GT_n_heads, full_graph, dropout, self.layer_norm,
                                   self.batch_norm, self.residual))
-        self.output = MLP(in_dim=GT_out_dim * len(self.readout_aggregators), hidden_size=readout_hidden_dim,
-                          mid_batch_norm=readout_batchnorm, out_dim=target_dim,
-                          layers=readout_layers,
-                          batch_norm_momentum=batch_norm_momentum)  # out dim for probability  # 1 out dim for probability
 
     def forward(self, g):
         # input embedding
@@ -395,7 +343,3 @@ class SAN_NodeLPE(nn.Module):
         for conv in self.layers:
             h, e = conv(g, h, e)
         g.ndata['f'] = h
-
-        readouts_to_cat = [dgl.readout_nodes(g, 'f', op=aggr) for aggr in self.readout_aggregators]
-        readout = torch.cat(readouts_to_cat, dim=-1)
-        return self.output(readout)

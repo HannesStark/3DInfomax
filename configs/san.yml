@@ -53,7 +53,7 @@ lr_scheduler_params:
   mode: 'min'
   verbose: True
 
-model_type: 'SAN_NodeLPE'
+model_type: 'SAN'
 model_parameters:
   target_dim: 1
   in_feat_dropout: 0.0
@@ -75,6 +75,9 @@ model_parameters:
   readout_hidden_dim: 90
   readout_layers: 2
   readout_aggregators:
+    - min
+    - max
+    - mean
     - sum
   residual: True
 
