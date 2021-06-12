@@ -1,6 +1,6 @@
-experiment_name: 'tune_byol_no_predictor_with_wrong_edge_order_pretraining'
+experiment_name: 'tune_BYOLwrapper_no_predictor'
 
-pretrain_checkpoint: runs/BYOLwrapper_no_predictor_08-06_09-54-30/best_checkpoint.pt
+pretrain_checkpoint: runs/BYOLwrapper_no_predictor_11-06_07-28-16/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
@@ -58,7 +58,7 @@ lr_scheduler_params:
   wrapped_scheduler: ReduceLROnPlateau
   factor: 0.5
   patience: 25
-  min_lr: 5.0e-6
+  min_lr: 1.0e-6
   mode: 'min'
   verbose: True
 

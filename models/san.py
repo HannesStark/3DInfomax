@@ -321,13 +321,13 @@ class SAN(nn.Module):
 
 
 class SAN_NodeLPE(nn.Module):
-    def __init__(self, node_dim, edge_dim, residual, readout, in_feat_dropout, dropout, layer_norm, batch_norm, device, gamma, full_graph,
+    def __init__(self, node_dim, edge_dim, readout_aggregators,residual, in_feat_dropout, dropout, layer_norm, batch_norm, device, gamma, full_graph,
                  GT_hidden_dim, GT_n_heads, GT_out_dim, GT_layers, LPE_n_heads,LPE_layers, LPE_dim):
         super().__init__()
 
 
         self.residual = residual
-        self.readout = readout
+        self.readout_aggregators =readout_aggregators
 
         self.layer_norm = layer_norm
         self.batch_norm = batch_norm
@@ -360,19 +360,19 @@ class SAN_NodeLPE(nn.Module):
         self.layers.append(
             GraphTransformerLayer(gamma, GT_hidden_dim, GT_out_dim, GT_n_heads, full_graph, dropout, self.layer_norm,
                                   self.batch_norm, self.residual))
-        self.MLP_layer = MLP(in_dim=GT_out_dim,
+        self.output = MLP(in_dim=GT_out_dim,
                              hidden_size=GT_out_dim,
                              out_dim=1,
                              device=device,
                              layers=2)  # out dim for probability  # 1 out dim for probability
 
-    def forward(self, g, h, e, EigVecs, EigVals):
+    def forward(self, g):
 
         # input embedding
-        h = self.embedding_h(h)
-        e = self.embedding_e_real(e)
+        h = self.embedding_h(g.ndata['f'])
+        e = self.embedding_e_real(g.edata['w'])
 
-        PosEnc = torch.cat((EigVecs.unsqueeze(2), EigVals), dim=2).float()  # (Num nodes) x (Num Eigenvectors) x 2
+        PosEnc = g.ndata['pos_enc']  # (Num nodes) x (Num Eigenvectors) x 2
         empty_mask = torch.isnan(PosEnc)  # (Num nodes) x (Num Eigenvectors) x 2
 
         PosEnc[empty_mask] = 0  # (Num nodes) x (Num Eigenvectors) x 2
@@ -398,15 +398,7 @@ class SAN_NodeLPE(nn.Module):
             h, e = conv(g, h, e)
         g.ndata['h'] = h
 
-        if self.readout == "sum":
-            hg = dgl.sum_nodes(g, 'h')
-        elif self.readout == "max":
-            hg = dgl.max_nodes(g, 'h')
-        elif self.readout == "mean":
-            hg = dgl.mean_nodes(g, 'h')
-        else:
-            hg = dgl.mean_nodes(g, 'h')  # default readout is mean nodes
+        readouts_to_cat = [dgl.readout_nodes(g, 'f', op=aggr) for aggr in self.readout_aggregators]
+        readout = torch.cat(readouts_to_cat, dim=-1)
+        return self.output(readout)
 
-        sig = nn.Sigmoid()
-
-        return sig(self.MLP_layer(hg))
