@@ -1,6 +1,6 @@
-experiment_name: 'tune_BYOLwrapper_no_predictor'
+experiment_name: 'tune_philosophy_dropout08'
 
-pretrain_checkpoint: runs/BYOLwrapper_no_predictor_11-06_07-28-16/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_philosophy_dropout08_11-06_07-12-38/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:

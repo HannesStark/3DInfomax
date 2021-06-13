@@ -129,7 +129,8 @@ def train_qm9(args, device, metrics_dict):
     # val_idx = all_idx[len(model_idx) + len(test_idx): len(model_idx) + len(test_idx) + 3000]
 
     try:
-        edge_dim = all_data[0][0].edata['w'].shape[1] if args.use_e_features else 0
+        edge_dim = all_data[0][0].edata['w'].shape[1] if args.use_e_features and len(args.e_features) + len(
+            args.e_features3d) > 0 else 0
     except:
         edge_dim = all_data[0][0].edges['bond'].data['w'].shape[1] if args.use_e_features else 0
     model = globals()[args.model_type](node_dim=all_data[0][0].ndata['f'].shape[1],
