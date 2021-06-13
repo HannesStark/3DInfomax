@@ -1,6 +1,6 @@
-experiment_name: 'tune_philosophy_dropout05'
+experiment_name: 'tune_NTXent_EGNN_mean_with_distance_aggregator'
 
-pretrain_checkpoint: runs/PNA_philosophy_dropout05_11-06_07-12-37/best_checkpoint.pt
+pretrain_checkpoint: runs/EGNNEdges_NTXent_EGNN_mean_with_distance_aggregator_10-06_17-49-42/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
@@ -36,7 +36,7 @@ e_features:
 
 
 required_data:
-  - mol_graph
+  - complete_graph
   - targets
 metrics:
   - mae_denormalized
@@ -65,31 +65,23 @@ lr_scheduler_params:
 
 
 # Model parameters
-model_type: 'PNA'
+model_type: 'EGNNEdges'
 model_parameters:
   target_dim: 1
-  hidden_dim: 90
-  mid_batch_norm: True
-  last_batch_norm: True
+  hidden_dim: 128
+  reduce_func: 'mean'
+  propagation_depth: 7
   dropout: 0.0
-  propagation_depth: 6
-  aggregators:
-    - mean
-    - max
-    - min
-    - std
-  scalers:
-    - identity
-    - amplification
-    - attenuation
+  readout_batchnorm: True
+  readout_hidden_dim: 128
+  readout_layers: 2
   readout_aggregators:
     - min
     - max
     - mean
     - sum
-  pretrans_layers: 2
-  posttrans_layers: 1
-  residual: True
+  batch_norm: True
+
 
 
 # continue training from checkpoint:
