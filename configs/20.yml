@@ -1,6 +1,6 @@
-experiment_name: 'tune_NTXent_EGNN_sum_with_distance_aggregator'
+experiment_name: 'tune_SAN_NTXent_distance_aggregator'
 
-pretrain_checkpoint: runs/EGNNEdges_NTXent_EGNN_sum_with_distance_aggregator_10-06_17-49-46/best_checkpoint.pt
+pretrain_checkpoint: runs/SAN_NTXent_distance_aggregator_12-06_09-53-46/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
@@ -36,7 +36,7 @@ e_features:
 
 
 required_data:
-  - complete_graph
+  - san_graph
   - targets
 metrics:
   - mae_denormalized
@@ -64,23 +64,33 @@ lr_scheduler_params:
 
 
 
-# Model parameters
-model_type: 'EGNNEdges'
+model_type: 'SAN'
 model_parameters:
   target_dim: 1
-  hidden_dim: 128
-  reduce_func: 'sum'
-  propagation_depth: 7
-  dropout: 0.0
+  in_feat_dropout: 0.0
+  layer_norm: False
+  batch_norm: True
+  gamma: 1.0e-6
+  full_graph: True
+  GT_hidden_dim: 64
+  GT_n_heads: 4
+  GT_out_dim: 64
+  GT_layers: 10
+  LPE_n_heads: 4
+  LPE_layers: 3
+  LPE_dim: 16
+  dropout: 0.01
+  batch_norm_momentum: 0.1
+
   readout_batchnorm: True
-  readout_hidden_dim: 128
+  readout_hidden_dim: 90
   readout_layers: 2
   readout_aggregators:
     - min
     - max
     - mean
     - sum
-  batch_norm: True
+  residual: True
 
 
 
