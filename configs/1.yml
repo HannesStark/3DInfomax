@@ -1,4 +1,4 @@
-experiment_name: 'NTXent_pretrain_egnn_edges'
+experiment_name: 'NTXent_few_features'
 
 num_epochs: 1000
 batch_size: 500
@@ -10,26 +10,13 @@ loss_params:
   tau: 0.1
 num_train: 50000
 features:
-  - 'implicit-valence'
-  - 'degree'
-  - 'hybridization'
-  - 'chirality'
-  - 'mass'
-  - 'electronegativity'
-  - 'aromatic-bond'
-  - 'formal-charge'
-  - 'radical-electron'
-  - 'in-ring'
   - 'atomic-number'
 features3d:
   - 'constant_ones'
 e_features:
   - 'bond-type-onehot'
-  - 'stereo'
-  - 'conjugated'
-  - 'in-ring-edges'
 required_data:
-  - complete_graph
+  - mol_graph
   - complete_graph3d
 metrics:
   - positive_similarity
@@ -68,21 +55,35 @@ lr_scheduler_params:
 
 
 # Model parameters
-model_type: 'EGNNEdges'
+model_type: 'PNA'
 model_parameters:
   target_dim: 256
-  hidden_dim: 128
-  reduce_func: 'sum'
-  propagation_depth: 7
-  dropout: 0.0
+  hidden_dim: 90
+  mid_batch_norm: True
+  last_batch_norm: True
   readout_batchnorm: True
-  readout_hidden_dim: 128
+  # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
+  batch_norm_momentum: 0.96
+  readout_hidden_dim: 90
   readout_layers: 2
+  dropout: 0.0
+  propagation_depth: 6
+  aggregators:
+    - mean
+    - max
+    - min
+    - std
+  scalers:
+    - identity
+    - amplification
+    - attenuation
   readout_aggregators:
     - min
     - max
     - mean
-  batch_norm: True
+  pretrans_layers: 2
+  posttrans_layers: 1
+  residual: True
 
 # Model parameters
 model3d_type: 'DistanceAggregator'
