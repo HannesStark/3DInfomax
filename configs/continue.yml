@@ -1,2 +1,2 @@
 # continue training from checkpoint:
-checkpoint: runs/EGNN_half_data_10-06_06-34-04/last_checkpoint.pt
+checkpoint: runs/EGNNEdges_edge_feat_10-06_17-45-49/last_checkpoint.pt

@@ -1,4 +1,4 @@
-experiment_name: 'edge_feat'
+experiment_name: 'edge_feat_correctLR_scheduling'
 
 num_epochs: 1000
 batch_size: 100
@@ -41,10 +41,18 @@ optimizer_params:
   lr: 1.0e-3
   weight_decay: 1.0e-16
 
-lr_scheduler: CosineAnnealingLR
-step_per_batch: False
+scheduler_step_per_batch: False
+lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  T_max: 1000
+  warmup_steps: [1500]
+  interpolation: 'linear'
+  # parameters of scheduler to run after warmup
+  wrapped_scheduler: ReduceLROnPlateau
+  factor: 0.5
+  patience: 25
+  min_lr: 5.0e-5
+  mode: 'min'
+  verbose: True
 
 # Model parameters
 model_type: 'EGNNEdges'

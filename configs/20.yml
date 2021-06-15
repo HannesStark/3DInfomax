@@ -1,4 +1,4 @@
-experiment_name: 'tune_SAN_NTXent_distance_aggregator'
+experiment_name: 'tune_SAN_NTXent_distance_aggregator_without_weight_decay'
 
 pretrain_checkpoint: runs/SAN_NTXent_distance_aggregator_12-06_09-53-46/best_checkpoint.pt
 transfer_layers:
@@ -47,7 +47,6 @@ metrics:
 optimizer: Adam
 optimizer_params:
   lr: 7.0e-5
-  weight_decay: 1.0e-11
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
