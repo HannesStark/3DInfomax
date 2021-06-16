@@ -1,2 +1,2 @@
 # continue training from checkpoint:
-checkpoint: runs/PNAEGNN_tune_PNAEGNN_NTXent_13-06_06-38-29/last_checkpoint.pt
+checkpoint: runs/EGNN_all_data_use_x_instead_of_precomputed_13-06_07-02-50/last_checkpoint.pt
