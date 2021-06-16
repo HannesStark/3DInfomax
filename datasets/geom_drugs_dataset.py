@@ -160,7 +160,7 @@ class GEOMDrugs(Dataset):
         self.processed_file = 'drugs_processed.pt'
         self.distances_file = 'drugs_distances.pt'
         self.crude_file = 'drugs_crude.msgpack'
-        self.atom_types = {'H': 0, 'C': 1, 'N': 2, 'O': 3, 'F': 4, 'S': 5, 'Cl': 6, 'Br': 7, 'I':8, 'P': 9, 'B': 10, 'Bi': 11, 'Si': 12}
+        self.atom_types = {'H': 0, 'C': 1, 'N': 2, 'O': 3, 'F': 4, 'S': 5, 'Cl': 6, 'Br': 7, 'I':8, 'P': 9, 'B': 10, 'Bi': 11, 'Si': 12, 'As':13, 'Al': 14}
         self.symbols = {'H': 1, 'C': 6, 'N': 7, 'O': 8, 'F': 9, 'S': 16, 'Cl': 17, 'Br': 35, 'P': 15, 'B': 5, 'Bi': 83}
         self.normalize = normalize
         self.device = device

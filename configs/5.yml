@@ -1,2 +1,2 @@
 # continue training from checkpoint:
-checkpoint: runs/PNAEGNN_tune_PNAEGNN_NTXent_13-06_06-38-29/last_checkpoint.pt
+checkpoint: runs/EGNNEdges_edge_feat_correctLR_scheduling_14-06_16-02-06/last_checkpoint.pt
