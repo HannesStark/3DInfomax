@@ -1,6 +1,6 @@
-experiment_name: 'tune_PNAEGNN_NTXent'
+experiment_name: 'tune_philosophy_dropout08'
 
-pretrain_checkpoint: runs/PNAEGNN_NTXent_10-06_11-48-19/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_philosophy_dropout08_11-06_07-12-38/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
@@ -36,7 +36,7 @@ e_features:
 
 
 required_data:
-  - mol_complete_graph
+  - mol_graph
   - targets
 metrics:
   - mae_denormalized
@@ -64,17 +64,13 @@ lr_scheduler_params:
 
 
 
-model_type: 'PNAEGNN'
+# Model parameters
+model_type: 'PNA'
 model_parameters:
   target_dim: 1
   hidden_dim: 90
   mid_batch_norm: True
   last_batch_norm: True
-  readout_batchnorm: True
-  # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
-  batch_norm_momentum: 0.96
-  readout_hidden_dim: 90
-  readout_layers: 2
   dropout: 0.0
   propagation_depth: 6
   aggregators:
@@ -93,9 +89,7 @@ model_parameters:
     - sum
   pretrans_layers: 2
   posttrans_layers: 1
-  posttrans_complete_layers: 2
   residual: True
-
 
 
 # continue training from checkpoint:

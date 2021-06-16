@@ -20,7 +20,7 @@ from commons.spherical_encoding import dist_emb
 hartree2eV = physical_constants['hartree-electron volt relationship'][0]
 
 
-class QM9Geom(Dataset):
+class GEOMDrugs(Dataset):
     """The QM9 Dataset. It loads the specified types of data into memory. The processed data is saved in eV units.
 
     The dataset can return these types of data and you choose them via the return_types parameter
@@ -129,7 +129,7 @@ class QM9Geom(Dataset):
 
     Examples
     --------
-    >>> dataset = QM9Geom(return_types=['mol_graph', 'targets', 'coordinates'])
+    >>> dataset = GEOMDrugs(return_types=['mol_graph', 'targets', 'coordinates'])
 
     The dataset instance is an iterable
 
@@ -156,11 +156,10 @@ class QM9Geom(Dataset):
                                     'dist_embedding',
                                     'mol_id', 'targets',
                                     'one_hot_bond_types', 'edge_indices', 'smiles', 'atomic_number_long']
-        self.qm9_directory = 'dataset/QM9'
-        self.processed_file = 'qm9_processed.pt'
-        self.distances_file = 'qm9_distances.pt'
-        self.raw_qm9_file = 'qm9.csv'
-        self.raw_spatial_data = 'qm9_eV.npz'
+        self.directory = 'dataset/GEOM'
+        self.processed_file = 'drugs_processed.pt'
+        self.distances_file = 'drugs_distances.pt'
+        self.crude_file = 'drugs_crude.msgpack'
         self.atom_types = {'H': 0, 'C': 1, 'N': 2, 'O': 3, 'F': 4}
         self.symbols = {'H': 1, 'C': 6, 'N': 7, 'O': 8, 'F': 9}
         self.normalize = normalize
@@ -168,26 +167,6 @@ class QM9Geom(Dataset):
         self.transform = transform
         self.pos_dir = pos_dir
         self.num_radial = num_radial
-        # data in the csv file is in Hartree units.
-        self.unit_conversion = {'A': 1.0,
-                                'B': 1.0,
-                                'C': 1.0,
-                                'mu': 1.0,
-                                'alpha': 1.0,
-                                'homo': hartree2eV,
-                                'lumo': hartree2eV,
-                                'gap': hartree2eV,
-                                'r2': 1.0,
-                                'zpve': hartree2eV,
-                                'u0': hartree2eV,
-                                'u298': hartree2eV,
-                                'h298': hartree2eV,
-                                'g298': hartree2eV,
-                                'cv': 1.0,
-                                'u0_atom': hartree2eV,
-                                'u298_atom': hartree2eV,
-                                'h298_atom': hartree2eV,
-                                'g298_atom': hartree2eV}
 
         if return_types == None:  # set default
             self.return_types: list = ['mol_graph', 'targets']
@@ -196,17 +175,10 @@ class QM9Geom(Dataset):
         for return_type in self.return_types:
             if not return_type in self.return_type_options: raise Exception(f'return_type not supported: {return_type}')
 
-        if target_tasks == None or target_tasks == []:  # set default
-            self.target_tasks = ['mu', 'alpha', 'homo', 'lumo', 'gap', 'r2', 'zpve', 'u0', 'u298', 'h298', 'g298', 'cv']
-        else:
-            self.target_tasks: list = target_tasks
-        for target_task in self.target_tasks:
-            assert target_task in self.unit_conversion.keys()
-
         # load the data and get normalization values
-        if not os.path.exists(os.path.join(self.qm9_directory, 'processed', self.processed_file)):
+        if not os.path.exists(os.path.join(self.directory, 'processed', self.processed_file)):
             self.process()
-        data_dict = torch.load(os.path.join(self.qm9_directory, 'processed', self.processed_file))
+        data_dict = torch.load(os.path.join(self.directory, 'processed', self.processed_file))
 
         if features and 'constant_ones' in features or features3d and 'constant_ones' in features3d:
             data_dict['constant_ones'] = torch.ones_like(data_dict['atomic_number_long'], dtype=torch.float)
@@ -236,16 +208,16 @@ class QM9Geom(Dataset):
                                      ['dist_embedding', 'pairwise_distances', 'pairwise_indices', 'complete_graph',
                                       'complete_graph3d', 'mol_complete_graph', 'san_graph'])
         if self.require_distances:
-            if not os.path.exists(os.path.join(self.qm9_directory, 'processed', self.distances_file)):
+            if not os.path.exists(os.path.join(self.directory, 'processed', self.distances_file)):
                 self.process_distances()
-            self.dist_dict = torch.load(os.path.join(self.qm9_directory, 'processed', self.distances_file))
+            self.dist_dict = torch.load(os.path.join(self.directory, 'processed', self.distances_file))
 
         if 'san_graph' in self.return_types:
             self.eig_vals = data_dict['eig_vals']
             self.eig_vecs = data_dict['eig_vecs']
 
         if 'smiles' in self.return_types:
-            self.smiles = pd.read_csv(os.path.join(self.qm9_directory, self.raw_qm9_file))['smiles']
+            self.smiles = pd.read_csv(os.path.join(self.directory, self.crude_file))['smiles']
         self.prefetch_graphs = prefetch_graphs
         if self.prefetch_graphs and any(return_type in self.return_types for return_type in
                                         ['mol_graph', 'mol_graph3d', 'se3Transformer_graph', 'se3Transformer_graph3d']):
@@ -288,10 +260,8 @@ class QM9Geom(Dataset):
 
         self.avg_degree = data_dict['avg_degree']
         # indices of the tasks that should be retrieved
-        self.task_indices = torch.tensor([list(self.unit_conversion.keys()).index(task) for task in self.target_tasks])
         # select targets in the order specified by the target_tasks argument
 
-        self.targets = data_dict['targets'].index_select(dim=1, index=self.task_indices)  # [130831, n_tasks]
         self.targets_mean = self.targets.mean(dim=0)
         self.targets_std = self.targets.std(dim=0)
         if self.normalize:
@@ -299,9 +269,7 @@ class QM9Geom(Dataset):
         self.targets_mean = self.targets_mean.to(device)
         self.targets_std = self.targets_std.to(device)
         # get a tensor that is 1000 for all targets that are energies and 1.0 for all other ones
-        self.eV2meV = torch.tensor(
-            [1.0 if list(self.unit_conversion.values())[task_index] == 1.0 else 1000 for task_index in
-             self.task_indices]).to(self.device)  # [n_tasks]
+
         self.dist_embedder = dist_emb(num_radial=6).to(device)
         self.dist_embedding = dist_embedding
 
@@ -441,11 +409,14 @@ class QM9Geom(Dataset):
             g.ndata['pos_enc'] = torch.stack([eig_vals, eig_vecs], dim=-1)
             if self.e_features_tensor != None:
                 e_features = self.e_features_tensor[e_start: e_end].to(self.device)
-                g.edata['w'] = torch.zeros(g.number_of_edges(), e_features.shape[1], dtype=torch.float32, device=self.device)
+                g.edata['w'] = torch.zeros(g.number_of_edges(), e_features.shape[1], dtype=torch.float32,
+                                           device=self.device)
                 g.edata['real'] = torch.zeros(g.number_of_edges(), dtype=torch.long, device=self.device)
                 edge_indices = self.edge_indices[:, e_start: e_end].to(self.device)
                 g.edges[edge_indices[0], edge_indices[1]].data['w'] = e_features
-                g.edges[edge_indices[0], edge_indices[1]].data['real'] = torch.ones(e_features.shape[0], dtype=torch.long, device=self.device)  # This indicates real edges
+                g.edges[edge_indices[0], edge_indices[1]].data['real'] = torch.ones(e_features.shape[0],
+                                                                                    dtype=torch.long,
+                                                                                    device=self.device)  # This indicates real edges
             if self.pos_dir:
                 g.ndata['pos_dir'] = self.pos_enc[start: start + n_atoms].to(self.device)
             return g
@@ -492,40 +463,41 @@ class QM9Geom(Dataset):
             raise Exception(f'return type not supported: ', return_type)
 
     def process(self):
-        print('processing data from ({}) and saving it to ({})'.format(self.qm9_directory,
-                                                                       os.path.join(self.qm9_directory, 'processed')))
+        print('processing data from ({}) and saving it to ({})'.format(self.directory,
+                                                                       os.path.join(self.directory, 'processed')))
 
         # load qm9 data with spatial coordinates
-        unpacker = msgpack.Unpacker(open('dataset/GEOM/qm9_crude.msgpack', "rb"))
+        unpacker = msgpack.Unpacker(open('dataset/GEOM/drugs_crude.msgpack', "rb"))
 
         atom_slices = [0]
         edge_slices = [0]
         atom_one_hot = []
+        n_atoms_list = []
         total_eigvecs = []
         total_eigvals = []
         e_features = {'bond-type-onehot': [], 'stereo': [], 'conjugated': [], 'in-ring': []}
         atom_float = {'implicit-valence': [], 'degree': [], 'hybridization': [], 'chirality': [], 'mass': [],
                       'electronegativity': [], 'aromatic-bond': [], 'formal-charge': [], 'radical-electron': [],
                       'in-ring': []}
+        targets = {'ensembleenergy': [], 'ensembleentropy': [], 'ensemblefreeenergy': [], 'lowestenergy': [],
+                   'poplowestpct': [],
+                   'sars_cov_one_cl_protease_active': [], 'sars_cov_one_pl_protease_active': [], 'temperature': []}
         # inv_distance_eigvectors = {'inv_vec1': [], 'inv_vec2': [], 'inv_vec-1': [], 'inv_vec-2': [], 'inv_vec-3': []}
         # distance_eigvectors = {'vec1': [], 'vec2': [], 'vec-1': [], 'vec-2': [], 'vec-3': []}
         positional_encodings = []
         edge_indices = []  # edges of each molecule in coo format
-        targets = []  # the 19 properties that should be predicted for the QM9 dataset
+        coordinates = []
+        geom_ids = []
         total_atoms = 0
         total_edges = 0
         avg_degree = 0  # average degree in the dataset
-        # go through all molecules in the npz file
-        for pack in unpacker:
+        for pack in unpacker[:1]:
             for i, smiles in enumerate(pack.keys()):
-                entry = pack[smiles]
                 mol = Chem.MolFromSmiles(smiles)
-                # add hydrogen bonds to molecule because they are not in the smiles representation
-                mol = Chem.AddHs(mol)
+                n_atoms = len(mol.GetAtoms())
 
                 for key, item in goli.features.get_mol_atomic_features_float(mol, list(atom_float.keys())).items():
                     atom_float[key].append(torch.tensor(item)[:, None])
-
 
                 type_idx = []
                 for atom in mol.GetAtoms():
@@ -548,28 +520,40 @@ class QM9Geom(Dataset):
                     # repeat interleave for src dst and dst src edges (see above where we add the edges) and then reorder using perm
                     e_features[key].append(torch.tensor(item).repeat_interleave(2, dim=0)[perm])
 
-                # get all 19 attributes that should be predicted, so we drop the first two entries (name and smiles)
-                target = torch.tensor(molecules_df.iloc[data_qm9['id'][mol_idx]][2:], dtype=torch.float)
-                targets.append(target)
+                entry = pack[smiles]
+                targets['ensembleenergy'].append(entry['ensembleenergy'])
+                targets['ensembleentropy'].append(entry['ensembleentropy'])
+                targets['ensemblefreeenergy'].append(entry['ensemblefreeenergy'])
+                targets['lowestenergy'].append(entry['lowestenergy'])
+                targets['poplowestpct'].append(entry['poplowestpct'])
+                targets['sars_cov_one_cl_protease_active'].append(entry['sars_cov_one_cl_protease_active'])
+                targets['sars_cov_one_pl_protease_active'].append(entry['sars_cov_one_pl_protease_active'])
+                targets['temperature'].append(entry['temperature'])
+                conformers = entry['conformers']
+
+                conformers = [torch.tensor(conformer[:, 1:]) for conformer in conformers[:10]]
+                if len(conformers) < 10:  # if there are less than 10 conformers we add the first one a few times
+                    conformers + [conformers[0]] * (10 - len(conformers))
+                coordinates.append(torch.cat(conformers, dim=1))
+
                 edge_indices.append(edge_index)
 
                 total_edges += len(row)
                 total_atoms += n_atoms
+                geom_ids.append(entry['geom_id'])
                 edge_slices.append(total_edges)
                 atom_slices.append(total_atoms)
+                n_atoms_list.append(n_atoms)
                 atom_one_hot.append(F.one_hot(torch.tensor(type_idx), num_classes=len(self.atom_types)))
 
         data_dict = {}
-        # data_dict.update(inv_distance_eigvectors)
-        # data_dict.update(distance_eigvectors)
         data_dict.update(e_features)
         data_dict.update(atom_float)
+        data_dict.update(targets)
         for key, item in data_dict.items():
             data_dict[key] = torch.cat(data_dict[key])
-        # convert targets to eV units
-        targets = torch.stack(targets) * torch.tensor(list(self.unit_conversion.values()))[None, :]
-        data_dict.update({'mol_id': data_qm9['id'],
-                          'n_atoms': torch.tensor(data_qm9['N'], dtype=torch.long),
+        data_dict.update({'geom_id': torch.tensor(geom_ids, dtype=torch.long),
+                          'n_atoms': torch.tensor(n_atoms_list, dtype=torch.long),
                           'atom_slices': torch.tensor(atom_slices, dtype=torch.long),
                           'edge_slices': torch.tensor(edge_slices, dtype=torch.long),
                           'in-ring-edges': torch.cat(e_features['in-ring']),
@@ -578,10 +562,9 @@ class QM9Geom(Dataset):
                           'eig_vals': torch.cat(total_eigvals).float(),
                           'pos-enc': torch.cat(positional_encodings).float(),
                           'edge_indices': torch.cat(edge_indices, dim=1),
-                          'atomic_number_long': torch.tensor(data_qm9['Z'], dtype=torch.long)[:, None],
-                          'coordinates': coordinates,
+                          'coordinates': torch.cat(coordinates, dim=0).float(),
                           'targets': targets,
-                          'avg_degree': avg_degree / len(data_qm9['id'])
+                          'avg_degree': avg_degree / len(n_atoms_list)
                           })
 
         if not os.path.exists(os.path.join(self.qm9_directory, 'processed')):
