@@ -1,6 +1,6 @@
-experiment_name: 'tune_NTXent_EGNN_mean_with_distance_aggregator'
+experiment_name: 'tune_NTXent_EGNN_sum_with_distance_aggregator_higher_lr'
 
-pretrain_checkpoint: runs/PNA_NTXentExtraNegatives10_std03_coordinate_noise_10-06_11-58-21/best_checkpoint.pt
+pretrain_checkpoint: runs/EGNNEdges_NTXent_EGNN_sum_with_distance_aggregator_10-06_17-49-46/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
@@ -46,8 +46,7 @@ metrics:
 
 optimizer: Adam
 optimizer_params:
-  lr: 7.0e-5
-  weight_decay: 1.0e-11
+  lr: 1.0e-3
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
@@ -69,7 +68,7 @@ model_type: 'EGNNEdges'
 model_parameters:
   target_dim: 1
   hidden_dim: 128
-  reduce_func: 'mean'
+  reduce_func: 'sum'
   propagation_depth: 7
   dropout: 0.0
   readout_batchnorm: True

@@ -160,8 +160,8 @@ class GEOMDrugs(Dataset):
         self.processed_file = 'drugs_processed.pt'
         self.distances_file = 'drugs_distances.pt'
         self.crude_file = 'drugs_crude.msgpack'
-        self.atom_types = {'H': 0, 'C': 1, 'N': 2, 'O': 3, 'F': 4}
-        self.symbols = {'H': 1, 'C': 6, 'N': 7, 'O': 8, 'F': 9}
+        self.atom_types = {'H': 0, 'C': 1, 'N': 2, 'O': 3, 'F': 4, 'S': 5, 'Cl': 6, 'Br': 7, 'I':8, 'P': 9, 'B': 10, 'Bi': 11, 'Si': 12}
+        self.symbols = {'H': 1, 'C': 6, 'N': 7, 'O': 8, 'F': 9, 'S': 16, 'Cl': 17, 'Br': 35, 'P': 15, 'B': 5, 'Bi': 83}
         self.normalize = normalize
         self.device = device
         self.transform = transform
@@ -473,25 +473,22 @@ class GEOMDrugs(Dataset):
         edge_slices = [0]
         atom_one_hot = []
         n_atoms_list = []
-        total_eigvecs = []
-        total_eigvals = []
         e_features = {'bond-type-onehot': [], 'stereo': [], 'conjugated': [], 'in-ring': []}
         atom_float = {'implicit-valence': [], 'degree': [], 'hybridization': [], 'chirality': [], 'mass': [],
                       'electronegativity': [], 'aromatic-bond': [], 'formal-charge': [], 'radical-electron': [],
                       'in-ring': []}
         targets = {'ensembleenergy': [], 'ensembleentropy': [], 'ensemblefreeenergy': [], 'lowestenergy': [],
-                   'poplowestpct': [],
-                   'sars_cov_one_cl_protease_active': [], 'sars_cov_one_pl_protease_active': [], 'temperature': []}
+                   'poplowestpct': [], 'temperature': []}
         # inv_distance_eigvectors = {'inv_vec1': [], 'inv_vec2': [], 'inv_vec-1': [], 'inv_vec-2': [], 'inv_vec-3': []}
         # distance_eigvectors = {'vec1': [], 'vec2': [], 'vec-1': [], 'vec-2': [], 'vec-3': []}
         positional_encodings = []
         edge_indices = []  # edges of each molecule in coo format
         coordinates = []
-        geom_ids = []
+        smiles_list = []
         total_atoms = 0
         total_edges = 0
         avg_degree = 0  # average degree in the dataset
-        for pack in unpacker[:1]:
+        for pack in tqdm(unpacker):
             for i, smiles in enumerate(pack.keys()):
                 mol = Chem.MolFromSmiles(smiles)
                 n_atoms = len(mol.GetAtoms())
@@ -526,21 +523,19 @@ class GEOMDrugs(Dataset):
                 targets['ensemblefreeenergy'].append(entry['ensemblefreeenergy'])
                 targets['lowestenergy'].append(entry['lowestenergy'])
                 targets['poplowestpct'].append(entry['poplowestpct'])
-                targets['sars_cov_one_cl_protease_active'].append(entry['sars_cov_one_cl_protease_active'])
-                targets['sars_cov_one_pl_protease_active'].append(entry['sars_cov_one_pl_protease_active'])
                 targets['temperature'].append(entry['temperature'])
                 conformers = entry['conformers']
 
-                conformers = [torch.tensor(conformer[:, 1:]) for conformer in conformers[:10]]
+                conformers = [torch.tensor(conformer['xyz'])[:, 1:] for conformer in conformers[:10]]
                 if len(conformers) < 10:  # if there are less than 10 conformers we add the first one a few times
-                    conformers + [conformers[0]] * (10 - len(conformers))
+                    conformers.extend([conformers[0]] * (10 - len(conformers)))
                 coordinates.append(torch.cat(conformers, dim=1))
 
                 edge_indices.append(edge_index)
 
                 total_edges += len(row)
                 total_atoms += n_atoms
-                geom_ids.append(entry['geom_id'])
+                smiles_list.append(smiles)
                 edge_slices.append(total_edges)
                 atom_slices.append(total_atoms)
                 n_atoms_list.append(n_atoms)
@@ -549,27 +544,25 @@ class GEOMDrugs(Dataset):
         data_dict = {}
         data_dict.update(e_features)
         data_dict.update(atom_float)
-        data_dict.update(targets)
-        for key, item in data_dict.items():
+        for key, value in data_dict.items():
             data_dict[key] = torch.cat(data_dict[key])
-        data_dict.update({'geom_id': torch.tensor(geom_ids, dtype=torch.long),
+        for key, value in targets.items():
+            targets[key] = torch.tensor(value)[:,None]
+        data_dict.update(targets)
+        data_dict.update({'smiles': smiles_list,
                           'n_atoms': torch.tensor(n_atoms_list, dtype=torch.long),
                           'atom_slices': torch.tensor(atom_slices, dtype=torch.long),
                           'edge_slices': torch.tensor(edge_slices, dtype=torch.long),
                           'in-ring-edges': torch.cat(e_features['in-ring']),
                           'atomic-number': torch.cat(atom_one_hot).float(),
-                          'eig_vecs': torch.cat(total_eigvecs).float(),
-                          'eig_vals': torch.cat(total_eigvals).float(),
-                          'pos-enc': torch.cat(positional_encodings).float(),
                           'edge_indices': torch.cat(edge_indices, dim=1),
                           'coordinates': torch.cat(coordinates, dim=0).float(),
                           'targets': targets,
                           'avg_degree': avg_degree / len(n_atoms_list)
                           })
-
-        if not os.path.exists(os.path.join(self.qm9_directory, 'processed')):
-            os.mkdir(os.path.join(self.qm9_directory, 'processed'))
-        torch.save(data_dict, os.path.join(self.qm9_directory, 'processed', self.processed_file))
+        if not os.path.exists(os.path.join(self.directory, 'processed')):
+            os.mkdir(os.path.join(self.directory, 'processed'))
+        torch.save(data_dict, os.path.join(self.directory, 'processed', self.processed_file))
 
     def process_distances(self):
         print('processing distances from ({}) and saving it to ({})'.format(self.qm9_directory,
