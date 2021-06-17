@@ -1,2 +1,2 @@
 # continue training from checkpoint:
-checkpoint: runs/PNAEGNN_baseline_10-06_11-47-51/last_checkpoint.pt
+checkpoint: runs/EGNNEdges_tune_NTXent_EGNN_sum_with_distance_aggregator_higher_lr_16-06_17-51-51/last_checkpoint.pt
