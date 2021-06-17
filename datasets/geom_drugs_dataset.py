@@ -21,90 +21,7 @@ hartree2eV = physical_constants['hartree-electron volt relationship'][0]
 
 
 class GEOMDrugs(Dataset):
-    """The QM9 Dataset. It loads the specified types of data into memory. The processed data is saved in eV units.
-
-    The dataset can return these types of data and you choose them via the return_types parameter
-
-    - class 0 : mol_graph
-    - class 1 : raw_features: [n_atoms, 10]  10 features for each atom of the molecule (1 hot encoded atomic number, hybridization type, aromatic ...)
-    - class 2 : coordinates: [n_atoms, 3] 3D coordinates of each atom
-    - class 3 : mol_id: single number, id of molecule
-    - class 4 : targets: tensor of shape [n_tasks] with the tasks specified by the target_tasks parameter
-    - class 5 : one_hot_bond_types: [n_edges, 4] one hot encoding of bond type single, double, triple, aromatic
-    - class 6 : edge_indices: [2, n_edges] list of edges
-    - class 7 : smiles: SMILES representation of the molecule
-    - class 8 : atomic_number_long: [n_atoms] atomic numbers
-
-    The targets are:
-    +--------+----------------------------------+-----------------------------------------------------------------------------------+---------------------------------------------+
-    | Target | Property                         | Description                                                                       | Unit                                        |
-    +========+==================================+===================================================================================+=============================================+
-    | 0      | :math:`\mu`                      | Dipole moment                                                                     | :math:`\textrm{D}`                          |
-    +--------+----------------------------------+-----------------------------------------------------------------------------------+---------------------------------------------+
-    | 1      | :math:`\alpha`                   | Isotropic polarizability                                                          | :math:`{a_0}^3`                             |
-    +--------+----------------------------------+-----------------------------------------------------------------------------------+---------------------------------------------+
-    | 2      | :math:`\epsilon_{\textrm{HOMO}}` | Highest occupied molecular orbital energy                                         | :math:`\textrm{eV}`                         |
-    +--------+----------------------------------+-----------------------------------------------------------------------------------+---------------------------------------------+
-    | 3      | :math:`\epsilon_{\textrm{LUMO}}` | Lowest unoccupied molecular orbital energy                                        | :math:`\textrm{eV}`                         |
-    +--------+----------------------------------+-----------------------------------------------------------------------------------+---------------------------------------------+
-    | 4      | :math:`\Delta \epsilon`          | Gap between :math:`\epsilon_{\textrm{HOMO}}` and :math:`\epsilon_{\textrm{LUMO}}` | :math:`\textrm{eV}`                         |
-    +--------+----------------------------------+-----------------------------------------------------------------------------------+---------------------------------------------+
-    | 5      | :math:`\langle R^2 \rangle`      | Electronic spatial extent                                                         | :math:`{a_0}^2`                             |
-    +--------+----------------------------------+-----------------------------------------------------------------------------------+---------------------------------------------+
-    | 6      | :math:`\textrm{ZPVE}`            | Zero point vibrational energy                                                     | :math:`\textrm{eV}`                         |
-    +--------+----------------------------------+-----------------------------------------------------------------------------------+---------------------------------------------+
-    | 7      | :math:`U_0`                      | Internal energy at 0K                                                             | :math:`\textrm{eV}`                         |
-    +--------+----------------------------------+-----------------------------------------------------------------------------------+---------------------------------------------+
-    | 8      | :math:`U`                        | Internal energy at 298.15K                                                        | :math:`\textrm{eV}`                         |
-    +--------+----------------------------------+-----------------------------------------------------------------------------------+---------------------------------------------+
-    | 9      | :math:`H`                        | Enthalpy at 298.15K                                                               | :math:`\textrm{eV}`                         |
-    +--------+----------------------------------+-----------------------------------------------------------------------------------+---------------------------------------------+
-    | 10     | :math:`G`                        | Free energy at 298.15K                                                            | :math:`\textrm{eV}`                         |
-    +--------+----------------------------------+-----------------------------------------------------------------------------------+---------------------------------------------+
-    | 11     | :math:`c_{\textrm{v}}`           | Heat capavity at 298.15K                                                          | :math:`\frac{\textrm{cal}}{\textrm{mol K}}` |
-    +--------+----------------------------------+-----------------------------------------------------------------------------------+---------------------------------------------+
-
-    not predicted by dimenet, spherical message passing, E(n) equivariant graph neural networks:
-    +--------+----------------------------------+-----------------------------------------------------------------------------------+
-    | 12     | :math:`U_0^{\textrm{ATOM}}`      | Atomization energy at 0K                                                          | :math:`\textrm{eV}`                         |
-    +--------+----------------------------------+-----------------------------------------------------------------------------------+---------------------------------------------+
-    | 13     | :math:`U^{\textrm{ATOM}}`        | Atomization energy at 298.15K                                                     | :math:`\textrm{eV}`                         |
-    +--------+----------------------------------+-----------------------------------------------------------------------------------+---------------------------------------------+
-    | 14     | :math:`H^{\textrm{ATOM}}`        | Atomization enthalpy at 298.15K                                                   | :math:`\textrm{eV}`                         |
-    +--------+----------------------------------+-----------------------------------------------------------------------------------+---------------------------------------------+
-    | 15     | :math:`G^{\textrm{ATOM}}`        | Atomization free energy at 298.15K                                                | :math:`\textrm{eV}`                         |
-    +--------+----------------------------------+-----------------------------------------------------------------------------------+---------------------------------------------+
-    | 16     | :math:`A`                        | Rotational constant                                                               | :math:`\textrm{GHz}`                        |
-    +--------+----------------------------------+-----------------------------------------------------------------------------------+---------------------------------------------+
-    | 17     | :math:`B`                        | Rotational constant                                                               | :math:`\textrm{GHz}`                        |
-    +--------+----------------------------------+-----------------------------------------------------------------------------------+---------------------------------------------+
-    | 18     | :math:`C`                        | Rotational constant                                                               | :math:`\textrm{GHz}`                        |
-    +--------+----------------------------------+-----------------------------------------------------------------------------------+---------------------------------------------+
-
-    Parameters
-    ----------
-    return_types: list
-        A list with which types of data should be loaded and returened by getitems. Possible options are
-        ['mol_graph', 'complete_graph', 'raw_features', 'coordinates', 'mol_id', 'targets', 'one_hot_bond_types', 'edge_indices', 'smiles', 'atomic_number_long']
-        and the default is ['mol_graph', 'targets']
-    features: list
-       A list specifying which features should be included in the returned graphs or raw features
-       options are ['atom_one_hot', 'atomic_number_long', 'hybridizations', 'is_aromatic', 'constant_ones']
-       and default is all except constant ones
-    target_tasks: list
-        A list specifying which targets should be included in the returend targets, if targets are returned.
-        The targets are returned in eV units and saved as eV units in the processed data.
-        options are ['A', 'B', 'C', 'mu', 'alpha', 'homo', 'lumo', 'gap', 'r2', 'zpve', 'u0', 'u298', 'h298', 'g298', 'cv', 'u0_atom', 'u298_atom', 'h298_atom', 'g298_atom']
-        and default is ['mu', 'alpha', 'homo', 'lumo', 'gap', 'r2', 'zpve', 'u0', 'u298', 'h298', 'g298', 'cv']
-        which is the stuff that is commonly predicted by papers like DimeNet, Equivariant GNNs, Spherical message passing
-        The returned targets will be in the order specified by this list
-    normalize: bool
-        Whether or not the target (if they should be returned) are normalized to 0 mean and std 1
-    prefetch_graphs: bool
-        Whether or not to load the dgl graphs into memory. This takes a bit more memory and the upfront computation but
-        the graph creation does not have to be done during training which is nice because it takes a long time and can
-        slow down training
-
+    """The GEOM Drugs Dataset using drugs_crude.msgpack as input from https://github.com/learningmatter-mit/geom
     Attributes
     ----------
     return_types: list
@@ -124,22 +41,7 @@ class GEOMDrugs(Dataset):
         possible features are ['standard_normal_noise', 'implicit-valence','degree','hybridization','chirality','mass','electronegativity','aromatic-bond','formal-charge','radical-electron','in-ring','atomic-number', 'pos-enc', 'vec1', 'vec2', 'vec3', 'vec-1', 'vec-2', 'vec-3', 'inv_vec1', 'inv_vec2', 'inv_vec3', 'inv_vec-1', 'inv_vec-2', 'inv_vec-3']
     e_features:
         possible are ['bond-type-onehot','stereo','conjugated','in-ring-edges']
-    others: list
-        TODO
 
-    Examples
-    --------
-    >>> dataset = GEOMDrugs(return_types=['mol_graph', 'targets', 'coordinates'])
-
-    The dataset instance is an iterable
-
-    >>> len(data)
-    130831
-    >>> g, label, coordinates = data[0]
-    >>> g
-    Graph(num_nodes=5, num_edges=8,
-      ndata_schemes={'features': Scheme(shape=(10,), dtype=torch.float32)}
-      edata_schemes={})
     """
 
     def __init__(self, return_types: list = None, features: list = [], features3d: list = [],
@@ -156,11 +58,14 @@ class GEOMDrugs(Dataset):
                                     'dist_embedding',
                                     'mol_id', 'targets',
                                     'one_hot_bond_types', 'edge_indices', 'smiles', 'atomic_number_long']
+        self.target_types = ['ensembleenergy', 'ensembleentropy', 'ensemblefreeenergy', 'lowestenergy', 'poplowestpct',
+                             'temperature']
         self.directory = 'dataset/GEOM'
         self.processed_file = 'drugs_processed.pt'
         self.distances_file = 'drugs_distances.pt'
         self.crude_file = 'drugs_crude.msgpack'
-        self.atom_types = {'H': 0, 'C': 1, 'N': 2, 'O': 3, 'F': 4, 'S': 5, 'Cl': 6, 'Br': 7, 'I':8, 'P': 9, 'B': 10, 'Bi': 11, 'Si': 12, 'As':13, 'Al': 14}
+        self.atom_types = {'H': 0, 'C': 1, 'N': 2, 'O': 3, 'F': 4, 'S': 5, 'Cl': 6, 'Br': 7, 'I': 8, 'P': 9, 'B': 10,
+                           'Bi': 11, 'Si': 12, 'As': 13, 'Al': 14, 'Hg': 15}
         self.symbols = {'H': 1, 'C': 6, 'N': 7, 'O': 8, 'F': 9, 'S': 16, 'Cl': 17, 'Br': 35, 'P': 15, 'B': 5, 'Bi': 83}
         self.normalize = normalize
         self.device = device
@@ -178,7 +83,9 @@ class GEOMDrugs(Dataset):
         # load the data and get normalization values
         if not os.path.exists(os.path.join(self.directory, 'processed', self.processed_file)):
             self.process()
+        print('load pickle')
         data_dict = torch.load(os.path.join(self.directory, 'processed', self.processed_file))
+        print('finish loading')
 
         if features and 'constant_ones' in features or features3d and 'constant_ones' in features3d:
             data_dict['constant_ones'] = torch.ones_like(data_dict['atomic_number_long'], dtype=torch.float)
@@ -187,30 +94,18 @@ class GEOMDrugs(Dataset):
                 mean=torch.zeros_like(data_dict['atomic_number_long'], dtype=torch.float),
                 std=torch.ones_like(data_dict['atomic_number_long'], dtype=torch.float))
 
-        if self.pos_dir:
-            self.pos_enc = data_dict['pos-enc']
-
-        data_dict['pos-enc'] = torch.abs(data_dict['pos-enc'])
-
         self.features_tensor = None if features == [] else torch.cat([data_dict[k] for k in features], dim=-1)
         self.features3d_tensor = None if features3d == [] else torch.cat([data_dict[k] for k in features3d], dim=-1)
 
-        self.e_features_tensor = None if e_features == [] else torch.cat([data_dict[k] for k in e_features], dim=-1)
+        self.e_features_tensor = None if e_features == [] else torch.cat([data_dict[k] for k in e_features],
+                                                                         dim=-1).float()
         self.e_features3d_tensor = None if e_features3d == [] else torch.cat([data_dict[k] for k in e_features3d],
-                                                                             dim=-1)
+                                                                             dim=-1).float()
 
-        self.coordinates = data_dict['coordinates']
+        self.coordinates = data_dict['coordinates'][:,:3]
         self.edge_indices = data_dict['edge_indices']
 
-        self.meta_dict = {k: data_dict[k] for k in ('mol_id', 'edge_slices', 'atom_slices', 'n_atoms')}
-
-        self.require_distances = any(return_type in self.return_types for return_type in
-                                     ['dist_embedding', 'pairwise_distances', 'pairwise_indices', 'complete_graph',
-                                      'complete_graph3d', 'mol_complete_graph', 'san_graph'])
-        if self.require_distances:
-            if not os.path.exists(os.path.join(self.directory, 'processed', self.distances_file)):
-                self.process_distances()
-            self.dist_dict = torch.load(os.path.join(self.directory, 'processed', self.distances_file))
+        self.meta_dict = {k: data_dict[k] for k in ('smiles', 'edge_slices', 'atom_slices', 'n_atoms')}
 
         if 'san_graph' in self.return_types:
             self.eig_vals = data_dict['eig_vals']
@@ -229,52 +124,50 @@ class GEOMDrugs(Dataset):
                 e_end = self.meta_dict['edge_slices'][idx + 1]
                 edge_indices = self.edge_indices[:, e_start: e_end]
                 self.mol_graphs.append(dgl.graph((edge_indices[0], edge_indices[1])))
+        self.pairwise = {}  # for memoization
         if self.prefetch_graphs and (
                 'complete_graph' in self.return_types or 'complete_graph3d' in self.return_types or 'san_graph' in self.return_types):
             print(
                 'Load complete graphs into memory (set prefetch_graphs to False to load them on the fly => slower training)')
             self.complete_graphs = []
             for idx in tqdm(range(len(self.meta_dict['edge_slices']) - 1)):
-                pairwise_start = self.dist_dict['pairwise_slices'][idx]
-                n_atoms = self.meta_dict['n_atoms'][idx]
-                pairwise_indices = self.dist_dict['pairwise_indices'][:,
-                                   pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)]
-                self.complete_graphs.append(dgl.graph((pairwise_indices[0], pairwise_indices[1])))
+                src, dst = self.get_pairwise(self.meta_dict['n_atoms'][idx])
+                self.complete_graphs.append(dgl.graph((src, dst)))
         if self.prefetch_graphs and (
                 'mol_complete_graph' in self.return_types or 'mol_complete_graph3d' in self.return_types):
             print(
                 'Load mol_complete_graph graphs into memory (set prefetch_graphs to False to load them on the fly => slower training)')
             self.mol_complete_graphs = []
             for idx in tqdm(range(len(self.meta_dict['edge_slices']) - 1)):
-                e_start = self.meta_dict['edge_slices'][idx]
-                e_end = self.meta_dict['edge_slices'][idx + 1]
-                edge_indices = self.edge_indices[:, e_start: e_end]
-                pairwise_start = self.dist_dict['pairwise_slices'][idx]
-                n_atoms = self.meta_dict['n_atoms'][idx]
-                pairwise_indices = self.dist_dict['pairwise_indices'][:,
-                                   pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)]
-                self.mol_complete_graphs.append(dgl.heterograph(
-                    {('atom', 'bond', 'atom'): (edge_indices[0], edge_indices[1]),
-                     ('atom', 'complete', 'atom'): (pairwise_indices[0], pairwise_indices[1])}))
+                src, dst = self.get_pairwise(self.meta_dict['n_atoms'][idx])
+                self.mol_complete_graphs.append(
+                    dgl.heterograph({('atom', 'bond', 'atom'): (src, dst), ('atom', 'complete', 'atom'): (src, dst)}))
         print('Finish loading data into memory')
 
         self.avg_degree = data_dict['avg_degree']
         # indices of the tasks that should be retrieved
         # select targets in the order specified by the target_tasks argument
-
-        self.targets_mean = self.targets.mean(dim=0)
-        self.targets_std = self.targets.std(dim=0)
-        if self.normalize:
-            self.targets = ((self.targets - self.targets_mean) / self.targets_std)
-        self.targets_mean = self.targets_mean.to(device)
-        self.targets_std = self.targets_std.to(device)
-        # get a tensor that is 1000 for all targets that are energies and 1.0 for all other ones
-
-        self.dist_embedder = dist_emb(num_radial=6).to(device)
-        self.dist_embedding = dist_embedding
+        if 'targets' in self.return_types:
+            self.targets = data_dict[target_tasks[0]]
+            self.targets_mean = self.targets.mean(dim=0)
+            self.targets_std = self.targets.std(dim=0)
+            if self.normalize:
+                self.targets = ((self.targets - self.targets_mean) / self.targets_std)
+            self.targets_mean = self.targets_mean.to(device)
+            self.targets_std = self.targets_std.to(device)
 
     def __len__(self):
-        return len(self.meta_dict['mol_id'])
+        return len(self.meta_dict['smiles'])
+
+    def get_pairwise(self, n_atoms):
+        if n_atoms in self.pairwise:
+            return self.pairwise[n_atoms]
+        else:
+            src = torch.repeat_interleave(torch.arange(n_atoms), n_atoms - 1)
+            dst = torch.cat([torch.cat([torch.arange(n_atoms)[:idx], torch.arange(n_atoms)[idx + 1:]]) for idx in
+                             range(n_atoms)])  # without self loops
+            self.pairwise[n_atoms] = (src, dst)
+            return src, dst
 
     def __getitem__(self, idx):
         """
@@ -292,12 +185,10 @@ class GEOMDrugs(Dataset):
         e_end = self.meta_dict['edge_slices'][idx + 1]
         start = self.meta_dict['atom_slices'][idx]
         n_atoms = self.meta_dict['n_atoms'][idx]
-        pairwise_start = self.dist_dict['pairwise_slices'][idx] if self.require_distances else None
 
         for return_type in self.return_types:
             data.append(
-                self.data_by_type(idx, return_type, e_start, e_end, pairwise_start, start,
-                                  n_atoms))
+                self.data_by_type(idx, return_type, e_start, e_end, start, n_atoms))
         return tuple(data)
 
     def get_graph(self, idx, e_start, e_end):
@@ -308,35 +199,31 @@ class GEOMDrugs(Dataset):
             g = dgl.graph((edge_indices[0], edge_indices[1]))
         return g
 
-    def get_complete_graph(self, idx, pairwise_start, n_atoms):
+    def get_complete_graph(self, idx, n_atoms):
         if self.prefetch_graphs:
             g = self.complete_graphs[idx]
         else:
-            pairwise_indices = self.dist_dict['pairwise_indices'][:,
-                               pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)]
-            g = dgl.graph((pairwise_indices[0], pairwise_indices[1]))
+            src, dst = self.get_pairwise(n_atoms)
+            g = dgl.graph((src, dst))
         return g
 
-    def get_mol_complete_graph(self, idx, e_start, e_end, pairwise_start, n_atoms):
+    def get_mol_complete_graph(self, idx, e_start, e_end, n_atoms):
         if self.prefetch_graphs:
             g = self.mol_complete_graphs[idx]
         else:
             edge_indices = self.edge_indices[:, e_start: e_end]
-            pairwise_indices = self.dist_dict['pairwise_indices'][:,
-                               pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)]
+            src, dst = self.get_pairwise(n_atoms)
             g = dgl.heterograph({('atom', 'bond', 'atom'): (edge_indices[0], edge_indices[1]),
-                                 ('atom', 'complete', 'atom'): (pairwise_indices[0], pairwise_indices[1])})
+                                 ('atom', 'complete', 'atom'): (src, dst)})
         return g
 
-    def data_by_type(self, idx, return_type, e_start, e_end, pairwise_start, start, n_atoms):
+    def data_by_type(self, idx, return_type, e_start, e_end, start, n_atoms):
         if return_type == 'mol_graph':
             g = self.get_graph(idx, e_start, e_end).to(self.device)
             g.ndata['f'] = self.features_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
             if self.e_features_tensor != None:
                 g.edata['w'] = self.e_features_tensor[e_start: e_end].to(self.device)
-            if self.pos_dir:
-                g.ndata['pos_dir'] = self.pos_enc[start: start + n_atoms].to(self.device)
             return g
         elif return_type == 'mol_graph3d':
             g = self.get_graph(idx, e_start, e_end).to(self.device)
@@ -344,60 +231,46 @@ class GEOMDrugs(Dataset):
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
             if self.e_features3d_tensor != None:
                 g.edata['w'] = self.e_features3d_tensor[e_start: e_end].to(self.device)
-            if self.pos_dir:
-                g.ndata['pos_dir'] = self.pos_enc[start: start + n_atoms].to(self.device)
             return g
         elif return_type == 'complete_graph':  # complete graph without self loops
-            g = self.get_complete_graph(idx, pairwise_start, n_atoms).to(self.device)
+            g = self.get_complete_graph(idx, n_atoms).to(self.device)
             g.ndata['f'] = self.features_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
-            g.edata['d'] = self.dist_dict['pairwise_distances'][
-                           pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)].unsqueeze(-1).to(self.device)
+            g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2, dim=-1).unsqueeze(
+                -1)
             if self.e_features_tensor != None:
                 bond_features = self.e_features_tensor[e_start: e_end].to(self.device)
                 e_features = torch.zeros((n_atoms * n_atoms, bond_features.shape[1]), device=self.device)
                 edge_indices = self.edge_indices[:, e_start: e_end]
                 bond_indices = edge_indices[0] * n_atoms + edge_indices[1]
                 e_features[bond_indices] = bond_features
-                pairwise_indices = self.dist_dict['pairwise_indices'][:,
-                                   pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)]
-                g.edata['w'] = e_features[pairwise_indices[0] * n_atoms + pairwise_indices[1]]
-            if self.dist_embedding:
-                g.edata['d_rbf'] = self.dist_embedder(g.edata['w']).to(self.device)
-            if self.pos_dir:
-                g.ndata['pos_dir'] = self.pos_enc[start: start + n_atoms].to(self.device)
+                src, dst = self.get_pairwise(n_atoms)
+                g.edata['w'] = e_features[src * n_atoms + dst]
             return g
         elif return_type == 'complete_graph3d':
-            g = self.get_complete_graph(idx, pairwise_start, n_atoms).to(self.device)
+            g = self.get_complete_graph(idx, n_atoms).to(self.device)
             g.ndata['f'] = self.features3d_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
-            g.edata['d'] = self.dist_dict['pairwise_distances'][
-                           pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)].unsqueeze(-1).to(self.device)
+            g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2, dim=-1).unsqueeze(
+                -1)
             if self.e_features3d_tensor != None:
                 bond_features = self.e_features3d_tensor[e_start: e_end].to(self.device)
                 e_features = torch.zeros((n_atoms * n_atoms, bond_features.shape[1]), device=self.device)
                 edge_indices = self.edge_indices[:, e_start: e_end]
                 bond_indices = edge_indices[0] * n_atoms + edge_indices[1]
                 e_features[bond_indices] = bond_features
-                pairwise_indices = self.dist_dict['pairwise_indices'][:,
-                                   pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)]
-                g.edata['w'] = e_features[pairwise_indices[0] * n_atoms + pairwise_indices[1]]
-            if self.dist_embedding:
-                g.edata['d_rbf'] = self.dist_embedder(g.edata['w']).to(self.device)
-            if self.pos_dir:
-                g.ndata['pos_dir'] = self.pos_enc[start: start + n_atoms].to(self.device)
+                src, dst = self.get_pairwise(n_atoms)
+                g.edata['w'] = e_features[src * n_atoms + dst]
             return g
         if return_type == 'mol_complete_graph':
-            g = self.get_mol_complete_graph(idx, e_start, e_end, pairwise_start, n_atoms).to(self.device)
+            g = self.get_mol_complete_graph(idx, e_start, e_end, n_atoms).to(self.device)
             g.ndata['f'] = self.features_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
             if self.e_features_tensor != None:
                 g.edges['bond'].data['w'] = self.e_features_tensor[e_start: e_end].to(self.device)
-            if self.pos_dir:
-                g.ndata['pos_dir'] = self.pos_enc[start: start + n_atoms].to(self.device)
             return g
         if return_type == 'san_graph':
-            g = self.get_complete_graph(idx, pairwise_start, n_atoms).to(self.device)
+            g = self.get_complete_graph(idx, n_atoms).to(self.device)
             g.ndata['f'] = self.features_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
             eig_vals = self.eig_vals[idx].to(self.device)
@@ -417,8 +290,6 @@ class GEOMDrugs(Dataset):
                 g.edges[edge_indices[0], edge_indices[1]].data['real'] = torch.ones(e_features.shape[0],
                                                                                     dtype=torch.long,
                                                                                     device=self.device)  # This indicates real edges
-            if self.pos_dir:
-                g.ndata['pos_dir'] = self.pos_enc[start: start + n_atoms].to(self.device)
             return g
         elif return_type == 'se3Transformer_graph' or return_type == 'se3Transformer_graph3d':
             g = self.get_graph(idx, e_start, e_end).to(self.device)
@@ -429,36 +300,23 @@ class GEOMDrugs(Dataset):
             g.ndata['f'] = self.features3d_tensor[start: start + n_atoms].to(self.device)[
                 ..., None] if return_type == 'se3Transformer_graph3d' else \
                 self.features_tensor[start: start + n_atoms].to(self.device)[..., None]
-            edge_indices = self.edge_indices[:, e_start: e_end].to(self.device)
-            g.edata['d'] = x[edge_indices[0]] - x[edge_indices[1]]
+            g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2, dim=-1).unsqueeze(
+                -1)
             if self.e_features_tensor != None and return_type == 'se3Transformer_graph':
                 g.edata['w'] = self.e_features_tensor[e_start: e_end].to(self.device)
             elif self.e_features3d_tensor != None and return_type == 'se3Transformer_graph3d':
                 g.edata['w'] = self.e_features3d_tensor[e_start: e_end].to(self.device)
             return g
-        elif return_type == 'pairwise_indices':
-            return self.dist_dict['pairwise_indices'][:, pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)]
-        elif return_type == 'pairwise_distances':
-            return self.dist_dict['pairwise_distances'][
-                   pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)].unsqueeze(-1)
-        elif return_type == 'pairwise_distances_squared':
-            return self.dist_dict['pairwise_distances'][
-                   pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)].unsqueeze(-1) ** 2
-        elif return_type == 'dist_embedding':
-            dist = self.dist_dict['pairwise_distances'][pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)]
-            return self.dist_embedder(dist.to(self.device))
         elif return_type == 'raw_features':
             return self.features_tensor[start: start + n_atoms]
         elif return_type == 'coordinates':
             return self.coordinates[start: start + n_atoms]
-        elif return_type == 'mol_id':
-            return self.meta_dict['mol_id'][idx]
         elif return_type == 'targets':
             return self.targets[idx]
         elif return_type == 'edge_indices':
             return self.meta_dict['edge_indices'][:, e_start: e_end]
         elif return_type == 'smiles':
-            return self.smiles[self.meta_dict['mol_id'][idx]]
+            return self.meta_dict['smiles'][idx]
         else:
             raise Exception(f'return type not supported: ', return_type)
 
@@ -540,6 +398,7 @@ class GEOMDrugs(Dataset):
                 atom_slices.append(total_atoms)
                 n_atoms_list.append(n_atoms)
                 atom_one_hot.append(F.one_hot(torch.tensor(type_idx), num_classes=len(self.atom_types)))
+            break
 
         data_dict = {}
         data_dict.update(e_features)
@@ -547,7 +406,7 @@ class GEOMDrugs(Dataset):
         for key, value in data_dict.items():
             data_dict[key] = torch.cat(data_dict[key])
         for key, value in targets.items():
-            targets[key] = torch.tensor(value)[:,None]
+            targets[key] = torch.tensor(value)[:, None]
         data_dict.update(targets)
         data_dict.update({'smiles': smiles_list,
                           'n_atoms': torch.tensor(n_atoms_list, dtype=torch.long),
@@ -563,37 +422,3 @@ class GEOMDrugs(Dataset):
         if not os.path.exists(os.path.join(self.directory, 'processed')):
             os.mkdir(os.path.join(self.directory, 'processed'))
         torch.save(data_dict, os.path.join(self.directory, 'processed', self.processed_file))
-
-    def process_distances(self):
-        print('processing distances from ({}) and saving it to ({})'.format(self.qm9_directory,
-                                                                            os.path.join(self.qm9_directory,
-                                                                                         'processed')))
-        # load qm9 data with spatial coordinates
-        data_qm9 = dict(np.load(os.path.join(self.qm9_directory, self.raw_spatial_data), allow_pickle=True))
-
-        pairwise_slices = [0]
-        pairwise_distances = []
-        pairwise_indices = []
-        total_atoms = 0
-        total_pairs = 0
-        # go through all molecules in the npz file
-        for mol_idx, n_atoms in tqdm(enumerate(data_qm9['N'])):
-            src = torch.repeat_interleave(torch.arange(n_atoms), n_atoms - 1)
-            # without self loops
-            dst = torch.cat(
-                [torch.cat([torch.arange(n_atoms)[:idx], torch.arange(n_atoms)[idx + 1:]]) for idx in range(n_atoms)])
-            coordinates = torch.tensor(data_qm9['R'][total_atoms: total_atoms + n_atoms], dtype=torch.float)
-            pairwise_distances.append(torch.norm(coordinates[src] - coordinates[dst], p=2, dim=-1))
-            pairwise_indices.append(torch.stack([src, dst], dim=0))
-
-            total_atoms += n_atoms
-            total_pairs += n_atoms * (n_atoms - 1)
-            pairwise_slices.append(total_pairs)
-
-        if not os.path.exists(os.path.join(self.qm9_directory, 'processed')):
-            os.mkdir(os.path.join(self.qm9_directory, 'processed'))
-
-        torch.save({'pairwise_distances': torch.cat(pairwise_distances),
-                    'pairwise_indices': torch.cat(pairwise_indices, dim=1),
-                    'pairwise_slices': torch.tensor(pairwise_slices, dtype=torch.long), },
-                   os.path.join(self.qm9_directory, 'processed', self.distances_file))

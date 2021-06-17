@@ -1,6 +1,6 @@
-experiment_name: 'tune_NTXent_EGNN_sum_with_distance_aggregator_higher_lr'
+experiment_name: 'tune_NTXent_tiny_20hidden'
 
-pretrain_checkpoint: runs/EGNNEdges_NTXent_EGNN_sum_with_distance_aggregator_10-06_17-49-46/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_NTXent_tiny_20hidden_14-06_09-22-24/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
@@ -36,7 +36,7 @@ e_features:
 
 
 required_data:
-  - complete_graph
+  - mol_graph
   - targets
 metrics:
   - mae_denormalized
@@ -46,7 +46,8 @@ metrics:
 
 optimizer: Adam
 optimizer_params:
-  lr: 1.0e-3
+  lr: 7.0e-5
+  weight_decay: 1.0e-11
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
@@ -64,23 +65,31 @@ lr_scheduler_params:
 
 
 # Model parameters
-model_type: 'EGNNEdges'
+model_type: 'PNA'
 model_parameters:
   target_dim: 1
-  hidden_dim: 128
-  reduce_func: 'sum'
-  propagation_depth: 7
+  hidden_dim: 90
+  mid_batch_norm: True
+  last_batch_norm: True
   dropout: 0.0
-  readout_batchnorm: True
-  readout_hidden_dim: 128
-  readout_layers: 2
+  propagation_depth: 6
+  aggregators:
+    - mean
+    - max
+    - min
+    - std
+  scalers:
+    - identity
+    - amplification
+    - attenuation
   readout_aggregators:
     - min
     - max
     - mean
     - sum
-  batch_norm: True
-
+  pretrans_layers: 2
+  posttrans_layers: 1
+  residual: True
 
 
 # continue training from checkpoint:

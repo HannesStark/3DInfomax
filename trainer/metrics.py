@@ -1,3 +1,5 @@
+from typing import Union
+
 import torch
 from pytorch_lightning.metrics.utils import reduce
 from torch import Tensor
@@ -8,6 +10,7 @@ import numpy as np
 from pytorch_lightning.metrics import F1
 
 from commons.losses import cov_loss, std_loss, uniformity_loss
+from datasets.geom_drugs_dataset import GEOMDrugs
 from datasets.qm9_dataset import QM9Dataset
 
 
@@ -33,11 +36,13 @@ class QM9SingleTargetDenormalizedL1(nn.Module):
 
 
 class QM9DenormalizedL1(nn.Module):
-    def __init__(self, dataset: QM9Dataset):
+    def __init__(self, dataset: Union[QM9Dataset, GEOMDrugs]):
         super().__init__()
         self.means = dataset.targets_mean
         self.stds = dataset.targets_std
-        self.eV2meV = dataset.eV2meV
+        self.eV2meV = None
+        if isinstance(dataset, QM9Dataset):
+            self.eV2meV = dataset.eV2meV
 
     def forward(self, preds, targets):
         preds = denormalize(preds, self.means, self.stds, self.eV2meV)
@@ -61,11 +66,13 @@ def denormalize(normalized: torch.tensor, means, stds, eV2meV):
 
 
 class QM9DenormalizedL2(nn.Module):
-    def __init__(self, dataset: QM9Dataset):
+    def __init__(self, dataset: Union[QM9Dataset, GEOMDrugs]):
         super().__init__()
         self.means = dataset.targets_mean
         self.stds = dataset.targets_std
-        self.eV2meV = dataset.eV2meV
+        self.eV2meV = None
+        if isinstance(dataset, QM9Dataset):
+            self.eV2meV = dataset.eV2meV
 
     def forward(self, preds, targets):
         preds = denormalize(preds, self.means, self.stds, self.eV2meV)

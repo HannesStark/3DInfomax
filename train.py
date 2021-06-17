@@ -6,6 +6,7 @@ from icecream import install
 
 from commons.utils import seed_all, get_random_indices, TENSORBOARD_FUNCTIONS
 from datasets.ZINC_dataset import ZINCDataset
+from datasets.geom_drugs_dataset import GEOMDrugs
 from trainer.byol_trainer import BYOLTrainer
 from trainer.byol_wrapper import BYOLwrapper
 
@@ -62,6 +63,8 @@ def train(args):
         train_qm9(args, device, metrics_dict)
     elif args.dataset == 'zinc':
         train_zinc(args, device, metrics_dict)
+    elif args.dataset == 'drugs':
+        train_drugs(args, device, metrics_dict)
 
 
 def train_zinc(args, device, metrics_dict):
@@ -110,6 +113,118 @@ def train_zinc(args, device, metrics_dict):
     if args.eval_on_test:
         trainer.evaluation(test_loader, data_split='test')
 
+def train_drugs(args, device, metrics_dict):
+    all_data = GEOMDrugs(return_types=args.required_data, features=args.features, features3d=args.features3d,
+                          e_features=args.e_features,
+                          e_features3d=args.e_features3d, pos_dir=args.pos_dir,
+                          target_tasks=args.targets,
+                          prefetch_graphs=args.prefetch_graphs)
+
+    all_idx = get_random_indices(len(all_data), args.seed_data)
+    model_idx = all_idx[:240000]
+    test_idx = all_idx[len(model_idx): len(model_idx) + int(0.1 * len(all_data))]
+    val_idx = all_idx[len(model_idx) + len(test_idx):]
+    train_idx = model_idx[:args.num_train]
+    # for debugging purposes:
+    # test_idx = all_idx[len(model_idx): len(model_idx) + 200]
+    # val_idx = all_idx[len(model_idx) + len(test_idx): len(model_idx) + len(test_idx) + 3000]
+
+    try:
+        edge_dim = all_data[0][0].edata['w'].shape[1] if args.use_e_features and len(args.e_features) + len(
+            args.e_features3d) > 0 else 0
+    except:
+        edge_dim = all_data[0][0].edges['bond'].data['w'].shape[1] if args.use_e_features else 0
+    model = globals()[args.model_type](node_dim=all_data[0][0].ndata['f'].shape[1],
+                                       edge_dim=edge_dim,
+                                       avg_d=all_data.avg_degree,
+                                       **args.model_parameters)
+
+    if args.pretrain_checkpoint:
+        # get arguments used during pretraining
+        with open(os.path.join(os.path.dirname(args.pretrain_checkpoint), 'train_arguments.yaml'), 'r') as arg_file:
+            pretrain_dict = yaml.load(arg_file, Loader=yaml.FullLoader)
+        pretrain_args = argparse.Namespace()
+        pretrain_args.__dict__.update(pretrain_dict)
+        train_idx = model_idx[pretrain_args.num_train: pretrain_args.num_train + args.num_train]
+
+        checkpoint = torch.load(args.pretrain_checkpoint, map_location=device)
+        # get all the weights that have something from 'args.transfer_layers' in their keys name
+        # but only if they do not contain 'teacher' and remove 'student.' which we need for loading from BYOLWrapper
+        pretrained_gnn_dict = {k.replace('student.', ''): v for k, v in checkpoint['model_state_dict'].items() if any(
+            transfer_layer in k for transfer_layer in args.transfer_layers) and 'teacher' not in k and not any(
+            to_exclude in k for to_exclude in args.exclude_from_transfer)}
+        model_state_dict = model.state_dict()
+        model_state_dict.update(pretrained_gnn_dict)  # update the gnn layers with the pretrained weights
+        model.load_state_dict(model_state_dict)
+    print('model trainable params: ', sum(p.numel() for p in model.parameters() if p.requires_grad))
+
+    print(f'Training on {len(train_idx)} samples from the model sequences')
+    collate_function = globals()[args.collate_function] if args.collate_params == {} else globals()[
+        args.collate_function](**args.collate_params)
+
+    if args.train_sampler != None:
+        sampler = globals()[args.train_sampler](data_source=all_data, batch_size=args.batch_size, indices=train_idx)
+        train_loader = DataLoader(Subset(all_data, train_idx), batch_sampler=sampler, collate_fn=collate_function)
+    else:
+        train_loader = DataLoader(Subset(all_data, train_idx), batch_size=args.batch_size, shuffle=True,
+                                  collate_fn=collate_function)
+    val_loader = DataLoader(Subset(all_data, val_idx), batch_size=args.batch_size, collate_fn=collate_function)
+    test_loader = DataLoader(Subset(all_data, test_idx), batch_size=args.batch_size, collate_fn=collate_function)
+
+    metrics_dict.update({'mae_denormalized': QM9DenormalizedL1(dataset=all_data),
+                         'mse_denormalized': QM9DenormalizedL2(dataset=all_data)})
+    metrics = {metric: metrics_dict[metric] for metric in args.metrics}
+    tensorboard_functions = {function: TENSORBOARD_FUNCTIONS[function] for function in args.tensorboard_functions}
+
+    # Needs "from torch.optim import *" and "from models import *" to work
+    if args.model3d_type:
+        model3d = globals()[args.model3d_type](
+            node_dim=all_data[0][1].ndata['f'].shape[1] if isinstance(all_data[0][1], dgl.DGLGraph) else
+            all_data[0][1].shape[-1],
+            edge_dim=all_data[0][1].edata['d'].shape[
+                1] if args.use_e_features and isinstance(all_data[0][1], dgl.DGLGraph) else 0,
+            avg_d=all_data.avg_degree,
+            **args.model3d_parameters)
+        print('3D model trainable params: ', sum(p.numel() for p in model3d.parameters() if p.requires_grad))
+
+        critic = None
+        if args.ssl_mode == 'byol':
+            ssl_trainer = BYOLTrainer
+        elif args.ssl_mode == 'alternating':
+            ssl_trainer = SelfSupervisedAlternatingTrainer
+        elif args.ssl_mode == 'contrastive':
+            ssl_trainer = SelfSupervisedTrainer
+        elif args.ssl_mode == 'philosophy':
+            ssl_trainer = PhilosophyTrainer
+            critic = globals()[args.critic_type](**args.critic_parameters)
+        trainer = ssl_trainer(model=model,
+                              model3d=model3d,
+                              critic=critic,
+                              args=args,
+                              metrics=metrics,
+                              main_metric=args.main_metric,
+                              main_metric_goal=args.main_metric_goal,
+                              optim=globals()[args.optimizer],
+                              loss_func=globals()[args.loss_func](**args.loss_params),
+                              critic_loss=globals()[args.critic_loss](**args.critic_loss_params),
+                              device=device,
+                              tensorboard_functions=tensorboard_functions,
+                              scheduler_step_per_batch=args.scheduler_step_per_batch)
+    else:
+        trainer = Trainer(model=model,
+                          args=args,
+                          metrics=metrics,
+                          main_metric=args.main_metric,
+                          main_metric_goal=args.main_metric_goal,
+                          optim=globals()[args.optimizer],
+                          loss_func=globals()[args.loss_func](**args.loss_params),
+                          device=device,
+                          tensorboard_functions=tensorboard_functions,
+                          scheduler_step_per_batch=args.scheduler_step_per_batch)
+    trainer.train(train_loader, val_loader)
+
+    if args.eval_on_test:
+        trainer.evaluation(test_loader, data_split='test')
 
 def train_qm9(args, device, metrics_dict):
     all_data = QM9Dataset(return_types=args.required_data, features=args.features, features3d=args.features3d,
@@ -231,7 +346,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/17.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/pna_drugs.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
@@ -239,7 +354,7 @@ def parse_arguments():
     p.add_argument('--prefetch_graphs', type=bool, default=True,
                    help='load graphs into memory (needs RAM and upfront computation) for faster data loading during training')
     p.add_argument('--patience', type=int, default=20, help='stop training after no improvement in this many epochs')
-    p.add_argument('--dataset', type=str, default='qm9', help='either zinc or qm9')
+    p.add_argument('--dataset', type=str, default='qm9', help='[qm9, zinc, drugs]')
     p.add_argument('--num_train', type=int, default=100000, help='n samples of the model samples to use for train')
     p.add_argument('--seed', type=int, default=123, help='seed for reproducibility')
     p.add_argument('--seed_data', type=int, default=123, help='if you want to use a different seed for the datasplit')
