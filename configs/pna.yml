@@ -2,7 +2,7 @@ experiment_name: 'baseline_few_features'
 
 num_epochs: 1000
 batch_size: 128
-prefetch_graphs: True
+prefetch_graphs: False
 log_iterations: 30
 patience: 50
 num_train: 50000

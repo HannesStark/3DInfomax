@@ -171,7 +171,8 @@ def train_drugs(args, device, metrics_dict):
     val_loader = DataLoader(Subset(all_data, val_idx), batch_size=args.batch_size, collate_fn=collate_function)
     test_loader = DataLoader(Subset(all_data, test_idx), batch_size=args.batch_size, collate_fn=collate_function)
 
-    metrics_dict.update({'mae_denormalized': QM9DenormalizedL1(dataset=all_data),
+    if 'mae_denormalized' in args.metrics:
+        metrics_dict.update({'mae_denormalized': QM9DenormalizedL1(dataset=all_data),
                          'mse_denormalized': QM9DenormalizedL2(dataset=all_data)})
     metrics = {metric: metrics_dict[metric] for metric in args.metrics}
     tensorboard_functions = {function: TENSORBOARD_FUNCTIONS[function] for function in args.tensorboard_functions}
@@ -346,7 +347,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/pna_drugs.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/1.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')

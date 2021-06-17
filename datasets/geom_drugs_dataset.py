@@ -59,7 +59,8 @@ class GEOMDrugs(Dataset):
                                     'raw_features', 'coordinates',
                                     'dist_embedding',
                                     'mol_id', 'targets',
-                                    'one_hot_bond_types', 'edge_indices', 'smiles', 'atomic_number_long', 'conformations']
+                                    'one_hot_bond_types', 'edge_indices', 'smiles', 'atomic_number_long',
+                                    'conformations', 'uniqueconfs']
         self.target_types = ['ensembleenergy', 'ensembleentropy', 'ensemblefreeenergy', 'lowestenergy', 'poplowestpct',
                              'temperature', 'uniqueconfs']
         self.directory = 'dataset/GEOM'
@@ -68,8 +69,8 @@ class GEOMDrugs(Dataset):
         self.crude_file = 'drugs_crude.msgpack'
         self.atom_types = {'H': 0, 'C': 1, 'N': 2, 'O': 3, 'F': 4, 'S': 5, 'Cl': 6, 'Br': 7, 'I': 8, 'P': 9, 'B': 10,
                            'Bi': 11, 'Si': 12, 'As': 13, 'Al': 14, 'Hg': 15}
-        self.symbols = {'H': 1, 'C': 6, 'N': 7, 'O': 8, 'F': 9, 'S': 16, 'Cl': 17, 'Br': 35, 'P': 15, 'B': 5, 'Bi': 83,
-                        'Si': 14, 'As': 33, 'Al': 13, 'Hg': 80}
+        self.symbols = {'H': 1, 'C': 6, 'N': 7, 'O': 8, 'F': 9, 'S': 16, 'Cl': 17, 'Br': 35, 'I': 53, 'P': 15, 'B': 5,
+                        'Bi': 83, 'Si': 14, 'As': 33, 'Al': 13, 'Hg': 80}
         self.normalize = normalize
         self.device = device
         self.transform = transform
@@ -91,7 +92,7 @@ class GEOMDrugs(Dataset):
         print('finish loading')
 
         if features and 'constant_ones' in features or features3d and 'constant_ones' in features3d:
-            data_dict['constant_ones'] = torch.ones_like(data_dict['atomic_number_long'], dtype=torch.float)
+            data_dict['constant_ones'] = torch.ones_like(data_dict['atomic_numbers_long'], dtype=torch.float)[:, None]
         if features and 'standard_normal_noise' in features or features3d and 'standard_normal_noise' in features3d:
             data_dict['standard_normal_noise'] = torch.normal(
                 mean=torch.zeros_like(data_dict['atomic_number_long'], dtype=torch.float),
@@ -109,7 +110,7 @@ class GEOMDrugs(Dataset):
         self.conformations = data_dict['coordinates'] if 'conformations' in self.return_types else None
         self.edge_indices = data_dict['edge_indices']
 
-        self.meta_dict = {k: data_dict[k] for k in ('smiles', 'edge_slices', 'atom_slices', 'n_atoms')}
+        self.meta_dict = {k: data_dict[k] for k in ('smiles', 'edge_slices', 'atom_slices', 'n_atoms', 'uniqueconfs')}
 
         if 'san_graph' in self.return_types:
             self.eig_vals = data_dict['eig_vals']
@@ -127,7 +128,8 @@ class GEOMDrugs(Dataset):
                 e_start = self.meta_dict['edge_slices'][idx]
                 e_end = self.meta_dict['edge_slices'][idx + 1]
                 edge_indices = self.edge_indices[:, e_start: e_end]
-                self.mol_graphs.append(dgl.graph((edge_indices[0], edge_indices[1])))
+                n_atoms = self.meta_dict['n_atoms'][idx]
+                self.mol_graphs.append(dgl.graph((edge_indices[0], edge_indices[1]), num_nodes=n_atoms))
         self.pairwise = {}  # for memoization
         if self.prefetch_graphs and (
                 'complete_graph' in self.return_types or 'complete_graph3d' in self.return_types or 'san_graph' in self.return_types):
@@ -194,12 +196,12 @@ class GEOMDrugs(Dataset):
             data.append(self.data_by_type(idx, return_type, e_start, e_end, start, n_atoms))
         return tuple(data)
 
-    def get_graph(self, idx, e_start, e_end):
+    def get_graph(self, idx, e_start, e_end, n_atoms):
         if self.prefetch_graphs:
             g = self.mol_graphs[idx]
         else:
             edge_indices = self.edge_indices[:, e_start: e_end]
-            g = dgl.graph((edge_indices[0], edge_indices[1]))
+            g = dgl.graph((edge_indices[0], edge_indices[1]), num_nodes=n_atoms)
         return g
 
     def get_complete_graph(self, idx, n_atoms):
@@ -224,14 +226,14 @@ class GEOMDrugs(Dataset):
         if return_type == 'conformations':
             return self.conformations[start: start + n_atoms].to(self.device)
         elif return_type == 'mol_graph':
-            g = self.get_graph(idx, e_start, e_end).to(self.device)
+            g = self.get_graph(idx, e_start, e_end, n_atoms).to(self.device)
             g.ndata['f'] = self.features_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
             if self.e_features_tensor != None:
                 g.edata['w'] = self.e_features_tensor[e_start: e_end].to(self.device)
             return g
         elif return_type == 'mol_graph3d':
-            g = self.get_graph(idx, e_start, e_end).to(self.device)
+            g = self.get_graph(idx, e_start, e_end, n_atoms).to(self.device)
             g.ndata['f'] = self.features3d_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
             if self.e_features3d_tensor != None:
@@ -297,7 +299,7 @@ class GEOMDrugs(Dataset):
                                                                                     device=self.device)  # This indicates real edges
             return g
         elif return_type == 'se3Transformer_graph' or return_type == 'se3Transformer_graph3d':
-            g = self.get_graph(idx, e_start, e_end).to(self.device)
+            g = self.get_graph(idx, e_start, e_end, n_atoms).to(self.device)
             x = self.coordinates[start: start + n_atoms].to(self.device)
             if self.transform:
                 x = self.transform(x)
@@ -316,6 +318,8 @@ class GEOMDrugs(Dataset):
             return self.features_tensor[start: start + n_atoms]
         elif return_type == 'coordinates':
             return self.coordinates[start: start + n_atoms]
+        elif return_type == 'uniqueconfs':
+            return self.meta_dict['uniqueconfs'][idx]
         elif return_type == 'targets':
             return self.targets[idx]
         elif return_type == 'edge_indices':
@@ -349,56 +353,57 @@ class GEOMDrugs(Dataset):
         total_atoms = 0
         total_edges = 0
         avg_degree = 0  # average degree in the dataset
-        for smiles, sub_dic in tqdm(summary.items()):
+        for smiles, sub_dic in tqdm(list(summary.items())[97190:]):
             pickle_path = os.path.join(self.directory, sub_dic.get("pickle_path", ""))
             if os.path.isfile(pickle_path):
                 pickle_file = open(pickle_path, 'rb')
                 mol_dict = pickle.load(pickle_file)
-                conformers = mol_dict['conformers']
-                mol = conformers[0]['rd_mol']
+                if 'ensembleenergy' in mol_dict:
+                    conformers = mol_dict['conformers']
+                    mol = conformers[0]['rd_mol']
+                    n_atoms = len(mol.GetAtoms())
+                    for key, item in goli.features.get_mol_atomic_features_float(mol, list(atom_float.keys())).items():
+                        atom_float[key].append(torch.tensor(item)[:, None])
+                    type_idx = []
+                    symbols = []
+                    for atom in mol.GetAtoms():
+                        type_idx.append(self.atom_types[atom.GetSymbol()])
+                        atomic_numbers_long.append(self.symbols[atom.GetSymbol()])
+                        symbols.append(atom.GetSymbol())
+                    row, col = [], []
+                    for ii in range(mol.GetNumBonds()):
+                        bond = mol.GetBondWithIdx(ii)
+                        start, end = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
+                        row += [start, end]
+                        col += [end, start]
+                    avg_degree += (len(row) / 2) / n_atoms
+                    edge_index = torch.tensor([row, col], dtype=torch.long)
+                    perm = (edge_index[0] * n_atoms + edge_index[1]).argsort()
+                    edge_index = edge_index[:, perm]
+                    for key, item in goli.features.get_mol_edge_features(mol, list(e_features.keys())).items():
+                        # repeat interleave for src dst and dst src edges (see above where we add the edges) and then reorder using perm
+                        e_features[key].append(torch.tensor(item).repeat_interleave(2, dim=0)[perm])
 
-                n_atoms = len(mol.GetAtoms())
-                for key, item in goli.features.get_mol_atomic_features_float(mol, list(atom_float.keys())).items():
-                    atom_float[key].append(torch.tensor(item)[:, None])
-                type_idx = []
-                symbols = []
-                for atom in mol.GetAtoms():
-                    type_idx.append(self.atom_types[atom.GetSymbol()])
-                    atomic_numbers_long.append(self.symbols[atom.GetSymbol()])
-                    symbols.append(atom.GetSymbol())
-                row, col = [], []
-                for ii in range(mol.GetNumBonds()):
-                    bond = mol.GetBondWithIdx(ii)
-                    start, end = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
-                    row += [start, end]
-                    col += [end, start]
-                avg_degree += (len(row) / 2) / n_atoms
-                edge_index = torch.tensor([row, col], dtype=torch.long)
-                perm = (edge_index[0] * n_atoms + edge_index[1]).argsort()
-                edge_index = edge_index[:, perm]
-                for key, item in goli.features.get_mol_edge_features(mol, list(e_features.keys())).items():
-                    # repeat interleave for src dst and dst src edges (see above where we add the edges) and then reorder using perm
-                    e_features[key].append(torch.tensor(item).repeat_interleave(2, dim=0)[perm])
-                targets['ensembleenergy'].append(mol_dict['ensembleenergy'])
-                targets['ensembleentropy'].append(mol_dict['ensembleentropy'])
-                targets['ensemblefreeenergy'].append(mol_dict['ensemblefreeenergy'])
-                targets['lowestenergy'].append(mol_dict['lowestenergy'])
-                targets['poplowestpct'].append(mol_dict['poplowestpct'])
-                targets['temperature'].append(mol_dict['temperature'])
-                targets['uniqueconfs'].append(mol_dict['uniqueconfs'])
-                conformers = [torch.tensor(conformer['rd_mol'].GetConformer().GetPositions(), dtype=torch.float) for
-                              conformer in conformers[:10]]
-                if len(conformers) < 10:  # if there are less than 10 conformers we add the first one a few times
-                    conformers.extend([conformers[0]] * (10 - len(conformers)))
-                coordinates.append(torch.cat(conformers, dim=1))
-                edge_indices.append(edge_index)
-                total_edges += len(row)
-                total_atoms += n_atoms
-                smiles_list.append(smiles)
-                edge_slices.append(total_edges)
-                atom_slices.append(total_atoms)
-                n_atoms_list.append(n_atoms)
-                atom_one_hot.append(F.one_hot(torch.tensor(type_idx), num_classes=len(self.atom_types)))
+                    targets['ensembleenergy'].append(mol_dict['ensembleenergy'])
+                    targets['ensembleentropy'].append(mol_dict['ensembleentropy'])
+                    targets['ensemblefreeenergy'].append(mol_dict['ensemblefreeenergy'])
+                    targets['lowestenergy'].append(mol_dict['lowestenergy'])
+                    targets['poplowestpct'].append(mol_dict['poplowestpct'])
+                    targets['temperature'].append(mol_dict['temperature'])
+                    targets['uniqueconfs'].append(mol_dict['uniqueconfs'])
+                    conformers = [torch.tensor(conformer['rd_mol'].GetConformer().GetPositions(), dtype=torch.float) for
+                                  conformer in conformers[:10]]
+                    if len(conformers) < 10:  # if there are less than 10 conformers we add the first one a few times
+                        conformers.extend([conformers[0]] * (10 - len(conformers)))
+                    coordinates.append(torch.cat(conformers, dim=1))
+                    edge_indices.append(edge_index)
+                    total_edges += len(row)
+                    total_atoms += n_atoms
+                    smiles_list.append(smiles)
+                    edge_slices.append(total_edges)
+                    atom_slices.append(total_atoms)
+                    n_atoms_list.append(n_atoms)
+                    atom_one_hot.append(F.one_hot(torch.tensor(type_idx), num_classes=len(self.atom_types)))
         data_dict = {}
         data_dict.update(e_features)
         data_dict.update(atom_float)
