@@ -17,22 +17,9 @@ num_train: 50000
 targets:
   - homo
 features:
-  - 'implicit-valence'
-  - 'degree'
-  - 'hybridization'
-  - 'chirality'
-  - 'mass'
-  - 'electronegativity'
-  - 'aromatic-bond'
-  - 'formal-charge'
-  - 'radical-electron'
-  - 'in-ring'
   - 'atomic-number'
 e_features:
   - 'bond-type-onehot'
-  - 'stereo'
-  - 'conjugated'
-  - 'in-ring-edges'
 
 
 required_data:
