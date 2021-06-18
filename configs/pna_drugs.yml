@@ -1,9 +1,9 @@
-experiment_name: 'baseline_few_features'
+experiment_name: 'baseline'
 
 dataset: 'drugs'
 num_epochs: 1000
 batch_size: 128
-prefetch_graphs: False
+prefetch_graphs: True
 log_iterations: 30
 patience: 50
 num_train: 120000
