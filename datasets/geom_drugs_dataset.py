@@ -65,8 +65,6 @@ class GEOMDrugs(Dataset):
                              'temperature', 'uniqueconfs']
         self.directory = 'dataset/GEOM'
         self.processed_file = 'drugs_processed.pt'
-        self.distances_file = 'drugs_distances.pt'
-        self.crude_file = 'drugs_crude.msgpack'
         self.atom_types = {'H': 0, 'C': 1, 'N': 2, 'O': 3, 'F': 4, 'S': 5, 'Cl': 6, 'Br': 7, 'I': 8, 'P': 9, 'B': 10,
                            'Bi': 11, 'Si': 12, 'As': 13, 'Al': 14, 'Hg': 15}
         self.symbols = {'H': 1, 'C': 6, 'N': 7, 'O': 8, 'F': 9, 'S': 16, 'Cl': 17, 'Br': 35, 'I': 53, 'P': 15, 'B': 5,
@@ -116,15 +114,13 @@ class GEOMDrugs(Dataset):
             self.eig_vals = data_dict['eig_vals']
             self.eig_vecs = data_dict['eig_vecs']
 
-        if 'smiles' in self.return_types:
-            self.smiles = pd.read_csv(os.path.join(self.directory, self.crude_file))['smiles']
         self.prefetch_graphs = prefetch_graphs
         if self.prefetch_graphs and any(return_type in self.return_types for return_type in
                                         ['mol_graph', 'mol_graph3d', 'se3Transformer_graph', 'se3Transformer_graph3d']):
             print(
                 'Load molecular graphs into memory (set prefetch_graphs to False to load them on the fly => slower training)')
             self.mol_graphs = []
-            for idx in tqdm(range(len(self.meta_dict['edge_slices']) - 1)):
+            for idx, n_atoms in tqdm(enumerate(self.meta_dict['n_atoms'])):
                 e_start = self.meta_dict['edge_slices'][idx]
                 e_end = self.meta_dict['edge_slices'][idx + 1]
                 edge_indices = self.edge_indices[:, e_start: e_end]
@@ -138,7 +134,10 @@ class GEOMDrugs(Dataset):
             self.complete_graphs = []
             for idx in tqdm(range(len(self.meta_dict['edge_slices']) - 1)):
                 src, dst = self.get_pairwise(self.meta_dict['n_atoms'][idx])
-                self.complete_graphs.append(dgl.graph((src, dst)))
+                g = dgl.DGLGraph().to(self.device)
+                g.add_edges(src.to(self.device), dst.to(self.device))
+
+                self.complete_graphs.append(g.to('cpu'))
         if self.prefetch_graphs and (
                 'mol_complete_graph' in self.return_types or 'mol_complete_graph3d' in self.return_types):
             print(
@@ -353,7 +352,7 @@ class GEOMDrugs(Dataset):
         total_atoms = 0
         total_edges = 0
         avg_degree = 0  # average degree in the dataset
-        for smiles, sub_dic in tqdm(list(summary.items())[97190:]):
+        for smiles, sub_dic in tqdm(list(summary.items())):
             pickle_path = os.path.join(self.directory, sub_dic.get("pickle_path", ""))
             if os.path.isfile(pickle_path):
                 pickle_file = open(pickle_path, 'rb')

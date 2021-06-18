@@ -9,7 +9,7 @@ patience: 50
 num_train: 50000
 loss_func: L1Loss
 targets:
-  - homo
+  - ensembleenergy
 features:
   - 'implicit-valence'
   - 'degree'
@@ -38,7 +38,6 @@ metrics:
   - mae_denormalized
   - pearsonr
   - rsquared
-  - qm9_properties
   - mean_predictor_loss
 
 optimizer: Adam

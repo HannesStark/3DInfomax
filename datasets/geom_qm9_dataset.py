@@ -64,13 +64,9 @@ class GEOMqm9(Dataset):
         self.target_types = ['ensembleenergy', 'ensembleentropy', 'ensemblefreeenergy', 'lowestenergy', 'poplowestpct',
                              'temperature', 'uniqueconfs']
         self.directory = 'dataset/GEOM'
-        self.processed_file = 'drugs_processed.pt'
-        self.distances_file = 'drugs_distances.pt'
-        self.crude_file = 'drugs_crude.msgpack'
-        self.atom_types = {'H': 0, 'C': 1, 'N': 2, 'O': 3, 'F': 4, 'S': 5, 'Cl': 6, 'Br': 7, 'I': 8, 'P': 9, 'B': 10,
-                           'Bi': 11, 'Si': 12, 'As': 13, 'Al': 14, 'Hg': 15}
-        self.symbols = {'H': 1, 'C': 6, 'N': 7, 'O': 8, 'F': 9, 'S': 16, 'Cl': 17, 'Br': 35, 'I': 53, 'P': 15, 'B': 5,
-                        'Bi': 83, 'Si': 14, 'As': 33, 'Al': 13, 'Hg': 80}
+        self.processed_file = 'geom_qm9_processed.pt'
+        self.atom_types = {'H': 0, 'C': 1, 'N': 2, 'O': 3, 'F': 4}
+        self.symbols = {'H': 1, 'C': 6, 'N': 7, 'O': 8, 'F': 9}
         self.normalize = normalize
         self.device = device
         self.transform = transform
@@ -116,8 +112,6 @@ class GEOMqm9(Dataset):
             self.eig_vals = data_dict['eig_vals']
             self.eig_vecs = data_dict['eig_vecs']
 
-        if 'smiles' in self.return_types:
-            self.smiles = pd.read_csv(os.path.join(self.directory, self.crude_file))['smiles']
         self.prefetch_graphs = prefetch_graphs
         if self.prefetch_graphs and any(return_type in self.return_types for return_type in
                                         ['mol_graph', 'mol_graph3d', 'se3Transformer_graph', 'se3Transformer_graph3d']):
@@ -353,7 +347,7 @@ class GEOMqm9(Dataset):
         total_atoms = 0
         total_edges = 0
         avg_degree = 0  # average degree in the dataset
-        for smiles, sub_dic in tqdm(list(summary.items())[97190:]):
+        for smiles, sub_dic in tqdm(summary.items()):
             pickle_path = os.path.join(self.directory, sub_dic.get("pickle_path", ""))
             if os.path.isfile(pickle_path):
                 pickle_file = open(pickle_path, 'rb')

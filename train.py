@@ -114,16 +114,17 @@ def train_zinc(args, device, metrics_dict):
     if args.eval_on_test:
         trainer.evaluation(test_loader, data_split='test')
 
+
 def train_geom(args, device, metrics_dict):
     dataset = GEOMDrugs if args.dataset == 'drugs' else GEOMqm9
     all_data = dataset(return_types=args.required_data, features=args.features, features3d=args.features3d,
-                          e_features=args.e_features,
-                          e_features3d=args.e_features3d, pos_dir=args.pos_dir,
-                          target_tasks=args.targets,
-                          prefetch_graphs=args.prefetch_graphs)
+                       e_features=args.e_features,
+                       e_features3d=args.e_features3d, pos_dir=args.pos_dir,
+                       target_tasks=args.targets,
+                       prefetch_graphs=args.prefetch_graphs)
 
     all_idx = get_random_indices(len(all_data), args.seed_data)
-    model_idx = all_idx[:240000]
+    model_idx = all_idx[:240000] if args.dataset == 'drugs' else all_idx[:100000]
     test_idx = all_idx[len(model_idx): len(model_idx) + int(0.1 * len(all_data))]
     val_idx = all_idx[len(model_idx) + len(test_idx):]
     train_idx = model_idx[:args.num_train]
@@ -175,7 +176,7 @@ def train_geom(args, device, metrics_dict):
 
     if 'mae_denormalized' in args.metrics:
         metrics_dict.update({'mae_denormalized': QM9DenormalizedL1(dataset=all_data),
-                         'mse_denormalized': QM9DenormalizedL2(dataset=all_data)})
+                             'mse_denormalized': QM9DenormalizedL2(dataset=all_data)})
     metrics = {metric: metrics_dict[metric] for metric in args.metrics}
     tensorboard_functions = {function: TENSORBOARD_FUNCTIONS[function] for function in args.tensorboard_functions}
 
@@ -228,6 +229,7 @@ def train_geom(args, device, metrics_dict):
 
     if args.eval_on_test:
         trainer.evaluation(test_loader, data_split='test')
+
 
 def train_qm9(args, device, metrics_dict):
     all_data = QM9Dataset(return_types=args.required_data, features=args.features, features3d=args.features3d,
@@ -349,7 +351,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/20.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/5.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
