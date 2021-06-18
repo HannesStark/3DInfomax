@@ -9,7 +9,7 @@ patience: 50
 num_train: 50000
 loss_func: L1Loss
 targets:
-  - ensembleenergy
+  - ensemblefreeenergy
 features:
   - 'implicit-valence'
   - 'degree'
