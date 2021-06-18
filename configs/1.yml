@@ -42,7 +42,6 @@ metrics:
   - mae_denormalized
   - pearsonr
   - rsquared
-  - qm9_properties
 
 optimizer: Adam
 optimizer_params:
