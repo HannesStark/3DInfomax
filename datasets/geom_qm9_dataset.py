@@ -22,7 +22,7 @@ from commons.spherical_encoding import dist_emb
 hartree2eV = physical_constants['hartree-electron volt relationship'][0]
 
 
-class GEOMDrugs(Dataset):
+class GEOMqm9(Dataset):
     """The GEOM Drugs Dataset using drugs_crude.msgpack as input from https://github.com/learningmatter-mit/geom
     Attributes
     ----------
@@ -333,7 +333,7 @@ class GEOMDrugs(Dataset):
         print('processing data from ({}) and saving it to ({})'.format(self.directory,
                                                                        os.path.join(self.directory, 'processed')))
 
-        with open(os.path.join(self.directory, "summary_drugs.json"), "r") as f:
+        with open(os.path.join(self.directory, "summary_qm9.json"), "r") as f:
             summary = json.load(f)
 
         atom_slices = [0]

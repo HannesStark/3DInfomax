@@ -7,6 +7,7 @@ from icecream import install
 from commons.utils import seed_all, get_random_indices, TENSORBOARD_FUNCTIONS
 from datasets.ZINC_dataset import ZINCDataset
 from datasets.geom_drugs_dataset import GEOMDrugs
+from datasets.geom_qm9_dataset import GEOMqm9
 from trainer.byol_trainer import BYOLTrainer
 from trainer.byol_wrapper import BYOLwrapper
 
@@ -63,8 +64,8 @@ def train(args):
         train_qm9(args, device, metrics_dict)
     elif args.dataset == 'zinc':
         train_zinc(args, device, metrics_dict)
-    elif args.dataset == 'drugs':
-        train_drugs(args, device, metrics_dict)
+    elif args.dataset == 'drugs' or args.dataset == 'geom_qm9':
+        train_geom(args, device, metrics_dict)
 
 
 def train_zinc(args, device, metrics_dict):
@@ -113,8 +114,9 @@ def train_zinc(args, device, metrics_dict):
     if args.eval_on_test:
         trainer.evaluation(test_loader, data_split='test')
 
-def train_drugs(args, device, metrics_dict):
-    all_data = GEOMDrugs(return_types=args.required_data, features=args.features, features3d=args.features3d,
+def train_geom(args, device, metrics_dict):
+    dataset = GEOMDrugs if args.dataset == 'drugs' else GEOMqm9
+    all_data = dataset(return_types=args.required_data, features=args.features, features3d=args.features3d,
                           e_features=args.e_features,
                           e_features3d=args.e_features3d, pos_dir=args.pos_dir,
                           target_tasks=args.targets,
@@ -347,7 +349,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/pna_drugs.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/20.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
@@ -355,7 +357,7 @@ def parse_arguments():
     p.add_argument('--prefetch_graphs', type=bool, default=True,
                    help='load graphs into memory (needs RAM and upfront computation) for faster data loading during training')
     p.add_argument('--patience', type=int, default=20, help='stop training after no improvement in this many epochs')
-    p.add_argument('--dataset', type=str, default='qm9', help='[qm9, zinc, drugs]')
+    p.add_argument('--dataset', type=str, default='qm9', help='[qm9, zinc, drugs, geom_qm9]')
     p.add_argument('--num_train', type=int, default=100000, help='n samples of the model samples to use for train')
     p.add_argument('--seed', type=int, default=123, help='seed for reproducibility')
     p.add_argument('--seed_data', type=int, default=123, help='if you want to use a different seed for the datasplit')
