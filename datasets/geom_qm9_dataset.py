@@ -312,6 +312,8 @@ class GEOMqm9(Dataset):
             return self.features_tensor[start: start + n_atoms]
         elif return_type == 'coordinates':
             return self.coordinates[start: start + n_atoms]
+        elif return_type == 'conformations':
+            return self.conformations[start: start + n_atoms]
         elif return_type == 'uniqueconfs':
             return self.meta_dict['uniqueconfs'][idx]
         elif return_type == 'targets':

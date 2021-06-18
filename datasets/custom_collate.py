@@ -54,6 +54,32 @@ class NoisedDistancesCollate(object):
         else:
             return batched_graph, batched_graph3d
 
+
+class ConformerCollate(object):
+    def __init__(self, num_conformers):
+        self.num_conformers = num_conformers
+
+    def __call__(self, batch: List[Tuple]):
+        graphs, graphs3d, conformers, *targets = map(list, zip(*batch))
+        conformers = torch.cat(conformers, dim=0)
+        ic(conformers.shape)
+        batched_graph = dgl.batch(graphs)
+        conformer_graphs = [batched_graph]
+        for i in range(self.num_conformers - 1):
+            conformer_graph = copy.deepcopy(batched_graph)
+            ic(conformer_graph.number_of_nodes())
+            ic(i)
+            ic(i + 3)
+            conformer_graph.ndata['x'] = conformers[i:i + 3]
+            conformer_graphs.append(conformer_graph)
+        batched_graph3d = dgl.batch(graphs3d)
+
+        if targets:
+            return batched_graph, batched_graph3d, torch.stack(*targets)
+        else:
+            return batched_graph, batched_graph3d
+
+
 class NoisedCoordinatesCollate(object):
     def __init__(self, std, num_noised):
         self.std = std
@@ -70,8 +96,8 @@ class NoisedCoordinatesCollate(object):
         for i in range(self.num_noised):
             copy_graph = copy.deepcopy(batched_graph3d)
             copy_graph.ndata['x'] += torch.randn_like(copy_graph.ndata['x']) * self.std
-            distances = torch.norm(copy_graph.ndata['x'][edges[0]] - copy_graph.ndata['x'][edges[1]],p=2,dim=-1)
-            copy_graph.edata['w'] = distances[:,None]
+            distances = torch.norm(copy_graph.ndata['x'][edges[0]] - copy_graph.ndata['x'][edges[1]], p=2, dim=-1)
+            copy_graph.edata['w'] = distances[:, None]
             graphs3d_noised.append(copy_graph)
 
         batched_graph3d = dgl.batch(graphs3d_noised)
@@ -80,6 +106,7 @@ class NoisedCoordinatesCollate(object):
             return batched_graph, batched_graph3d, torch.stack(*targets)
         else:
             return batched_graph, batched_graph3d
+
 
 class NodeDrop3dCollate(object):
     def __init__(self, num_drop):
