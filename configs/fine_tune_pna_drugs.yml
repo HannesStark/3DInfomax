@@ -1,21 +1,21 @@
-experiment_name: 'tune_NTXent_40hidden'
+experiment_name: 'tune_drugs_NTXent_tiny_net_snapshot_energy'
 
-pretrain_checkpoint: runs/PNA_NTXent_40hidden_18-06_07-26-03/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_drugs_NTXent_tiny_net_18-06_09-29-08/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
   - batch_norm
 
-
+dataset: drugs
 num_epochs: 1000
 batch_size: 128
 prefetch_graphs: True
 log_iterations: 30
 patience: 50
 loss_func: L1Loss
-num_train: 50000
+num_train: 120000
 targets:
-  - homo
+  - ensembleenergy
 features:
   - 'implicit-valence'
   - 'degree'
@@ -42,7 +42,6 @@ metrics:
   - mae_denormalized
   - pearsonr
   - rsquared
-  - qm9_properties
 
 optimizer: Adam
 optimizer_params:

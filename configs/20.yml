@@ -1,4 +1,4 @@
-experiment_name: 'tune_NTXent_2Layer_3DNet_snapshot'
+experiment_name: 'tune_NTXent_2Layer_3DNet'
 
 pretrain_checkpoint: runs/PNA_NTXent_2Layer_3DNet_18-06_07-25-57/best_checkpoint.pt
 transfer_layers:
