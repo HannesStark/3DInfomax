@@ -34,14 +34,9 @@ required_data:
   - complete_graph3d
   - conformations
 metrics:
-  - positive_similarity
-  - negative_similarity
-  - f1_contrastive
-  - contrastive_accuracy
-  - true_negative_rate
-  - true_positive_rate
+  - positive_similarity_multiple_positives_separate2d
+  - negative_similarity_multiple_positives_separate2d
   - uniformity
-  - alignment
   - batch_variance
   - dimension_covariance
 main_metric: loss

@@ -271,6 +271,49 @@ class PositiveSimilarity(nn.Module):
         pos_sim = (pos_sim + 1) / 2
         return pos_sim.mean(dim=0)
 
+class PositiveSimilarityMultiplePositivesSeparate2d(nn.Module):
+    """
+        https://en.wikipedia.org/wiki/Cosine_similarity
+    """
+
+    def __init__(self) -> None:
+        super(PositiveSimilarityMultiplePositivesSeparate2d, self).__init__()
+
+    def forward(self, z1: Tensor, z2: Tensor) -> Tensor:
+        batch_size, _ = z1.size()
+        _, metric_dim = z2.size()
+        z1 = z1.view(batch_size, -1, metric_dim)  # [batch_size, num_conformers, metric_dim]
+        z2 = z2.view(batch_size, -1, metric_dim)  # [batch_size, num_conformers, metric_dim]
+        # only take the direct similarities such that one 2D representation is similar to one 3d conformer
+        pos_sim = (z1 * z2).sum(dim=2)  # [batch_size, num_conformers]
+
+
+        z1_abs = z1.norm(dim=2)
+        z2_abs = z2.norm(dim=2)
+        pos_sim /= (z1_abs * z2_abs)  # [batch_size, num_conformers]
+        pos_sim = (pos_sim.sum(dim=1) + 1) / 2
+        return pos_sim.mean(dim=0)
+
+class NegativeSimilarityMultiplePositivesSeparate2d(nn.Module):
+    def __init__(self) -> None:
+        super(NegativeSimilarityMultiplePositivesSeparate2d, self).__init__()
+
+    def forward(self, z1: Tensor, z2: Tensor) -> Tensor:
+        batch_size, num_conformers_times_metric_dim = z1.size()
+        _, metric_dim = z2.size()
+        num_conformers = num_conformers_times_metric_dim / metric_dim
+        z1 = z1.view(batch_size, -1, metric_dim)  # [batch_size, num_conformers, metric_dim]
+        z2 = z2.view(batch_size, -1, metric_dim)  # [batch_size, num_conformers, metric_dim]
+        sim_matrix = torch.einsum('ilk,juk->ijlu', z1, z2)  # [batch_size, batch_size, num_conformers]
+
+        z1_abs = z1.norm(dim=2)
+        z2_abs = z2.norm(dim=2)
+        sim_matrix = sim_matrix / torch.einsum('il,ju->ijlu', z1_abs, z2_abs)
+
+        sim_matrix = sim_matrix.reshape(batch_size, batch_size, -1).sum(dim=2)  # [batch_size, batch_size]
+        neg_sim = (sim_matrix.sum(dim=1) - torch.diagonal(sim_matrix)) / (num_conformers**2 *(batch_size - 1))
+        neg_sim = (neg_sim + 1) / 2
+        return neg_sim.mean(dim=0)
 
 class NegativeSimilarity(nn.Module):
     def __init__(self) -> None:

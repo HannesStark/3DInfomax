@@ -214,8 +214,11 @@ class NTXentMultiplePositivesSeparate2D(_Loss):
         batch_size, _ = z1.size()
         _ , metric_dim = z2.size()
         z1 = z1.view(batch_size, -1, metric_dim)  # [batch_size, num_conformers, metric_dim]
+
         z2 = z2.view(batch_size, -1, metric_dim)  # [batch_size, num_conformers, metric_dim]
         sim_matrix = torch.einsum('ilk,juk->ijlu', z1, z2) # [batch_size, batch_size, num_conformers]
+
+        # only take the direct similarities such that one 2D representation is similar to one 3d conformer
         pos_sim = (z1 * z2).sum(dim=2) # [batch_size, num_conformers]
 
         if self.norm:
@@ -228,7 +231,7 @@ class NTXentMultiplePositivesSeparate2D(_Loss):
         pos_sim = torch.exp(pos_sim / self.tau) # [batch_size, num_conformers]
         pos_sim = pos_sim.sum(dim=1)
 
-        sim_matrix = sim_matrix.view(batch_size, batch_size, -1).sum(dim=2)# [batch_size, batch_size]
+        sim_matrix = sim_matrix.reshape(batch_size, batch_size, -1).sum(dim=2)# [batch_size, batch_size]
         loss = pos_sim / (sim_matrix.sum(dim=1) - torch.diagonal(sim_matrix))
         loss = - torch.log(loss).mean()
 

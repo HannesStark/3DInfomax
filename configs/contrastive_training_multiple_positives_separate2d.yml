@@ -1,4 +1,4 @@
-experiment_name: 'geom_qm9_NTXent'
+experiment_name: 'geom_qm9_NTXentMultiplePositivesSeparate2D'
 
 dataset: geom_qm9
 num_epochs: 1000
@@ -34,14 +34,9 @@ required_data:
   - complete_graph3d
   - conformations
 metrics:
-  - positive_similarity
-  - negative_similarity
-  - f1_contrastive
-  - contrastive_accuracy
-  - true_negative_rate
-  - true_positive_rate
+  - positive_similarity_multiple_positives_separate2d
+  - negative_similarity_multiple_positives_separate2d
   - uniformity
-  - alignment
   - batch_variance
   - dimension_covariance
 main_metric: loss
@@ -74,7 +69,7 @@ lr_scheduler_params:
 # Model parameters
 model_type: 'PNA'
 model_parameters:
-  target_dim: 256
+  target_dim: 2560
   hidden_dim: 90
   mid_batch_norm: True
   last_batch_norm: True
