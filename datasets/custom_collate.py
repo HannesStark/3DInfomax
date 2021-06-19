@@ -62,22 +62,19 @@ class ConformerCollate(object):
     def __call__(self, batch: List[Tuple]):
         graphs, graphs3d, conformers, *targets = map(list, zip(*batch))
         conformers = torch.cat(conformers, dim=0)
-        ic(conformers.shape)
-        batched_graph = dgl.batch(graphs)
-        conformer_graphs = [batched_graph]
-        for i in range(self.num_conformers - 1):
-            conformer_graph = copy.deepcopy(batched_graph)
-            ic(conformer_graph.number_of_nodes())
-            ic(i)
-            ic(i + 3)
-            conformer_graph.ndata['x'] = conformers[i:i + 3]
-            conformer_graphs.append(conformer_graph)
         batched_graph3d = dgl.batch(graphs3d)
+        conformer_graphs = [batched_graph3d]
+        for i in range(1, self.num_conformers):
+            conformer_graph = copy.deepcopy(batched_graph3d)
+            conformer_graph.ndata['x'] = conformers[:, i * 3:(i + 1) * 3]
+            conformer_graphs.append(conformer_graph)
+        batched_conformers = dgl.batch(conformer_graphs)
+        batched_graph = dgl.batch(graphs)
 
         if targets:
-            return batched_graph, batched_graph3d, torch.stack(*targets)
+            return batched_graph, batched_conformers, torch.stack(*targets)
         else:
-            return batched_graph, batched_graph3d
+            return batched_graph, batched_conformers
 
 
 class NoisedCoordinatesCollate(object):

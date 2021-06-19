@@ -127,7 +127,7 @@ class Net3DLayer(nn.Module):
         elif reduce_func == 'mean':
             self.reduce_func = fn.mean
         else:
-            raise ValueError('reduce function not supportet: ', reduce_func)
+            raise ValueError('reduce function not supported: ', reduce_func)
 
         self.update_network = MLP(
             in_dim=hidden_dim,
