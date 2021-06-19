@@ -6,7 +6,7 @@ batch_size: 4
 prefetch_graphs: False
 log_iterations: 50
 patience: 35
-loss_func: NTXentMultiplePositives
+loss_func: NTXentMultiplePositivesSeparate2D
 loss_params:
   tau: 0.1
 num_train: 50000
