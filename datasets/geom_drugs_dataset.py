@@ -134,9 +134,7 @@ class GEOMDrugs(Dataset):
             self.complete_graphs = []
             for idx in tqdm(range(len(self.meta_dict['edge_slices']) - 1)):
                 src, dst = self.get_pairwise(self.meta_dict['n_atoms'][idx])
-                g = dgl.DGLGraph().to(self.device)
-                g.add_edges(src.to(self.device), dst.to(self.device))
-                self.complete_graphs.append(g.to('cpu'))
+                self.complete_graphs.append(dgl.graph((src, dst)))
         if self.prefetch_graphs and (
                 'mol_complete_graph' in self.return_types or 'mol_complete_graph3d' in self.return_types):
             print(
