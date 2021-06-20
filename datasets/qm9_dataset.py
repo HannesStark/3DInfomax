@@ -142,8 +142,7 @@ class QM9Dataset(Dataset):
       edata_schemes={})
     """
 
-    def __init__(self, return_types: list = None, features: list = [], features3d: list = [],
-                 e_features: list = [], e_features3d: list = [], pos_dir: bool = False,
+    def __init__(self, return_types: list = None,
                  target_tasks: list = None,
                  normalize: bool = True, device='cuda:0', dist_embedding: bool = False, num_radial: int = 6,
                  prefetch_graphs=True, transform=None, **kwargs):
@@ -166,7 +165,7 @@ class QM9Dataset(Dataset):
         self.normalize = normalize
         self.device = device
         self.transform = transform
-        self.pos_dir = pos_dir
+
         self.num_radial = num_radial
         # data in the csv file is in Hartree units.
         self.unit_conversion = {'A': 1.0,
@@ -454,7 +453,7 @@ class QM9Dataset(Dataset):
         total_edges = 0
         avg_degree = 0  # average degree in the dataset
         # go through all molecules in the npz file
-        for mol_idx, n_atoms in tqdm(enumerate(data_qm9['N'][:100])):
+        for mol_idx, n_atoms in tqdm(enumerate(data_qm9['N'])):
             # get the molecule using the smiles representation from the csv file
             mol = Chem.MolFromSmiles(molecules_df['smiles'][data_qm9['id'][mol_idx]])
             # add hydrogen bonds to molecule because they are not in the smiles representation

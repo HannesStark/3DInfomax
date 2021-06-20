@@ -7,6 +7,7 @@ import msgpack
 import torch
 import dgl
 from goli.features.positional_encoding import graph_positional_encoder
+from ogb.utils.features import bond_to_feature_vector, atom_to_feature_vector
 from rdkit import Chem
 from rdkit.Chem.rdmolops import GetAdjacencyMatrix
 from scipy.sparse import csr_matrix
@@ -46,10 +47,9 @@ class GEOMqm9(Dataset):
 
     """
 
-    def __init__(self, return_types: list = None, features: list = [], features3d: list = [],
-                 e_features: list = [], e_features3d: list = [], pos_dir: bool = False,
+    def __init__(self, return_types: list = None,
                  target_tasks: list = None,
-                 normalize: bool = True, device='cuda:0', dist_embedding: bool = False, num_radial: int = 6,
+                 normalize: bool = True, device='cuda:0', num_radial: int = 6,
                  prefetch_graphs=True, transform=None, **kwargs):
         self.return_type_options = ['mol_graph', 'complete_graph', 'mol_graph3d', 'complete_graph3d', 'san_graph',
                                     'mol_complete_graph',
@@ -60,7 +60,7 @@ class GEOMqm9(Dataset):
                                     'dist_embedding',
                                     'mol_id', 'targets',
                                     'one_hot_bond_types', 'edge_indices', 'smiles', 'atomic_number_long',
-                                    'conformations', 'uniqueconfs']
+                                    'conformations']
         self.target_types = ['ensembleenergy', 'ensembleentropy', 'ensemblefreeenergy', 'lowestenergy', 'poplowestpct',
                              'temperature', 'uniqueconfs']
         self.directory = 'dataset/GEOM'
@@ -70,8 +70,6 @@ class GEOMqm9(Dataset):
         self.normalize = normalize
         self.device = device
         self.transform = transform
-        self.pos_dir = pos_dir
-        self.num_radial = num_radial
 
         if return_types == None:  # set default
             self.return_types: list = ['mol_graph', 'targets']
@@ -87,26 +85,16 @@ class GEOMqm9(Dataset):
         data_dict = torch.load(os.path.join(self.directory, 'processed', self.processed_file))
         print('finish loading')
 
-        if features and 'constant_ones' in features or features3d and 'constant_ones' in features3d:
-            data_dict['constant_ones'] = torch.ones_like(data_dict['atomic_numbers_long'], dtype=torch.float)[:, None]
-        if features and 'standard_normal_noise' in features or features3d and 'standard_normal_noise' in features3d:
-            data_dict['standard_normal_noise'] = torch.normal(
-                mean=torch.zeros_like(data_dict['atomic_number_long'], dtype=torch.float),
-                std=torch.ones_like(data_dict['atomic_number_long'], dtype=torch.float))
+        self.features_tensor = data_dict['atom_features']
+        self.features3d_tensor = torch.ones_like(data_dict['atomic_number_long'], dtype=torch.long)
 
-        self.features_tensor = None if features == [] else torch.cat([data_dict[k] for k in features], dim=-1)
-        self.features3d_tensor = None if features3d == [] else torch.cat([data_dict[k] for k in features3d], dim=-1)
-
-        self.e_features_tensor = None if e_features == [] else torch.cat([data_dict[k] for k in e_features],
-                                                                         dim=-1).float()
-        self.e_features3d_tensor = None if e_features3d == [] else torch.cat([data_dict[k] for k in e_features3d],
-                                                                             dim=-1).float()
+        self.e_features_tensor = data_dict['edge_features']
 
         self.coordinates = data_dict['coordinates'][:, :3]
         self.conformations = data_dict['coordinates'] if 'conformations' in self.return_types else None
         self.edge_indices = data_dict['edge_indices']
 
-        self.meta_dict = {k: data_dict[k] for k in ('smiles', 'edge_slices', 'atom_slices', 'n_atoms', 'uniqueconfs')}
+        self.meta_dict = {k: data_dict[k] for k in ('smiles', 'edge_slices', 'atom_slices', 'n_atoms')}
 
         if 'san_graph' in self.return_types:
             self.eig_vals = data_dict['eig_vals']
@@ -229,8 +217,6 @@ class GEOMqm9(Dataset):
             g = self.get_graph(idx, e_start, e_end, n_atoms).to(self.device)
             g.ndata['f'] = self.features3d_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
-            if self.e_features3d_tensor != None:
-                g.edata['w'] = self.e_features3d_tensor[e_start: e_end].to(self.device)
             return g
         elif return_type == 'complete_graph':  # complete graph without self loops
             g = self.get_complete_graph(idx, n_atoms).to(self.device)
@@ -240,7 +226,8 @@ class GEOMqm9(Dataset):
                 -1)
             if self.e_features_tensor != None:
                 bond_features = self.e_features_tensor[e_start: e_end].to(self.device)
-                e_features = torch.zeros((n_atoms * n_atoms, bond_features.shape[1]), device=self.device)
+                e_features = torch.zeros((n_atoms * n_atoms, bond_features.shape[1]), dtype=torch.long,
+                                         device=self.device)
                 edge_indices = self.edge_indices[:, e_start: e_end]
                 bond_indices = edge_indices[0] * n_atoms + edge_indices[1]
                 e_features[bond_indices] = bond_features
@@ -253,14 +240,6 @@ class GEOMqm9(Dataset):
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
             g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2, dim=-1).unsqueeze(
                 -1)
-            if self.e_features3d_tensor != None:
-                bond_features = self.e_features3d_tensor[e_start: e_end].to(self.device)
-                e_features = torch.zeros((n_atoms * n_atoms, bond_features.shape[1]), device=self.device)
-                edge_indices = self.edge_indices[:, e_start: e_end]
-                bond_indices = edge_indices[0] * n_atoms + edge_indices[1]
-                e_features[bond_indices] = bond_features
-                src, dst = self.get_pairwise(n_atoms)
-                g.edata['w'] = e_features[src * n_atoms + dst]
             return g
         if return_type == 'mol_complete_graph':
             g = self.get_mol_complete_graph(idx, e_start, e_end, n_atoms).to(self.device)
@@ -304,8 +283,6 @@ class GEOMqm9(Dataset):
                 -1)
             if self.e_features_tensor != None and return_type == 'se3Transformer_graph':
                 g.edata['w'] = self.e_features_tensor[e_start: e_end].to(self.device)
-            elif self.e_features3d_tensor != None and return_type == 'se3Transformer_graph3d':
-                g.edata['w'] = self.e_features3d_tensor[e_start: e_end].to(self.device)
             return g
         elif return_type == 'raw_features':
             return self.features_tensor[start: start + n_atoms]
@@ -313,8 +290,6 @@ class GEOMqm9(Dataset):
             return self.coordinates[start: start + n_atoms]
         elif return_type == 'conformations':
             return self.conformations[start: start + n_atoms]
-        elif return_type == 'uniqueconfs':
-            return self.meta_dict['uniqueconfs'][idx]
         elif return_type == 'targets':
             return self.targets[idx]
         elif return_type == 'edge_indices':
@@ -333,22 +308,22 @@ class GEOMqm9(Dataset):
 
         atom_slices = [0]
         edge_slices = [0]
-        atom_one_hot = []
-        atomic_numbers_long = []
-        n_atoms_list = []
-        e_features = {'bond-type-onehot': [], 'stereo': [], 'conjugated': [], 'in-ring': []}
-        atom_float = {'implicit-valence': [], 'degree': [], 'hybridization': [], 'chirality': [], 'mass': [],
-                      'electronegativity': [], 'aromatic-bond': [], 'formal-charge': [], 'radical-electron': [],
-                      'in-ring': []}
+        total_eigvecs = []
+        total_eigvals = []
+        all_atom_features = []
+        all_edge_features = []
         targets = {'ensembleenergy': [], 'ensembleentropy': [], 'ensemblefreeenergy': [], 'lowestenergy': [],
                    'poplowestpct': [], 'temperature': [], 'uniqueconfs': []}
         edge_indices = []  # edges of each molecule in coo format
+        atomic_number_long = []
+        n_atoms_list = []
+
         coordinates = []
         smiles_list = []
         total_atoms = 0
         total_edges = 0
         avg_degree = 0  # average degree in the dataset
-        for smiles, sub_dic in tqdm(summary.items()):
+        for smiles, sub_dic in tqdm(list(summary.items())[:100]):
             pickle_path = os.path.join(self.directory, sub_dic.get("pickle_path", ""))
             if os.path.isfile(pickle_path):
                 pickle_file = open(pickle_path, 'rb')
@@ -357,27 +332,53 @@ class GEOMqm9(Dataset):
                     conformers = mol_dict['conformers']
                     mol = conformers[0]['rd_mol']
                     n_atoms = len(mol.GetAtoms())
-                    for key, item in goli.features.get_mol_atomic_features_float(mol, list(atom_float.keys())).items():
-                        atom_float[key].append(torch.tensor(item)[:, None])
-                    type_idx = []
-                    symbols = []
+                    atom_features_list = []
                     for atom in mol.GetAtoms():
-                        type_idx.append(self.atom_types[atom.GetSymbol()])
-                        atomic_numbers_long.append(self.symbols[atom.GetSymbol()])
-                        symbols.append(atom.GetSymbol())
-                    row, col = [], []
-                    for ii in range(mol.GetNumBonds()):
-                        bond = mol.GetBondWithIdx(ii)
-                        start, end = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
-                        row += [start, end]
-                        col += [end, start]
-                    avg_degree += (len(row) / 2) / n_atoms
-                    edge_index = torch.tensor([row, col], dtype=torch.long)
-                    perm = (edge_index[0] * n_atoms + edge_index[1]).argsort()
-                    edge_index = edge_index[:, perm]
-                    for key, item in goli.features.get_mol_edge_features(mol, list(e_features.keys())).items():
-                        # repeat interleave for src dst and dst src edges (see above where we add the edges) and then reorder using perm
-                        e_features[key].append(torch.tensor(item).repeat_interleave(2, dim=0)[perm])
+                        atom_features_list.append(atom_to_feature_vector(atom))
+                    all_atom_features.append(torch.tensor(atom_features_list, dtype=torch.long))
+
+                    adj = GetAdjacencyMatrix(mol, useBO=False, force=True)
+                    max_freqs = 10
+                    adj = torch.tensor(adj).float()
+                    D = torch.diag(adj.sum(dim=0))
+                    L = D - adj
+                    N = adj.sum(dim=0) ** -0.5
+                    L_sym = torch.eye(n_atoms) - N * L * N
+                    try:
+                        eig_vals, eig_vecs = torch.symeig(L_sym, eigenvectors=True)
+                    except:
+                        ic(adj)
+                        ic(smiles)
+                    idx = eig_vals.argsort()[0: max_freqs]  # Keep up to the maximum desired number of frequencies
+                    eig_vals, eig_vecs = eig_vals[idx], eig_vecs[:, idx]
+
+                    # Sort, normalize and pad EigenVectors
+                    eig_vecs = eig_vecs[:, eig_vals.argsort()]  # increasing order
+                    eig_vecs = F.normalize(eig_vecs, p=2, dim=1, eps=1e-12, out=None)
+                    if n_atoms < max_freqs:
+                        eig_vecs = F.pad(eig_vecs, (0, max_freqs - n_atoms), value=float('nan'))
+                        eig_vals = F.pad(eig_vals, (0, max_freqs - n_atoms), value=float('nan'))
+
+                    total_eigvecs.append(eig_vecs)
+                    total_eigvals.append(eig_vals.unsqueeze(0))
+
+                    edges_list = []
+                    edge_features_list = []
+                    for bond in mol.GetBonds():
+                        i = bond.GetBeginAtomIdx()
+                        j = bond.GetEndAtomIdx()
+                        edge_feature = bond_to_feature_vector(bond)
+
+                        # add edges in both directions
+                        edges_list.append((i, j))
+                        edge_features_list.append(edge_feature)
+                        edges_list.append((j, i))
+                        edge_features_list.append(edge_feature)
+                    # Graph connectivity in COO format with shape [2, num_edges]
+                    edge_index = torch.tensor(edges_list, dtype=torch.long).T
+                    edge_features = torch.tensor(edge_features_list, dtype=torch.long)
+
+                    avg_degree += (len(edges_list) / 2) / n_atoms
 
                     targets['ensembleenergy'].append(mol_dict['ensembleenergy'])
                     targets['ensembleentropy'].append(mol_dict['ensembleentropy'])
@@ -390,35 +391,32 @@ class GEOMqm9(Dataset):
                                   conformer in conformers[:10]]
                     if len(conformers) < 10:  # if there are less than 10 conformers we add the first one a few times
                         conformers.extend([conformers[0]] * (10 - len(conformers)))
+
+                    all_edge_features.append(edge_features)
                     coordinates.append(torch.cat(conformers, dim=1))
                     edge_indices.append(edge_index)
-                    total_edges += len(row)
+                    total_edges += len(edges_list)
                     total_atoms += n_atoms
                     smiles_list.append(smiles)
                     edge_slices.append(total_edges)
                     atom_slices.append(total_atoms)
                     n_atoms_list.append(n_atoms)
-                    atom_one_hot.append(F.one_hot(torch.tensor(type_idx), num_classes=len(self.atom_types)))
-        data_dict = {}
-        data_dict.update(e_features)
-        data_dict.update(atom_float)
-        for key, value in data_dict.items():
-            data_dict[key] = torch.cat(data_dict[key])
+
         for key, value in targets.items():
             targets[key] = torch.tensor(value)[:, None]
+        data_dict = {'smiles': smiles_list,
+                     'n_atoms': torch.tensor(n_atoms_list, dtype=torch.long),
+                     'atom_slices': torch.tensor(atom_slices, dtype=torch.long),
+                     'edge_slices': torch.tensor(edge_slices, dtype=torch.long),
+                     'atom_features': torch.cat(all_atom_features, dim=0),
+                     'edge_features': torch.cat(all_edge_features, dim=0),
+                     'atomic_number_long': torch.tensor(atomic_number_long, dtype=torch.long),
+                     'edge_indices': torch.cat(edge_indices, dim=1),
+                     'coordinates': torch.cat(coordinates, dim=0).float(),
+                     'targets': targets,
+                     'avg_degree': avg_degree / len(n_atoms_list)
+                     }
         data_dict.update(targets)
-        data_dict.update({'smiles': smiles_list,
-                          'n_atoms': torch.tensor(n_atoms_list, dtype=torch.long),
-                          'atom_slices': torch.tensor(atom_slices, dtype=torch.long),
-                          'edge_slices': torch.tensor(edge_slices, dtype=torch.long),
-                          'in-ring-edges': torch.cat(e_features['in-ring']),
-                          'atomic-number': torch.cat(atom_one_hot).float(),
-                          'atomic_numbers_long': torch.tensor(atomic_numbers_long, dtype=torch.long),
-                          'edge_indices': torch.cat(edge_indices, dim=1),
-                          'coordinates': torch.cat(coordinates, dim=0).float(),
-                          'targets': targets,
-                          'avg_degree': avg_degree / len(n_atoms_list)
-                          })
         if not os.path.exists(os.path.join(self.directory, 'processed')):
             os.mkdir(os.path.join(self.directory, 'processed'))
         torch.save(data_dict, os.path.join(self.directory, 'processed', self.processed_file))
