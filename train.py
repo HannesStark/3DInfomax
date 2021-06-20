@@ -82,13 +82,12 @@ def train_molhiv(args, device, metrics_dict):
     val_loader = DataLoader(dataset[split_idx["valid"]], batch_size=32, shuffle=False, collate_fn=collate_dgl)
     test_loader = DataLoader(dataset[split_idx["test"]], batch_size=32, shuffle=False, collate_fn=collate_dgl)
 
-    model = globals()[args.model_type](node_dim=dataset[0][0].ndata['f'].shape[1],
-                                       edge_dim=dataset[0][0].edata['w'].shape[1] if args.use_e_features else 0,
+    model = globals()[args.model_type](node_dim=dataset[0][0].ndata['feat'].shape[1],
+                                       edge_dim=dataset[0][0].edata['feat'].shape[1] if args.use_e_features else 0,
                                        **args.model_parameters)
     print('model trainable params: ', sum(p.numel() for p in model.parameters() if p.requires_grad))
     collate_function = globals()[args.collate_function] if args.collate_params == {} else globals()[
         args.collate_function](**args.collate_params)
-
 
     metrics = {metric: metrics_dict[metric] for metric in args.metrics}
     tensorboard_functions = {function: TENSORBOARD_FUNCTIONS[function] for function in args.tensorboard_functions}
@@ -116,13 +115,14 @@ def train_molhiv(args, device, metrics_dict):
     if args.eval_on_test:
         trainer.evaluation(test_loader, data_split='test')
 
+
 def train_zinc(args, device, metrics_dict):
     train_data = ZINCDataset(split='train', device=device, prefetch_graphs=args.prefetch_graphs)
     val_data = ZINCDataset(split='val', device=device, prefetch_graphs=args.prefetch_graphs)
     test_data = ZINCDataset(split='test', device=device, prefetch_graphs=args.prefetch_graphs)
 
-    model = globals()[args.model_type](node_dim=train_data[0][0].ndata['f'].shape[1],
-                                       edge_dim=train_data[0][0].edata['w'].shape[1] if args.use_e_features else 0,
+    model = globals()[args.model_type](node_dim=train_data[0][0].ndata['feat'].shape[1],
+                                       edge_dim=train_data[0][0].edata['feat'].shape[1] if args.use_e_features else 0,
                                        **args.model_parameters)
     print('model trainable params: ', sum(p.numel() for p in model.parameters() if p.requires_grad))
     collate_function = globals()[args.collate_function] if args.collate_params == {} else globals()[
@@ -163,12 +163,9 @@ def train_zinc(args, device, metrics_dict):
         trainer.evaluation(test_loader, data_split='test')
 
 
-
 def train_geom(args, device, metrics_dict):
     dataset = GEOMDrugs if args.dataset == 'drugs' else GEOMqm9
-    all_data = dataset(return_types=args.required_data, features=args.features, features3d=args.features3d,
-                       e_features=args.e_features,
-                       e_features3d=args.e_features3d, pos_dir=args.pos_dir,
+    all_data = dataset(return_types=args.required_data,
                        target_tasks=args.targets,
                        prefetch_graphs=args.prefetch_graphs)
 
@@ -182,11 +179,10 @@ def train_geom(args, device, metrics_dict):
     # val_idx = all_idx[len(model_idx) + len(test_idx): len(model_idx) + len(test_idx) + 3000]
 
     try:
-        edge_dim = all_data[0][0].edata['w'].shape[1] if args.use_e_features and len(args.e_features) + len(
-            args.e_features3d) > 0 else 0
+        edge_dim = all_data[0][0].edata['feat'].shape[1] if args.use_e_features else 0
     except:
-        edge_dim = all_data[0][0].edges['bond'].data['w'].shape[1] if args.use_e_features else 0
-    model = globals()[args.model_type](node_dim=all_data[0][0].ndata['f'].shape[1],
+        edge_dim = all_data[0][0].edges['bond'].data['feat'].shape[1] if args.use_e_features else 0
+    model = globals()[args.model_type](node_dim=all_data[0][0].ndata['feat'].shape[1],
                                        edge_dim=edge_dim,
                                        avg_d=all_data.avg_degree,
                                        **args.model_parameters)
@@ -232,7 +228,7 @@ def train_geom(args, device, metrics_dict):
     # Needs "from torch.optim import *" and "from models import *" to work
     if args.model3d_type:
         model3d = globals()[args.model3d_type](
-            node_dim=all_data[0][1].ndata['f'].shape[1] if isinstance(all_data[0][1], dgl.DGLGraph) else
+            node_dim=all_data[0][1].ndata['feat'].shape[1] if isinstance(all_data[0][1], dgl.DGLGraph) else
             all_data[0][1].shape[-1],
             edge_dim=all_data[0][1].edata['d'].shape[
                 1] if args.use_e_features and isinstance(all_data[0][1], dgl.DGLGraph) else 0,
@@ -281,9 +277,7 @@ def train_geom(args, device, metrics_dict):
 
 
 def train_qm9(args, device, metrics_dict):
-    all_data = QM9Dataset(return_types=args.required_data, features=args.features, features3d=args.features3d,
-                          e_features=args.e_features,
-                          e_features3d=args.e_features3d, pos_dir=args.pos_dir,
+    all_data = QM9Dataset(return_types=args.required_data,
                           target_tasks=args.targets,
                           dist_embedding=args.dist_embedding, num_radial=args.num_radial,
                           prefetch_graphs=args.prefetch_graphs)
@@ -296,13 +290,11 @@ def train_qm9(args, device, metrics_dict):
     # for debugging purposes:
     # test_idx = all_idx[len(model_idx): len(model_idx) + 200]
     # val_idx = all_idx[len(model_idx) + len(test_idx): len(model_idx) + len(test_idx) + 3000]
-
     try:
-        edge_dim = all_data[0][0].edata['w'].shape[1] if args.use_e_features and len(args.e_features) + len(
-            args.e_features3d) > 0 else 0
+        edge_dim = all_data[0][0].edata['feat'].shape[1] if args.use_e_features else 0
     except:
-        edge_dim = all_data[0][0].edges['bond'].data['w'].shape[1] if args.use_e_features else 0
-    model = globals()[args.model_type](node_dim=all_data[0][0].ndata['f'].shape[1],
+        edge_dim = all_data[0][0].edges['bond'].data['feat'].shape[1] if args.use_e_features else 0
+    model = globals()[args.model_type](node_dim=all_data[0][0].ndata['feat'].shape[1],
                                        edge_dim=edge_dim,
                                        avg_d=all_data.avg_degree,
                                        **args.model_parameters)
@@ -350,7 +342,7 @@ def train_qm9(args, device, metrics_dict):
     # Needs "from torch.optim import *" and "from models import *" to work
     if args.model3d_type:
         model3d = globals()[args.model3d_type](
-            node_dim=all_data[0][1].ndata['f'].shape[1] if isinstance(all_data[0][1], dgl.DGLGraph) else
+            node_dim=all_data[0][1].ndata['feat'].shape[1] if isinstance(all_data[0][1], dgl.DGLGraph) else
             all_data[0][1].shape[-1],
             edge_dim=all_data[0][1].edata['d'].shape[
                 1] if args.use_e_features and isinstance(all_data[0][1], dgl.DGLGraph) else 0,
@@ -400,8 +392,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'),
-                   default='configs/contrastive_training_multiple_positives_separate2d.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/contrastive_training.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
@@ -444,12 +435,6 @@ def parse_arguments():
     p.add_argument('--exclude_from_transfer', default=[],
                    help='parameters that usually should not be transferred like batchnorm params')
     p.add_argument('--transferred_lr', type=float, default=None, help='set to use a different LR for transfer layers')
-    p.add_argument('--features', default=[], help='types of input features like [atom_one_hot, hybridizations]')
-    p.add_argument('--features3d', default=[],
-                   help='types of input features like [atom_one_hot, hybridizations, constant_ones] but returned when appending 3d to the names in required data')
-    p.add_argument('--e_features', default=[], help='types of input features like [atom_one_hot, hybridizations]')
-    p.add_argument('--e_features3d', default=[],
-                   help='types of input features like [atom_one_hot, hybridizations, constant_ones] but returned when appending 3d to the names in required data')
 
     p.add_argument('--pos_dir', type=bool, default=False, help='adds pos dir as key to dgl graphs (required for dgn)')
     p.add_argument('--required_data', default=[],

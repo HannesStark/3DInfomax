@@ -1,35 +1,15 @@
-experiment_name: 'baseline_few_features'
+experiment_name: 'geom_qm9_ogb_featurization'
 
 dataset: 'geom_qm9'
 num_epochs: 1000
 batch_size: 128
-prefetch_graphs: False
+prefetch_graphs: True
 log_iterations: 30
 patience: 30
 num_train: 50000
 loss_func: L1Loss
 targets:
   - ensemblefreeenergy
-features:
-  - 'implicit-valence'
-  - 'degree'
-  - 'hybridization'
-  - 'chirality'
-  - 'mass'
-  - 'electronegativity'
-  - 'aromatic-bond'
-  - 'formal-charge'
-  - 'radical-electron'
-  - 'in-ring'
-  - 'atomic-number'
-e_features:
-  - 'bond-type-onehot'
-  - 'stereo'
-  - 'conjugated'
-  - 'in-ring-edges'
-
-
-
 
 required_data:
   - mol_graph
@@ -60,11 +40,11 @@ lr_scheduler_params:
 model_type: 'PNA'
 model_parameters:
   target_dim: 1
-  hidden_dim: 90
+  hidden_dim: 128
   mid_batch_norm: True
   last_batch_norm: True
   readout_batchnorm: True
-  readout_hidden_dim: 90
+  readout_hidden_dim: 128
   readout_layers: 2
   dropout: 0.0
   propagation_depth: 6

@@ -5,6 +5,7 @@ import torch
 import numpy as np
 from functools import partial
 
+from ogb.graphproppred.mol_encoder import AtomEncoder, BondEncoder
 from torch import nn
 import torch.nn.functional as F
 
@@ -193,10 +194,11 @@ class PNAGNN(nn.Module):
                 batch_norm_momentum=batch_norm_momentum
             )
         self.mp_layers = nn.ModuleList()
+
         for _ in range(propagation_depth):
             self.mp_layers.append(PNALayer(in_dim=hidden_dim,
                                            out_dim=int(hidden_dim),
-                                           in_dim_edges=edge_dim,
+                                           in_dim_edges=hidden_dim,
                                            aggregators=aggregators,
                                            scalers=scalers,
                                            pairwise_distances=pairwise_distances,
@@ -213,9 +215,12 @@ class PNAGNN(nn.Module):
                                            ),
 
                                   )
+        self.atom_encoder = AtomEncoder(emb_dim=hidden_dim)
+        self.bond_encoder = BondEncoder(emb_dim=hidden_dim)
 
     def forward(self, graph: dgl.DGLGraph):
-        graph.apply_nodes(self.input_node_func)
+        graph.ndata['feat'] = self.atom_encoder(graph.ndata['feat'])
+        graph.edata['feat'] = self.atom_encoder(graph.edata['feat'])
 
         for mp_layer in self.mp_layers:
             mp_layer(graph)

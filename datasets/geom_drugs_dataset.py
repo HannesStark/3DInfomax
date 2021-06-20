@@ -314,7 +314,7 @@ class GEOMDrugs(Dataset):
         total_atoms = 0
         total_edges = 0
         avg_degree = 0  # average degree in the dataset
-        for smiles, sub_dic in tqdm(list(summary.items())[:100]):
+        for smiles, sub_dic in tqdm(list(summary.items())):
             pickle_path = os.path.join(self.directory, sub_dic.get("pickle_path", ""))
             if os.path.isfile(pickle_path):
                 pickle_file = open(pickle_path, 'rb')
@@ -410,6 +410,7 @@ class GEOMDrugs(Dataset):
                      'targets': targets,
                      'avg_degree': avg_degree / len(n_atoms_list)
                      }
+        data_dict.update(targets)
         if not os.path.exists(os.path.join(self.directory, 'processed')):
             os.mkdir(os.path.join(self.directory, 'processed'))
         torch.save(data_dict, os.path.join(self.directory, 'processed', self.processed_file))

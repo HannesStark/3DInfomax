@@ -71,6 +71,8 @@ class Net3D(nn.Module):
                 dropout=dropout,
                 last_activation='None',
             )
+        self.node_embedding = nn.Parameter(torch.empty((hidden_dim,)))
+        nn.init.normal_(self.node_embedding)
         if readout_hidden_dim == None:
             readout_hidden_dim = hidden_dim
         self.readout_aggregators = readout_aggregators
@@ -81,7 +83,8 @@ class Net3D(nn.Module):
                           layers=readout_layers)
 
     def forward(self, graph: dgl.DGLGraph):
-        graph.apply_nodes(self.input_node_func)
+        graph.ndata['feat'] = self.node_embedding[None,:].expand(graph.number_of_nodes(), -1)
+
         if self.fourier_encodings > 0:
             graph.edata['d'] = fourier_encode_dist(graph.edata['d'], num_encodings=self.fourier_encodings)
         graph.apply_edges(self.input_edge_func)
