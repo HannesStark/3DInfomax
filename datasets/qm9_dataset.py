@@ -361,8 +361,6 @@ class QM9Dataset(Dataset):
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
             if self.e_features_tensor != None:
                 g.edata['w'] = self.e_features_tensor[e_start: e_end].to(self.device)
-            if self.pos_dir:
-                g.ndata['pos_dir'] = self.pos_enc[start: start + n_atoms].to(self.device)
             return g
         elif return_type == 'mol_graph3d':
             g = self.get_graph(idx, e_start, e_end).to(self.device)
@@ -370,8 +368,6 @@ class QM9Dataset(Dataset):
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
             if self.e_features3d_tensor != None:
                 g.edata['w'] = self.e_features3d_tensor[e_start: e_end].to(self.device)
-            if self.pos_dir:
-                g.ndata['pos_dir'] = self.pos_enc[start: start + n_atoms].to(self.device)
             return g
         elif return_type == 'complete_graph':  # complete graph without self loops
             g = self.get_complete_graph(idx, pairwise_start, n_atoms).to(self.device)
@@ -390,8 +386,6 @@ class QM9Dataset(Dataset):
                 g.edata['w'] = e_features[pairwise_indices[0] * n_atoms + pairwise_indices[1]]
             if self.dist_embedding:
                 g.edata['d_rbf'] = self.dist_embedder(g.edata['w']).to(self.device)
-            if self.pos_dir:
-                g.ndata['pos_dir'] = self.pos_enc[start: start + n_atoms].to(self.device)
             return g
         elif return_type == 'complete_graph3d':
             g = self.get_complete_graph(idx, pairwise_start, n_atoms).to(self.device)
@@ -410,8 +404,6 @@ class QM9Dataset(Dataset):
                 g.edata['w'] = e_features[pairwise_indices[0] * n_atoms + pairwise_indices[1]]
             if self.dist_embedding:
                 g.edata['d_rbf'] = self.dist_embedder(g.edata['w']).to(self.device)
-            if self.pos_dir:
-                g.ndata['pos_dir'] = self.pos_enc[start: start + n_atoms].to(self.device)
             return g
         if return_type == 'mol_complete_graph':
             g = self.get_mol_complete_graph(idx, e_start, e_end, pairwise_start, n_atoms).to(self.device)
@@ -419,8 +411,6 @@ class QM9Dataset(Dataset):
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
             if self.e_features_tensor != None:
                 g.edges['bond'].data['w'] = self.e_features_tensor[e_start: e_end].to(self.device)
-            if self.pos_dir:
-                g.ndata['pos_dir'] = self.pos_enc[start: start + n_atoms].to(self.device)
             return g
         if return_type == 'san_graph':
             g = self.get_complete_graph(idx, pairwise_start, n_atoms).to(self.device)
@@ -440,8 +430,6 @@ class QM9Dataset(Dataset):
                 edge_indices = self.edge_indices[:, e_start: e_end].to(self.device)
                 g.edges[edge_indices[0], edge_indices[1]].data['w'] = e_features
                 g.edges[edge_indices[0], edge_indices[1]].data['real'] = torch.ones(e_features.shape[0], dtype=torch.long, device=self.device)  # This indicates real edges
-            if self.pos_dir:
-                g.ndata['pos_dir'] = self.pos_enc[start: start + n_atoms].to(self.device)
             return g
         elif return_type == 'se3Transformer_graph' or return_type == 'se3Transformer_graph3d':
             g = self.get_graph(idx, e_start, e_end).to(self.device)
