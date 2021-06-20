@@ -1,13 +1,10 @@
 import os
 
-import goli
 import torch
 import dgl
-from goli.features.positional_encoding import graph_positional_encoder
 from ogb.utils.features import atom_to_feature_vector, bond_to_feature_vector
 from rdkit import Chem
 from rdkit.Chem.rdmolops import GetAdjacencyMatrix
-from scipy.sparse import csr_matrix
 from torch.utils.data import Dataset
 import numpy as np
 import pandas as pd

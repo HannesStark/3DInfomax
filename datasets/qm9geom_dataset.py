@@ -1,10 +1,8 @@
 import os
 
-import goli
 import msgpack
 import torch
 import dgl
-from goli.features.positional_encoding import graph_positional_encoder
 from rdkit import Chem
 from rdkit.Chem.rdmolops import GetAdjacencyMatrix
 from scipy.sparse import csr_matrix

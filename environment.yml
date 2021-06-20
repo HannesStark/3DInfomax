@@ -24,7 +24,6 @@ dependencies:
   - click
   - fsspec
   - umap-learn
-  - datamol[version='>=0.3.4']
   - gcsfs
   - matplotlib[version='>=3.0.1']
   - ipywidgets

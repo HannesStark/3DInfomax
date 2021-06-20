@@ -2,23 +2,14 @@ import json
 import os
 import pickle
 
-import goli
-import msgpack
 import torch
 import dgl
-from goli.features.positional_encoding import graph_positional_encoder
 from ogb.utils.features import bond_to_feature_vector, atom_to_feature_vector
-from rdkit import Chem
 from rdkit.Chem.rdmolops import GetAdjacencyMatrix
-from scipy.sparse import csr_matrix
 from torch.utils.data import Dataset
-import numpy as np
-import pandas as pd
 from tqdm import tqdm
 import torch.nn.functional as F
 from scipy.constants import physical_constants
-
-from commons.spherical_encoding import dist_emb
 
 hartree2eV = physical_constants['hartree-electron volt relationship'][0]
 
