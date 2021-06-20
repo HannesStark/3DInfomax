@@ -62,7 +62,7 @@ class DGN(nn.Module):
 
     def forward(self, graph: dgl.DGLGraph):
         self.node_gnn(graph)
-        readouts_to_cat = [dgl.readout_nodes(graph, 'f', op=aggr) for aggr in self.readout_aggregators]
+        readouts_to_cat = [dgl.readout_nodes(graph, 'feat', op=aggr) for aggr in self.readout_aggregators]
         readout = torch.cat(readouts_to_cat, dim=-1)
         return self.output(readout)
 
@@ -125,4 +125,4 @@ class DGNGNN(nn.Module):
         graph.edata["w"] = ef
 
     def input_node_func(self, nodes):
-        return {'f': F.relu(self.node_input_net(nodes.data['f']))}
+        return {'feat': F.relu(self.node_input_net(nodes.data['feat']))}

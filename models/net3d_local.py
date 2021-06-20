@@ -85,13 +85,13 @@ class Net3DLocal(nn.Module):
 
         if self.node_wise_output_layers > 0:
             graph.apply_nodes(self.output_node_func)
-        return graph.ndata['f']
+        return graph.ndata['feat']
 
     def output_node_func(self, nodes):
-        return {'f': self.node_wise_output_network(nodes.data['f'])}
+        return {'feat': self.node_wise_output_network(nodes.data['feat'])}
 
     def input_node_func(self, nodes):
-        return {'f': F.silu(self.input(nodes.data['f']))}
+        return {'feat': F.silu(self.input(nodes.data['feat']))}
 
     def input_edge_func(self, edges):
         return {'d': F.silu(self.edge_input(edges.data['d']))}
@@ -141,15 +141,15 @@ class Net3DLayer(nn.Module):
 
     def message_function(self, edges):
         message_input = torch.cat(
-            [edges.src['f'], edges.dst['f'], edges.data['d']], dim=-1)
+            [edges.src['feat'], edges.dst['feat'], edges.data['d']], dim=-1)
         message = self.message_network(message_input)
         edges.data['d'] += message
         edge_weight = torch.sigmoid(self.soft_edge_network(message))
         return {'m': message * edge_weight}
 
     def update_function(self, nodes):
-        h = nodes.data['f']
-        input = torch.cat([nodes.data['m_sum'] + nodes.data['f']], dim=-1)
+        h = nodes.data['feat']
+        input = torch.cat([nodes.data['m_sum'] + nodes.data['feat']], dim=-1)
         h_new = self.update_network(input)
         output = h_new + h
-        return {'f': output}
+        return {'feat': output}

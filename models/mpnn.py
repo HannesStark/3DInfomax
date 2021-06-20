@@ -58,7 +58,7 @@ class MPNN(nn.Module):
 
     def forward(self, graph: dgl.DGLGraph):
         self.node_gnn(graph)
-        readouts_to_cat = [dgl.readout_nodes(graph, 'f', op=aggr) for aggr in self.readout_aggregators]
+        readouts_to_cat = [dgl.readout_nodes(graph, 'feat', op=aggr) for aggr in self.readout_aggregators]
         readout = torch.cat(readouts_to_cat, dim=-1)
         return self.output(readout)
 
@@ -127,10 +127,10 @@ class MPNNGNN(nn.Module):
             mp_layer(graph)
 
     def input_node_func(self, nodes):
-        return {'f': F.relu(self.node_input_net(nodes.data['f']))}
+        return {'feat': F.relu(self.node_input_net(nodes.data['feat']))}
 
     def input_edge_func(self, edges):
-        return {'w': F.relu(self.edge_input(edges.data['w']))}
+        return {'feat': F.relu(self.edge_input(edges.data['feat']))}
 
 
 class MPNNLayer(nn.Module):
@@ -191,14 +191,14 @@ class MPNNLayer(nn.Module):
     def message_function(self, edges):
         if self.pairwise_distances:
             squared_distance = torch.sum((edges.src['x'] - edges.dst['x']) ** 2, dim=-1)[:, None]
-            message_input = torch.cat([edges.src['f'], edges.dst['f'], edges.data['w'], squared_distance], dim=-1)
+            message_input = torch.cat([edges.src['feat'], edges.dst['feat'], edges.data['feat'], squared_distance], dim=-1)
         else:
-            message_input = torch.cat([edges.src['f'], edges.dst['f'], edges.data['w']], dim=-1)
+            message_input = torch.cat([edges.src['feat'], edges.dst['feat'], edges.data['feat']], dim=-1)
         message = self.pretrans(message_input)
         return {'m': message}
 
     def update_function(self, nodes):
-        return {'f': self.posttrans(nodes.data['m_sum'] + nodes.data['f'])}
+        return {'feat': self.posttrans(nodes.data['m_sum'] + nodes.data['feat'])}
 
 
 

@@ -66,6 +66,6 @@ class PNAFrozen(nn.Module):
     def forward(self, graph: dgl.DGLGraph):
         with torch.no_grad():
             self.node_gnn(graph)
-        readouts_to_cat = [dgl.readout_nodes(graph, 'f', op=aggr) for aggr in self.readout_aggregators]
+        readouts_to_cat = [dgl.readout_nodes(graph, 'feat', op=aggr) for aggr in self.readout_aggregators]
         readout = torch.cat(readouts_to_cat, dim=-1)
         return self.output(readout)

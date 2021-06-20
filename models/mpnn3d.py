@@ -75,13 +75,13 @@ class MPNN3D(nn.Module):
         for mp_layer in self.mp_layers:
             mp_layer(graph)
 
-        mean_nodes = dgl.mean_nodes(graph, 'f')
-        max_nodes = dgl.max_nodes(graph, 'f')
+        mean_nodes = dgl.mean_nodes(graph, 'feat')
+        max_nodes = dgl.max_nodes(graph, 'feat')
         mean_max = torch.cat([mean_nodes, max_nodes], dim=-1)
         return self.output(mean_max)
 
     def input_node_func(self, nodes):
-        return {'f': F.relu(self.node_input_net(nodes.data['f']))}
+        return {'feat': F.relu(self.node_input_net(nodes.data['feat']))}
 
 
 class MPLayer(nn.Module):
@@ -127,7 +127,7 @@ class MPLayer(nn.Module):
         self.residual = residual
 
     def forward(self, graph):
-        h = graph.ndata['f']
+        h = graph.ndata['feat']
         h_in = h
         graph.update_all(message_func=self.message_function, reduce_func=fn.sum(msg='m', out='m_sum'))
         h = torch.cat([h, graph.ndata['m_sum']], dim=-1)
@@ -135,12 +135,12 @@ class MPLayer(nn.Module):
         h = self.posttrans(h)
         if self.residual:
             h = h + h_in
-        graph.ndata['f'] = h
+        graph.ndata['feat'] = h
 
 
     def message_function(self, edges):
         squared_distance = torch.sum((edges.src['x'] - edges.dst['x']) ** 2, dim=-1)[:, None]
-        message_input = torch.cat([edges.src['f'], edges.dst['f'], edges.data['w'], squared_distance], dim=-1)
+        message_input = torch.cat([edges.src['feat'], edges.dst['feat'], edges.data['feat'], squared_distance], dim=-1)
         message = self.pretrans(message_input)
         return {'m': message}
 

@@ -118,11 +118,10 @@ class GEOMqm9(Dataset):
             print(
                 'Load molecular graphs into memory (set prefetch_graphs to False to load them on the fly => slower training)')
             self.mol_graphs = []
-            for idx in tqdm(range(len(self.meta_dict['edge_slices']) - 1)):
+            for idx, n_atoms in tqdm(enumerate(self.meta_dict['n_atoms'])):
                 e_start = self.meta_dict['edge_slices'][idx]
                 e_end = self.meta_dict['edge_slices'][idx + 1]
                 edge_indices = self.edge_indices[:, e_start: e_end]
-                n_atoms = self.meta_dict['n_atoms'][idx]
                 self.mol_graphs.append(dgl.graph((edge_indices[0], edge_indices[1]), num_nodes=n_atoms))
         self.pairwise = {}  # for memoization
         if self.prefetch_graphs and (

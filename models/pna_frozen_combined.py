@@ -89,12 +89,12 @@ class PNAFrozenCombined(nn.Module):
         with torch.no_grad():
             graph3D = deepcopy(graph)
             self.node_gnn(graph3D)
-            readouts_to_cat3D = [dgl.readout_nodes(graph3D, 'f', op=aggr) for aggr in self.frozen_readout_aggregators]
+            readouts_to_cat3D = [dgl.readout_nodes(graph3D, 'feat', op=aggr) for aggr in self.frozen_readout_aggregators]
             readout3D = torch.cat(readouts_to_cat3D, dim=-1)
             latent3D = self.output(readout3D).detach()
 
         self.node_gnn2D(graph)
-        readouts_to_cat2D = [dgl.readout_nodes(graph, 'f', op=aggr) for aggr in self.readout_aggregators]
+        readouts_to_cat2D = [dgl.readout_nodes(graph, 'feat', op=aggr) for aggr in self.readout_aggregators]
         readout = torch.cat(readouts_to_cat2D + [latent3D], dim=-1)
 
         return self.output2D(readout)

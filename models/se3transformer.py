@@ -60,7 +60,7 @@ class TFN(nn.Module):
         basis, r = get_basis_and_r(G, self.num_degrees-1)
 
         # encoder (equivariant layers)
-        h = {'0': G.ndata['f']}
+        h = {'0': G.ndata['feat']}
         for layer in self.block0:
             h = layer(h, G=G, r=r, basis=basis)
 
@@ -128,7 +128,7 @@ class SE3Transformer(nn.Module):
         basis, r = get_basis_and_r(G, self.num_degrees-1)
 
         # encoder (equivariant layers)
-        h = {'0': G.ndata['f']}
+        h = {'0': G.ndata['feat']}
         for layer in self.Gblock:
             h = layer(h, G=G, r=r, basis=basis)
 

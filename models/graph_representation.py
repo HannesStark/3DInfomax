@@ -26,7 +26,7 @@ class GraphRepresentation(nn.Module):
         self.gnn(mol_graph)
 
         # put the embeddings h from the same graph in the batched graph into pairs for the distance net to predict the pairwise distances
-        h = mol_graph.ndata['f']
+        h = mol_graph.ndata['feat']
         src_h = torch.index_select(h, dim=0, index=pairwise_indices[0])
         dst_h = torch.index_select(h, dim=0, index=pairwise_indices[1])
         src_dst_h = torch.cat([src_h, dst_h], dim=1)

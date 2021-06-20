@@ -40,7 +40,7 @@ class DistancePredictor(nn.Module):
             mol_graph.apply_nodes(self.node_projection)
 
         # put the embeddings h from the same graph in the batched graph into pairs for the distance net to predict the pairwise distances
-        h = mol_graph.ndata['f']
+        h = mol_graph.ndata['feat']
         src_h = torch.index_select(h, dim=0, index=pairwise_indices[0])
         dst_h = torch.index_select(h, dim=0, index=pairwise_indices[1])
 
@@ -59,7 +59,7 @@ class DistancePredictor(nn.Module):
         return distances
 
     def node_projection(self, nodes):
-        return {'f': self.node_projection_net(nodes.data['f'])}
+        return {'feat': self.node_projection_net(nodes.data['feat'])}
 
     def distance_function(self, edges) -> Dict[str, torch.Tensor]:
         src_dst = torch.cat([edges.src["h"], edges.dst["h"]], dim=-1)

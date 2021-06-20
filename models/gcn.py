@@ -39,7 +39,7 @@ class GCN(nn.Module):
 
     def forward(self, graph: dgl.DGLGraph):
         self.node_gnn(graph)
-        readouts_to_cat = [dgl.readout_nodes(graph, 'f', op=aggr) for aggr in self.readout_aggregators]
+        readouts_to_cat = [dgl.readout_nodes(graph, 'feat', op=aggr) for aggr in self.readout_aggregators]
         readout = torch.cat(readouts_to_cat, dim=-1)
         return self.output(readout)
 
@@ -56,8 +56,8 @@ class GCNGNN(nn.Module):
             self.convolutions.append(GraphConv(hidden_dim, hidden_dim))
 
     def forward(self, graph):
-        h = graph.ndata['f']
+        h = graph.ndata['feat']
         for convolution in self.convolutions:
             h = F.relu(convolution(graph, h))
-        graph.ndata['f'] = h
+        graph.ndata['feat'] = h
 

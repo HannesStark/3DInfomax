@@ -269,7 +269,7 @@ class SAN(nn.Module):
     def forward(self, g):
         self.gnn(g)
 
-        readouts_to_cat = [dgl.readout_nodes(g, 'f', op=aggr) for aggr in self.readout_aggregators]
+        readouts_to_cat = [dgl.readout_nodes(g, 'feat', op=aggr) for aggr in self.readout_aggregators]
         readout = torch.cat(readouts_to_cat, dim=-1)
         return self.output(readout)
 
@@ -315,8 +315,8 @@ class SAN_NodeLPE(nn.Module):
 
     def forward(self, g):
         # input embedding
-        h = self.embedding_h(g.ndata['f'])
-        e = self.embedding_e_real(g.edata['w'])
+        h = self.embedding_h(g.ndata['feat'])
+        e = self.embedding_e_real(g.edata['feat'])
 
         PosEnc = g.ndata['pos_enc']  # (Num nodes) x (Num Eigenvectors) x 2
         empty_mask = torch.isnan(PosEnc)  # (Num nodes) x (Num Eigenvectors) x 2
@@ -342,4 +342,4 @@ class SAN_NodeLPE(nn.Module):
         # Second Transformer
         for conv in self.layers:
             h, e = conv(g, h, e)
-        g.ndata['f'] = h
+        g.ndata['feat'] = h

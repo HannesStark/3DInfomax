@@ -63,7 +63,7 @@ class PNALocal(nn.Module):
     def forward(self, graph: dgl.DGLGraph):
         self.node_gnn(graph)
         graph.apply_nodes(self.projection)
-        return graph.ndata['f']
+        return graph.ndata['feat']
 
     def projection(self, nodes):
-        return {'f': F.relu(self.projection_head(nodes.data['f']))}
+        return {'feat': F.relu(self.projection_head(nodes.data['feat']))}

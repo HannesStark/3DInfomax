@@ -4,6 +4,7 @@ import goli
 import torch
 import dgl
 from goli.features.positional_encoding import graph_positional_encoder
+from ogb.utils.features import atom_to_feature_vector, bond_to_feature_vector
 from rdkit import Chem
 from rdkit.Chem.rdmolops import GetAdjacencyMatrix
 from scipy.sparse import csr_matrix
@@ -207,32 +208,14 @@ class QM9Dataset(Dataset):
             self.process()
         data_dict = torch.load(os.path.join(self.qm9_directory, 'processed', self.processed_file))
 
-        if features and 'constant_ones' in features or features3d and 'constant_ones' in features3d:
-            data_dict['constant_ones'] = torch.ones_like(data_dict['atomic_number_long'], dtype=torch.float)
-        if features and 'standard_normal_noise' in features or features3d and 'standard_normal_noise' in features3d:
-            data_dict['standard_normal_noise'] = torch.normal(
-                mean=torch.zeros_like(data_dict['atomic_number_long'], dtype=torch.float),
-                std=torch.ones_like(data_dict['atomic_number_long'], dtype=torch.float))
+        self.features_tensor = data_dict['atom_features']
+        self.features3d_tensor = torch.ones_like(data_dict['atomic_number_long'], dtype=torch.long)
 
-        self.features_tensor = None if features == [] else torch.cat([data_dict[k] for k in features], dim=-1)
-        self.features3d_tensor = None if features3d == [] else torch.cat([data_dict[k] for k in features3d], dim=-1)
-
-        self.e_features_tensor = None if e_features == [] else torch.cat([data_dict[k] for k in e_features], dim=-1)
-        self.e_features3d_tensor = None if e_features3d == [] else torch.cat([data_dict[k] for k in e_features3d],
-                                                                             dim=-1)
-
+        self.e_features_tensor = data_dict['edge_features']
         self.coordinates = data_dict['coordinates']
         self.edge_indices = data_dict['edge_indices']
 
         self.meta_dict = {k: data_dict[k] for k in ('mol_id', 'edge_slices', 'atom_slices', 'n_atoms')}
-
-        self.require_distances = any(return_type in self.return_types for return_type in
-                                     ['dist_embedding', 'pairwise_distances', 'pairwise_indices', 'complete_graph',
-                                      'complete_graph3d', 'mol_complete_graph', 'san_graph'])
-        if self.require_distances:
-            if not os.path.exists(os.path.join(self.qm9_directory, 'processed', self.distances_file)):
-                self.process_distances()
-            self.dist_dict = torch.load(os.path.join(self.qm9_directory, 'processed', self.distances_file))
 
         if 'san_graph' in self.return_types:
             self.eig_vals = data_dict['eig_vals']
@@ -240,44 +223,36 @@ class QM9Dataset(Dataset):
 
         if 'smiles' in self.return_types:
             self.smiles = pd.read_csv(os.path.join(self.qm9_directory, self.raw_qm9_file))['smiles']
+
         self.prefetch_graphs = prefetch_graphs
         if self.prefetch_graphs and any(return_type in self.return_types for return_type in
                                         ['mol_graph', 'mol_graph3d', 'se3Transformer_graph', 'se3Transformer_graph3d']):
             print(
                 'Load molecular graphs into memory (set prefetch_graphs to False to load them on the fly => slower training)')
             self.mol_graphs = []
-            for idx in tqdm(range(len(self.meta_dict['edge_slices']) - 1)):
+            for idx, n_atoms in tqdm(enumerate(self.meta_dict['n_atoms'])):
                 e_start = self.meta_dict['edge_slices'][idx]
                 e_end = self.meta_dict['edge_slices'][idx + 1]
                 edge_indices = self.edge_indices[:, e_start: e_end]
-                self.mol_graphs.append(dgl.graph((edge_indices[0], edge_indices[1])))
+                self.mol_graphs.append(dgl.graph((edge_indices[0], edge_indices[1]), num_nodes=n_atoms))
+        self.pairwise = {}  # for memoization
         if self.prefetch_graphs and (
                 'complete_graph' in self.return_types or 'complete_graph3d' in self.return_types or 'san_graph' in self.return_types):
             print(
                 'Load complete graphs into memory (set prefetch_graphs to False to load them on the fly => slower training)')
             self.complete_graphs = []
             for idx in tqdm(range(len(self.meta_dict['edge_slices']) - 1)):
-                pairwise_start = self.dist_dict['pairwise_slices'][idx]
-                n_atoms = self.meta_dict['n_atoms'][idx]
-                pairwise_indices = self.dist_dict['pairwise_indices'][:,
-                                   pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)]
-                self.complete_graphs.append(dgl.graph((pairwise_indices[0], pairwise_indices[1])))
+                src, dst = self.get_pairwise(self.meta_dict['n_atoms'][idx])
+                self.complete_graphs.append(dgl.graph((src, dst)))
         if self.prefetch_graphs and (
                 'mol_complete_graph' in self.return_types or 'mol_complete_graph3d' in self.return_types):
             print(
                 'Load mol_complete_graph graphs into memory (set prefetch_graphs to False to load them on the fly => slower training)')
             self.mol_complete_graphs = []
             for idx in tqdm(range(len(self.meta_dict['edge_slices']) - 1)):
-                e_start = self.meta_dict['edge_slices'][idx]
-                e_end = self.meta_dict['edge_slices'][idx + 1]
-                edge_indices = self.edge_indices[:, e_start: e_end]
-                pairwise_start = self.dist_dict['pairwise_slices'][idx]
-                n_atoms = self.meta_dict['n_atoms'][idx]
-                pairwise_indices = self.dist_dict['pairwise_indices'][:,
-                                   pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)]
-                self.mol_complete_graphs.append(dgl.heterograph(
-                    {('atom', 'bond', 'atom'): (edge_indices[0], edge_indices[1]),
-                     ('atom', 'complete', 'atom'): (pairwise_indices[0], pairwise_indices[1])}))
+                src, dst = self.get_pairwise(self.meta_dict['n_atoms'][idx])
+                self.mol_complete_graphs.append(
+                    dgl.heterograph({('atom', 'bond', 'atom'): (src, dst), ('atom', 'complete', 'atom'): (src, dst)}))
         print('Finish loading data into memory')
 
         self.avg_degree = data_dict['avg_degree']
@@ -299,6 +274,16 @@ class QM9Dataset(Dataset):
         self.dist_embedder = dist_emb(num_radial=6).to(device)
         self.dist_embedding = dist_embedding
 
+    def get_pairwise(self, n_atoms):
+        if n_atoms in self.pairwise:
+            return self.pairwise[n_atoms]
+        else:
+            src = torch.repeat_interleave(torch.arange(n_atoms), n_atoms - 1)
+            dst = torch.cat([torch.cat([torch.arange(n_atoms)[:idx], torch.arange(n_atoms)[idx + 1:]]) for idx in
+                             range(n_atoms)])  # without self loops
+            self.pairwise[n_atoms] = (src, dst)
+            return src, dst
+
     def __len__(self):
         return len(self.meta_dict['mol_id'])
 
@@ -318,103 +303,87 @@ class QM9Dataset(Dataset):
         e_end = self.meta_dict['edge_slices'][idx + 1]
         start = self.meta_dict['atom_slices'][idx]
         n_atoms = self.meta_dict['n_atoms'][idx]
-        pairwise_start = self.dist_dict['pairwise_slices'][idx] if self.require_distances else None
 
         for return_type in self.return_types:
-            data.append(
-                self.data_by_type(idx, return_type, e_start, e_end, pairwise_start, start,
-                                  n_atoms))
+            data.append(self.data_by_type(idx, return_type, e_start, e_end, start, n_atoms))
         return tuple(data)
 
-    def get_graph(self, idx, e_start, e_end):
+    def get_graph(self, idx, e_start, e_end, n_atoms):
         if self.prefetch_graphs:
             g = self.mol_graphs[idx]
         else:
             edge_indices = self.edge_indices[:, e_start: e_end]
-            g = dgl.graph((edge_indices[0], edge_indices[1]))
+            g = dgl.graph((edge_indices[0], edge_indices[1]), num_nodes=n_atoms)
         return g
 
-    def get_complete_graph(self, idx, pairwise_start, n_atoms):
+    def get_complete_graph(self, idx, n_atoms):
         if self.prefetch_graphs:
             g = self.complete_graphs[idx]
         else:
-            pairwise_indices = self.dist_dict['pairwise_indices'][:,
-                               pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)]
-            g = dgl.graph((pairwise_indices[0], pairwise_indices[1]))
+            src, dst = self.get_pairwise(n_atoms)
+            g = dgl.graph((src, dst))
         return g
 
-    def get_mol_complete_graph(self, idx, e_start, e_end, pairwise_start, n_atoms):
+    def get_mol_complete_graph(self, idx, e_start, e_end, n_atoms):
         if self.prefetch_graphs:
             g = self.mol_complete_graphs[idx]
         else:
             edge_indices = self.edge_indices[:, e_start: e_end]
-            pairwise_indices = self.dist_dict['pairwise_indices'][:,
-                               pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)]
+            src, dst = self.get_pairwise(n_atoms)
             g = dgl.heterograph({('atom', 'bond', 'atom'): (edge_indices[0], edge_indices[1]),
-                                 ('atom', 'complete', 'atom'): (pairwise_indices[0], pairwise_indices[1])})
+                                 ('atom', 'complete', 'atom'): (src, dst)})
         return g
 
-    def data_by_type(self, idx, return_type, e_start, e_end, pairwise_start, start, n_atoms):
+    def data_by_type(self, idx, return_type, e_start, e_end, start, n_atoms):
         if return_type == 'mol_graph':
-            g = self.get_graph(idx, e_start, e_end).to(self.device)
-            g.ndata['f'] = self.features_tensor[start: start + n_atoms].to(self.device)
+            g = self.get_graph(idx, e_start, e_end, n_atoms).to(self.device)
+            g.ndata['feat'] = self.features_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
             if self.e_features_tensor != None:
-                g.edata['w'] = self.e_features_tensor[e_start: e_end].to(self.device)
+                g.edata['feat'] = self.e_features_tensor[e_start: e_end].to(self.device)
             return g
         elif return_type == 'mol_graph3d':
-            g = self.get_graph(idx, e_start, e_end).to(self.device)
-            g.ndata['f'] = self.features3d_tensor[start: start + n_atoms].to(self.device)
+            g = self.get_graph(idx, e_start, e_end, n_atoms).to(self.device)
+            g.ndata['feat'] = self.features3d_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
-            if self.e_features3d_tensor != None:
-                g.edata['w'] = self.e_features3d_tensor[e_start: e_end].to(self.device)
             return g
         elif return_type == 'complete_graph':  # complete graph without self loops
-            g = self.get_complete_graph(idx, pairwise_start, n_atoms).to(self.device)
-            g.ndata['f'] = self.features_tensor[start: start + n_atoms].to(self.device)
+            g = self.get_complete_graph(idx, n_atoms).to(self.device)
+            g.ndata['feat'] = self.features_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
-            g.edata['d'] = self.dist_dict['pairwise_distances'][
-                           pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)].unsqueeze(-1).to(self.device)
+            g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2, dim=-1).unsqueeze(
+                -1)
             if self.e_features_tensor != None:
                 bond_features = self.e_features_tensor[e_start: e_end].to(self.device)
-                e_features = torch.zeros((n_atoms * n_atoms, bond_features.shape[1]), device=self.device)
+                e_features = torch.zeros((n_atoms * n_atoms, bond_features.shape[1]), dtype=torch.long,
+                                         device=self.device)
                 edge_indices = self.edge_indices[:, e_start: e_end]
                 bond_indices = edge_indices[0] * n_atoms + edge_indices[1]
                 e_features[bond_indices] = bond_features
-                pairwise_indices = self.dist_dict['pairwise_indices'][:,
-                                   pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)]
-                g.edata['w'] = e_features[pairwise_indices[0] * n_atoms + pairwise_indices[1]]
+                src, dst = self.get_pairwise(n_atoms)
+                g.edata['feat'] = e_features[src * n_atoms + dst]
             if self.dist_embedding:
-                g.edata['d_rbf'] = self.dist_embedder(g.edata['w']).to(self.device)
+                g.edata['d_rbf'] = self.dist_embedder(g.edata['feat']).to(self.device)
             return g
         elif return_type == 'complete_graph3d':
-            g = self.get_complete_graph(idx, pairwise_start, n_atoms).to(self.device)
-            g.ndata['f'] = self.features3d_tensor[start: start + n_atoms].to(self.device)
+            g = self.get_complete_graph(idx, n_atoms).to(self.device)
+            g.ndata['feat'] = self.features3d_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
-            g.edata['d'] = self.dist_dict['pairwise_distances'][
-                           pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)].unsqueeze(-1).to(self.device)
-            if self.e_features3d_tensor != None:
-                bond_features = self.e_features3d_tensor[e_start: e_end].to(self.device)
-                e_features = torch.zeros((n_atoms * n_atoms, bond_features.shape[1]), device=self.device)
-                edge_indices = self.edge_indices[:, e_start: e_end]
-                bond_indices = edge_indices[0] * n_atoms + edge_indices[1]
-                e_features[bond_indices] = bond_features
-                pairwise_indices = self.dist_dict['pairwise_indices'][:,
-                                   pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)]
-                g.edata['w'] = e_features[pairwise_indices[0] * n_atoms + pairwise_indices[1]]
+            g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2, dim=-1).unsqueeze(
+                -1)
             if self.dist_embedding:
-                g.edata['d_rbf'] = self.dist_embedder(g.edata['w']).to(self.device)
+                g.edata['d_rbf'] = self.dist_embedder(g.edata['feat']).to(self.device)
             return g
         if return_type == 'mol_complete_graph':
-            g = self.get_mol_complete_graph(idx, e_start, e_end, pairwise_start, n_atoms).to(self.device)
-            g.ndata['f'] = self.features_tensor[start: start + n_atoms].to(self.device)
+            g = self.get_mol_complete_graph(idx, e_start, e_end, n_atoms).to(self.device)
+            g.ndata['feat'] = self.features_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
             if self.e_features_tensor != None:
-                g.edges['bond'].data['w'] = self.e_features_tensor[e_start: e_end].to(self.device)
+                g.edges['bond'].data['feat'] = self.e_features_tensor[e_start: e_end].to(self.device)
             return g
         if return_type == 'san_graph':
-            g = self.get_complete_graph(idx, pairwise_start, n_atoms).to(self.device)
-            g.ndata['f'] = self.features_tensor[start: start + n_atoms].to(self.device)
+            g = self.get_complete_graph(idx, n_atoms).to(self.device)
+            g.ndata['feat'] = self.features_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
             eig_vals = self.eig_vals[idx].to(self.device)
             sign_flip = torch.rand(eig_vals.shape[0], device=self.device)
@@ -425,42 +394,29 @@ class QM9Dataset(Dataset):
             g.ndata['pos_enc'] = torch.stack([eig_vals, eig_vecs], dim=-1)
             if self.e_features_tensor != None:
                 e_features = self.e_features_tensor[e_start: e_end].to(self.device)
-                g.edata['w'] = torch.zeros(g.number_of_edges(), e_features.shape[1], dtype=torch.float32,
+                g.edata['feat'] = torch.zeros(g.number_of_edges(), e_features.shape[1], dtype=torch.float32,
                                            device=self.device)
                 g.edata['real'] = torch.zeros(g.number_of_edges(), dtype=torch.long, device=self.device)
                 edge_indices = self.edge_indices[:, e_start: e_end].to(self.device)
-                g.edges[edge_indices[0], edge_indices[1]].data['w'] = e_features
+                g.edges[edge_indices[0], edge_indices[1]].data['feat'] = e_features
                 g.edges[edge_indices[0], edge_indices[1]].data['real'] = torch.ones(e_features.shape[0],
                                                                                     dtype=torch.long,
                                                                                     device=self.device)  # This indicates real edges
             return g
         elif return_type == 'se3Transformer_graph' or return_type == 'se3Transformer_graph3d':
-            g = self.get_graph(idx, e_start, e_end).to(self.device)
+            g = self.get_graph(idx, e_start, e_end, n_atoms).to(self.device)
             x = self.coordinates[start: start + n_atoms].to(self.device)
             if self.transform:
                 x = self.transform(x)
             g.ndata['x'] = x
-            g.ndata['f'] = self.features3d_tensor[start: start + n_atoms].to(self.device)[
+            g.ndata['feat'] = self.features3d_tensor[start: start + n_atoms].to(self.device)[
                 ..., None] if return_type == 'se3Transformer_graph3d' else \
                 self.features_tensor[start: start + n_atoms].to(self.device)[..., None]
             edge_indices = self.edge_indices[:, e_start: e_end].to(self.device)
             g.edata['d'] = x[edge_indices[0]] - x[edge_indices[1]]
             if self.e_features_tensor != None and return_type == 'se3Transformer_graph':
-                g.edata['w'] = self.e_features_tensor[e_start: e_end].to(self.device)
-            elif self.e_features3d_tensor != None and return_type == 'se3Transformer_graph3d':
-                g.edata['w'] = self.e_features3d_tensor[e_start: e_end].to(self.device)
+                g.edata['feat'] = self.e_features_tensor[e_start: e_end].to(self.device)
             return g
-        elif return_type == 'pairwise_indices':
-            return self.dist_dict['pairwise_indices'][:, pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)]
-        elif return_type == 'pairwise_distances':
-            return self.dist_dict['pairwise_distances'][
-                   pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)].unsqueeze(-1)
-        elif return_type == 'pairwise_distances_squared':
-            return self.dist_dict['pairwise_distances'][
-                   pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)].unsqueeze(-1) ** 2
-        elif return_type == 'dist_embedding':
-            dist = self.dist_dict['pairwise_distances'][pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)]
-            return self.dist_embedder(dist.to(self.device))
         elif return_type == 'raw_features':
             return self.features_tensor[start: start + n_atoms]
         elif return_type == 'coordinates':
@@ -488,27 +444,26 @@ class QM9Dataset(Dataset):
 
         atom_slices = [0]
         edge_slices = [0]
-        atom_one_hot = []
         total_eigvecs = []
         total_eigvals = []
-
-
-
-
+        all_atom_features = []
+        all_edge_features = []
         edge_indices = []  # edges of each molecule in coo format
         targets = []  # the 19 properties that should be predicted for the QM9 dataset
         total_atoms = 0
         total_edges = 0
         avg_degree = 0  # average degree in the dataset
         # go through all molecules in the npz file
-        for mol_idx, n_atoms in tqdm(enumerate(data_qm9['N'])):
+        for mol_idx, n_atoms in tqdm(enumerate(data_qm9['N'][:100])):
             # get the molecule using the smiles representation from the csv file
             mol = Chem.MolFromSmiles(molecules_df['smiles'][data_qm9['id'][mol_idx]])
             # add hydrogen bonds to molecule because they are not in the smiles representation
             mol = Chem.AddHs(mol)
 
-            for key, item in goli.features.get_mol_atomic_features_float(mol, list(atom_float.keys())).items():
-                atom_float[key].append(torch.tensor(item)[:, None])
+            atom_features_list = []
+            for atom in mol.GetAtoms():
+                atom_features_list.append(atom_to_feature_vector(atom))
+            all_atom_features.append(torch.tensor(atom_features_list, dtype=torch.long))
 
             adj = GetAdjacencyMatrix(mol, useBO=False, force=True)
             max_freqs = 10
@@ -531,94 +486,52 @@ class QM9Dataset(Dataset):
             total_eigvecs.append(eig_vecs)
             total_eigvals.append(eig_vals.unsqueeze(0))
 
-            type_idx = []
-            for atom in mol.GetAtoms():
-                type_idx.append(self.atom_types[atom.GetSymbol()])
+            edges_list = []
+            edge_features_list = []
+            for bond in mol.GetBonds():
+                i = bond.GetBeginAtomIdx()
+                j = bond.GetEndAtomIdx()
+                edge_feature = bond_to_feature_vector(bond)
 
-            row, col = [], []
-            for ii in range(mol.GetNumBonds()):
-                bond = mol.GetBondWithIdx(ii)
-                start, end = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
-                row += [start, end]
-                col += [end, start]
+                # add edges in both directions
+                edges_list.append((i, j))
+                edge_features_list.append(edge_feature)
+                edges_list.append((j, i))
+                edge_features_list.append(edge_feature)
+            # Graph connectivity in COO format with shape [2, num_edges]
+            edge_index = torch.tensor(edges_list, dtype=torch.long).T
+            edge_features = torch.tensor(edge_features_list, dtype=torch.long)
 
-            avg_degree += (len(row) / 2) / n_atoms
-            edge_index = torch.tensor([row, col], dtype=torch.long)
-
-            perm = (edge_index[0] * n_atoms + edge_index[1]).argsort()
-            edge_index = edge_index[:, perm]
-
-            for key, item in goli.features.get_mol_edge_features(mol, list(e_features.keys())).items():
-                # repeat interleave for src dst and dst src edges (see above where we add the edges) and then reorder using perm
-                e_features[key].append(torch.tensor(item).repeat_interleave(2, dim=0)[perm])
+            avg_degree += (len(edges_list) / 2) / n_atoms
 
             # get all 19 attributes that should be predicted, so we drop the first two entries (name and smiles)
             target = torch.tensor(molecules_df.iloc[data_qm9['id'][mol_idx]][2:], dtype=torch.float)
             targets.append(target)
             edge_indices.append(edge_index)
+            all_edge_features.append(edge_features)
 
-            total_edges += len(row)
+            total_edges += len(edges_list)
             total_atoms += n_atoms
             edge_slices.append(total_edges)
             atom_slices.append(total_atoms)
-            atom_one_hot.append(F.one_hot(torch.tensor(type_idx), num_classes=len(self.atom_types)))
 
-        data_dict = {}
-        data_dict.update(e_features)
-        data_dict.update(atom_float)
-        for key, item in data_dict.items():
-            data_dict[key] = torch.cat(data_dict[key])
         # convert targets to eV units
         targets = torch.stack(targets) * torch.tensor(list(self.unit_conversion.values()))[None, :]
-        data_dict.update({'mol_id': data_qm9['id'],
-                          'n_atoms': torch.tensor(data_qm9['N'], dtype=torch.long),
-                          'atom_slices': torch.tensor(atom_slices, dtype=torch.long),
-                          'edge_slices': torch.tensor(edge_slices, dtype=torch.long),
-                          'in-ring-edges': torch.cat(e_features['in-ring']),
-                          'atomic-number': torch.cat(atom_one_hot).float(),
-                          'eig_vecs': torch.cat(total_eigvecs).float(),
-                          'eig_vals': torch.cat(total_eigvals).float(),
-                          'edge_indices': torch.cat(edge_indices, dim=1),
-                          'atomic_number_long': torch.tensor(data_qm9['Z'], dtype=torch.long)[:, None],
-                          'coordinates': coordinates,
-                          'targets': targets,
-                          'avg_degree': avg_degree / len(data_qm9['id'])
-                          })
+        data_dict = {'mol_id': data_qm9['id'],
+                     'n_atoms': torch.tensor(data_qm9['N'], dtype=torch.long),
+                     'atom_slices': torch.tensor(atom_slices, dtype=torch.long),
+                     'edge_slices': torch.tensor(edge_slices, dtype=torch.long),
+                     'eig_vecs': torch.cat(total_eigvecs).float(),
+                     'eig_vals': torch.cat(total_eigvals).float(),
+                     'edge_indices': torch.cat(edge_indices, dim=1),
+                     'atom_features': torch.cat(all_atom_features, dim=0),
+                     'edge_features': torch.cat(all_edge_features, dim=0),
+                     'atomic_number_long': torch.tensor(data_qm9['Z'], dtype=torch.long)[:, None],
+                     'coordinates': coordinates,
+                     'targets': targets,
+                     'avg_degree': avg_degree / len(data_qm9['id'])
+                     }
 
         if not os.path.exists(os.path.join(self.qm9_directory, 'processed')):
             os.mkdir(os.path.join(self.qm9_directory, 'processed'))
         torch.save(data_dict, os.path.join(self.qm9_directory, 'processed', self.processed_file))
-
-    def process_distances(self):
-        print('processing distances from ({}) and saving it to ({})'.format(self.qm9_directory,
-                                                                            os.path.join(self.qm9_directory,
-                                                                                         'processed')))
-        # load qm9 data with spatial coordinates
-        data_qm9 = dict(np.load(os.path.join(self.qm9_directory, self.raw_spatial_data), allow_pickle=True))
-
-        pairwise_slices = [0]
-        pairwise_distances = []
-        pairwise_indices = []
-        total_atoms = 0
-        total_pairs = 0
-        # go through all molecules in the npz file
-        for mol_idx, n_atoms in tqdm(enumerate(data_qm9['N'])):
-            src = torch.repeat_interleave(torch.arange(n_atoms), n_atoms - 1)
-            # without self loops
-            dst = torch.cat(
-                [torch.cat([torch.arange(n_atoms)[:idx], torch.arange(n_atoms)[idx + 1:]]) for idx in range(n_atoms)])
-            coordinates = torch.tensor(data_qm9['R'][total_atoms: total_atoms + n_atoms], dtype=torch.float)
-            pairwise_distances.append(torch.norm(coordinates[src] - coordinates[dst], p=2, dim=-1))
-            pairwise_indices.append(torch.stack([src, dst], dim=0))
-
-            total_atoms += n_atoms
-            total_pairs += n_atoms * (n_atoms - 1)
-            pairwise_slices.append(total_pairs)
-
-        if not os.path.exists(os.path.join(self.qm9_directory, 'processed')):
-            os.mkdir(os.path.join(self.qm9_directory, 'processed'))
-
-        torch.save({'pairwise_distances': torch.cat(pairwise_distances),
-                    'pairwise_indices': torch.cat(pairwise_indices, dim=1),
-                    'pairwise_slices': torch.tensor(pairwise_slices, dtype=torch.long), },
-                   os.path.join(self.qm9_directory, 'processed', self.distances_file))

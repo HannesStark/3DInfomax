@@ -49,20 +49,20 @@ class EGNNDistEmbedding(nn.Module):
             mp_layer(graph)
 
         graph.apply_nodes(self.output_node_func)
-        sum_nodes = dgl.sum_nodes(graph, 'f')
-        max_nodes = dgl.max_nodes(graph, 'f')
+        sum_nodes = dgl.sum_nodes(graph, 'feat')
+        max_nodes = dgl.max_nodes(graph, 'feat')
         sum_max = torch.cat([sum_nodes, max_nodes], dim=-1)
         mol_property = self.output_network(sum_max)
         return mol_property
 
     def output_node_func(self, nodes):
-        return {'f': self.node_wise_output_network(nodes.data['f'])}
+        return {'feat': self.node_wise_output_network(nodes.data['feat'])}
 
     def input_node_func(self, nodes):
-        return {'f': F.silu(self.input(nodes.data['f']))}
+        return {'feat': F.silu(self.input(nodes.data['feat']))}
 
     def input_edge_func(self, edges):
-        return {'w': F.silu(self.edge_input(edges.data['w']))}
+        return {'feat': F.silu(self.edge_input(edges.data['feat']))}
 
 
 class EGCLayer(nn.Module):
@@ -100,14 +100,14 @@ class EGCLayer(nn.Module):
 
     def message_function(self, edges):
         message_input = torch.cat(
-            [edges.src['f'], edges.dst['f'], edges.data['d_rbf']], dim=-1)
+            [edges.src['feat'], edges.dst['feat'], edges.data['d_rbf']], dim=-1)
         message = self.message_network(message_input)
         edge_weight = torch.sigmoid(message)
         return {'m': message * edge_weight}
 
     def update_function(self, nodes):
-        h = nodes.data['f']
-        input = torch.cat([nodes.data['m_sum'] + nodes.data['f']], dim=-1)
+        h = nodes.data['feat']
+        input = torch.cat([nodes.data['m_sum'] + nodes.data['feat']], dim=-1)
         h_new = self.update_network(input)
         output = h_new + h
-        return {'f': output}
+        return {'feat': output}

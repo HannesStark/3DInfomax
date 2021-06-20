@@ -141,7 +141,7 @@ class PNA(nn.Module):
 
     def forward(self, graph: dgl.DGLGraph):
         self.node_gnn(graph)
-        readouts_to_cat = [dgl.readout_nodes(graph, 'f', op=aggr) for aggr in self.readout_aggregators]
+        readouts_to_cat = [dgl.readout_nodes(graph, 'feat', op=aggr) for aggr in self.readout_aggregators]
         readout = torch.cat(readouts_to_cat, dim=-1)
         return self.output(readout)
 
@@ -221,10 +221,10 @@ class PNAGNN(nn.Module):
             mp_layer(graph)
 
     def input_node_func(self, nodes):
-        return {'f': F.relu(self.node_input_net(nodes.data['f']))}
+        return {'feat': F.relu(self.node_input_net(nodes.data['feat']))}
 
     def input_edge_func(self, edges):
-        return {'w': F.relu(self.edge_input(edges.data['w']))}
+        return {'feat': F.relu(self.edge_input(edges.data['feat']))}
 
 
 class PNALayer(nn.Module):
@@ -283,20 +283,20 @@ class PNALayer(nn.Module):
         )
 
     def forward(self, g):
-        h = g.ndata['f']
+        h = g.ndata['feat']
         h_in = h
         # pretransformation
         g.apply_edges(self.pretrans_edges)
 
         # aggregation
         g.update_all(self.message_func, self.reduce_func)
-        h = torch.cat([h, g.ndata['f']], dim=-1)
+        h = torch.cat([h, g.ndata['feat']], dim=-1)
         # post-transformation
         h = self.posttrans(h)
         if self.residual:
             h = h + h_in
 
-        g.ndata['f'] = h
+        g.ndata['feat'] = h
 
     def message_func(self, edges) -> Dict[str, torch.Tensor]:
         r"""
@@ -309,7 +309,7 @@ class PNALayer(nn.Module):
         The reduce function to aggregate the messages.
         Apply the aggregators and scalers, and concatenate the results.
         """
-        h_in = nodes.data['f']
+        h_in = nodes.data['feat']
         h = nodes.mailbox["e"]
         D = h.shape[-2]
         h_to_cat = [aggr(h=h, h_in=h_in) for aggr in self.aggregators]
@@ -318,7 +318,7 @@ class PNALayer(nn.Module):
         if len(self.scalers) > 1:
             h = torch.cat([scale(h, D=D, avg_d=self.avg_d) for scale in self.scalers], dim=-1)
 
-        return {'f': h}
+        return {'feat': h}
 
     def pretrans_edges(self, edges) -> Dict[str, torch.Tensor]:
         r"""
@@ -327,12 +327,12 @@ class PNALayer(nn.Module):
         """
         if self.edge_features and self.pairwise_distances:
             squared_distance = torch.sum((edges.src['x'] - edges.dst['x']) ** 2, dim=-1)[:, None]
-            z2 = torch.cat([edges.src['f'], edges.dst['f'], edges.data['w'], squared_distance], dim=-1)
+            z2 = torch.cat([edges.src['feat'], edges.dst['feat'], edges.data['feat'], squared_distance], dim=-1)
         elif not self.edge_features and self.pairwise_distances:
             squared_distance = torch.sum((edges.src['x'] - edges.dst['x']) ** 2, dim=-1)[:, None]
-            z2 = torch.cat([edges.src['f'], edges.dst['f'], squared_distance], dim=-1)
+            z2 = torch.cat([edges.src['feat'], edges.dst['feat'], squared_distance], dim=-1)
         elif self.edge_features and not self.pairwise_distances:
-            z2 = torch.cat([edges.src['f'], edges.dst['f'], edges.data['w']], dim=-1)
+            z2 = torch.cat([edges.src['feat'], edges.dst['feat'], edges.data['feat']], dim=-1)
         else:
-            z2 = torch.cat([edges.src['f'], edges.dst['f']], dim=-1)
+            z2 = torch.cat([edges.src['feat'], edges.dst['feat']], dim=-1)
         return {"e": self.pretrans(z2)}

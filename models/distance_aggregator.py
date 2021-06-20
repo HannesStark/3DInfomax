@@ -75,12 +75,12 @@ class DistanceAggregator(nn.Module):
         if self.node_wise_output_layers > 0:
             graph.apply_nodes(self.output_node_func)
 
-        readouts_to_cat = [dgl.readout_nodes(graph, 'f', op=aggr) for aggr in self.readout_aggregators]
+        readouts_to_cat = [dgl.readout_nodes(graph, 'feat', op=aggr) for aggr in self.readout_aggregators]
         readout = torch.cat(readouts_to_cat, dim=-1)
         return self.output(readout)
 
     def input_node_func(self, nodes):
-        return {'f': F.silu(self.input(nodes.data['f']))}
+        return {'feat': F.silu(self.input(nodes.data['feat']))}
 
     def input_edge_func(self, edges):
         return {'d': F.silu(self.edge_input(edges.data['d']))}
@@ -89,4 +89,4 @@ class DistanceAggregator(nn.Module):
         return {'m': edges.data['d']}
 
     def output_node_func(self, nodes):
-        return {'f': self.node_wise_output_network(nodes.data['m_sum'])}
+        return {'feat': self.node_wise_output_network(nodes.data['m_sum'])}
