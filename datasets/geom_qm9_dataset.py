@@ -78,7 +78,8 @@ class GEOMqm9(Dataset):
         print('finish loading')
 
         self.features_tensor = data_dict['atom_features']
-        self.features3d_tensor = torch.ones_like(data_dict['atomic_number_long'], dtype=torch.long)
+        self.features3d_tensor = torch.ones_like(data_dict['n_atoms'], dtype=torch.long)[:, None]
+        ic(self.features3d_tensor.shape)
 
         self.e_features_tensor = data_dict['edge_features']
 
@@ -228,6 +229,11 @@ class GEOMqm9(Dataset):
             return g
         elif return_type == 'complete_graph3d':
             g = self.get_complete_graph(idx, n_atoms).to(self.device)
+            ic(self.features3d_tensor.shape)
+            ic(start)
+            ic(n_atoms)
+            ic(self.features3d_tensor[start: start + n_atoms].to(self.device).shape)
+            ic(g.number_of_nodes())
             g.ndata['feat'] = self.features3d_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
             g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2, dim=-1).unsqueeze(

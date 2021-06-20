@@ -79,7 +79,7 @@ class GEOMDrugs(Dataset):
         print('finish loading')
 
         self.features_tensor = data_dict['atom_features']
-        self.features3d_tensor = torch.ones_like(data_dict['atomic_number_long'], dtype=torch.long)
+        self.features3d_tensor = torch.ones_like(data_dict['n_atoms'], dtype=torch.long)[:, None]
 
         self.e_features_tensor = data_dict['edge_features']
 
