@@ -491,10 +491,7 @@ class QM9Dataset(Dataset):
         atom_one_hot = []
         total_eigvecs = []
         total_eigvals = []
-        e_features = {'bond-type-onehot': [], 'stereo': [], 'conjugated': [], 'in-ring': []}
-        atom_float = {'implicit-valence': [], 'degree': [], 'hybridization': [], 'chirality': [], 'mass': [],
-                      'electronegativity': [], 'aromatic-bond': [], 'formal-charge': [], 'radical-electron': [],
-                      'in-ring': []}
+
 
 
 
