@@ -492,8 +492,7 @@ class QM9Dataset(Dataset):
         atom_float = {'implicit-valence': [], 'degree': [], 'hybridization': [], 'chirality': [], 'mass': [],
                       'electronegativity': [], 'aromatic-bond': [], 'formal-charge': [], 'radical-electron': [],
                       'in-ring': []}
-        # inv_distance_eigvectors = {'inv_vec1': [], 'inv_vec2': [], 'inv_vec-1': [], 'inv_vec-2': [], 'inv_vec-3': []}
-        # distance_eigvectors = {'vec1': [], 'vec2': [], 'vec-1': [], 'vec-2': [], 'vec-3': []}
+        
         edge_indices = []  # edges of each molecule in coo format
         targets = []  # the 19 properties that should be predicted for the QM9 dataset
         total_atoms = 0
@@ -530,21 +529,6 @@ class QM9Dataset(Dataset):
             total_eigvecs.append(eig_vecs)
             total_eigvals.append(eig_vals.unsqueeze(0))
 
-            # mol_coordinates = coordinates[total_atoms:total_atoms + n_atoms]
-            # dist_matrix = torch.cdist(mol_coordinates, mol_coordinates)
-            # inv_dist_matrix = 1 / (torch.eye(dist_matrix.shape[0]) + dist_matrix) - torch.eye(dist_matrix.shape[0])
-            # e, v = torch.symeig(inv_dist_matrix, eigenvectors=True)
-            # inv_distance_eigvectors['inv_vec1'].append(v[1].abs()[:, None])
-            # inv_distance_eigvectors['inv_vec2'].append(v[2].abs()[:, None])
-            # inv_distance_eigvectors['inv_vec-1'].append(v[-1][:, None])
-            # inv_distance_eigvectors['inv_vec-2'].append(v[-2][:, None])
-            # inv_distance_eigvectors['inv_vec-3'].append(v[-3][:, None])
-            # e, v = torch.symeig(dist_matrix, eigenvectors=True)
-            # distance_eigvectors['vec1'].append(v[1].abs()[:, None])
-            # distance_eigvectors['vec2'].append(v[2].abs()[:, None])
-            # distance_eigvectors['vec-1'].append(v[-1][:, None])
-            # distance_eigvectors['vec-2'].append(v[-2][:, None])
-            # distance_eigvectors['vec-3'].append(v[-3][:, None])
 
             type_idx = []
             for atom in mol.GetAtoms():
@@ -579,8 +563,6 @@ class QM9Dataset(Dataset):
             atom_one_hot.append(F.one_hot(torch.tensor(type_idx), num_classes=len(self.atom_types)))
 
         data_dict = {}
-        # data_dict.update(inv_distance_eigvectors)
-        # data_dict.update(distance_eigvectors)
         data_dict.update(e_features)
         data_dict.update(atom_float)
         for key, item in data_dict.items():
