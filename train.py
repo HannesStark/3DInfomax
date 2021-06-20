@@ -77,7 +77,6 @@ def train(args):
 
 def train_molhiv(args, device, metrics_dict):
     dataset = DglGraphPropPredDataset(name='ogbg-molhiv')
-    AtomEncoder
     split_idx = dataset.get_idx_split()
     train_loader = DataLoader(dataset[split_idx["train"]], batch_size=32, shuffle=True, collate_fn=collate_dgl)
     val_loader = DataLoader(dataset[split_idx["valid"]], batch_size=32, shuffle=False, collate_fn=collate_dgl)

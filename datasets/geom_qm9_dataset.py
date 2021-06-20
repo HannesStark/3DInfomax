@@ -5,6 +5,7 @@ import pickle
 import torch
 import dgl
 from ogb.utils.features import bond_to_feature_vector, atom_to_feature_vector
+from rdkit import Chem
 from rdkit.Chem.rdmolops import GetAdjacencyMatrix
 from torch.utils.data import Dataset
 from tqdm import tqdm
@@ -199,19 +200,19 @@ class GEOMqm9(Dataset):
             return self.conformations[start: start + n_atoms].to(self.device)
         if return_type == 'mol_graph':
             g = self.get_graph(idx, e_start, e_end, n_atoms).to(self.device)
-            g.ndata['f'] = self.features_tensor[start: start + n_atoms].to(self.device)
+            g.ndata['feat'] = self.features_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
             if self.e_features_tensor != None:
-                g.edata['w'] = self.e_features_tensor[e_start: e_end].to(self.device)
+                g.edata['feat'] = self.e_features_tensor[e_start: e_end].to(self.device)
             return g
         elif return_type == 'mol_graph3d':
             g = self.get_graph(idx, e_start, e_end, n_atoms).to(self.device)
-            g.ndata['f'] = self.features3d_tensor[start: start + n_atoms].to(self.device)
+            g.ndata['feat'] = self.features3d_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
             return g
         elif return_type == 'complete_graph':  # complete graph without self loops
             g = self.get_complete_graph(idx, n_atoms).to(self.device)
-            g.ndata['f'] = self.features_tensor[start: start + n_atoms].to(self.device)
+            g.ndata['feat'] = self.features_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
             g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2, dim=-1).unsqueeze(
                 -1)
@@ -223,25 +224,25 @@ class GEOMqm9(Dataset):
                 bond_indices = edge_indices[0] * n_atoms + edge_indices[1]
                 e_features[bond_indices] = bond_features
                 src, dst = self.get_pairwise(n_atoms)
-                g.edata['w'] = e_features[src * n_atoms + dst]
+                g.edata['feat'] = e_features[src * n_atoms + dst]
             return g
         elif return_type == 'complete_graph3d':
             g = self.get_complete_graph(idx, n_atoms).to(self.device)
-            g.ndata['f'] = self.features3d_tensor[start: start + n_atoms].to(self.device)
+            g.ndata['feat'] = self.features3d_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
             g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2, dim=-1).unsqueeze(
                 -1)
             return g
         if return_type == 'mol_complete_graph':
             g = self.get_mol_complete_graph(idx, e_start, e_end, n_atoms).to(self.device)
-            g.ndata['f'] = self.features_tensor[start: start + n_atoms].to(self.device)
+            g.ndata['feat'] = self.features_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
             if self.e_features_tensor != None:
-                g.edges['bond'].data['w'] = self.e_features_tensor[e_start: e_end].to(self.device)
+                g.edges['bond'].data['feat'] = self.e_features_tensor[e_start: e_end].to(self.device)
             return g
         if return_type == 'san_graph':
             g = self.get_complete_graph(idx, n_atoms).to(self.device)
-            g.ndata['f'] = self.features_tensor[start: start + n_atoms].to(self.device)
+            g.ndata['feat'] = self.features_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
             eig_vals = self.eig_vals[idx].to(self.device)
             sign_flip = torch.rand(eig_vals.shape[0], device=self.device)
@@ -252,11 +253,11 @@ class GEOMqm9(Dataset):
             g.ndata['pos_enc'] = torch.stack([eig_vals, eig_vecs], dim=-1)
             if self.e_features_tensor != None:
                 e_features = self.e_features_tensor[e_start: e_end].to(self.device)
-                g.edata['w'] = torch.zeros(g.number_of_edges(), e_features.shape[1], dtype=torch.float32,
+                g.edata['feat'] = torch.zeros(g.number_of_edges(), e_features.shape[1], dtype=torch.float32,
                                            device=self.device)
                 g.edata['real'] = torch.zeros(g.number_of_edges(), dtype=torch.long, device=self.device)
                 edge_indices = self.edge_indices[:, e_start: e_end].to(self.device)
-                g.edges[edge_indices[0], edge_indices[1]].data['w'] = e_features
+                g.edges[edge_indices[0], edge_indices[1]].data['feat'] = e_features
                 g.edges[edge_indices[0], edge_indices[1]].data['real'] = torch.ones(e_features.shape[0],
                                                                                     dtype=torch.long,
                                                                                     device=self.device)  # This indicates real edges
@@ -267,13 +268,13 @@ class GEOMqm9(Dataset):
             if self.transform:
                 x = self.transform(x)
             g.ndata['x'] = x
-            g.ndata['f'] = self.features3d_tensor[start: start + n_atoms].to(self.device)[
+            g.ndata['feat'] = self.features3d_tensor[start: start + n_atoms].to(self.device)[
                 ..., None] if return_type == 'se3Transformer_graph3d' else \
                 self.features_tensor[start: start + n_atoms].to(self.device)[..., None]
             g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2, dim=-1).unsqueeze(
                 -1)
             if self.e_features_tensor != None and return_type == 'se3Transformer_graph':
-                g.edata['w'] = self.e_features_tensor[e_start: e_end].to(self.device)
+                g.edata['feat'] = self.e_features_tensor[e_start: e_end].to(self.device)
             return g
         elif return_type == 'raw_features':
             return self.features_tensor[start: start + n_atoms]
@@ -314,7 +315,7 @@ class GEOMqm9(Dataset):
         total_atoms = 0
         total_edges = 0
         avg_degree = 0  # average degree in the dataset
-        for smiles, sub_dic in tqdm(list(summary.items())[:100]):
+        for smiles, sub_dic in tqdm(list(summary.items())):
             pickle_path = os.path.join(self.directory, sub_dic.get("pickle_path", ""))
             if os.path.isfile(pickle_path):
                 pickle_file = open(pickle_path, 'rb')
@@ -337,9 +338,12 @@ class GEOMqm9(Dataset):
                     L_sym = torch.eye(n_atoms) - N * L * N
                     try:
                         eig_vals, eig_vecs = torch.symeig(L_sym, eigenvectors=True)
-                    except:
-                        ic(adj)
-                        ic(smiles)
+                    except Exception as e: # if we have disconnected components
+                        deg = adj.sum(dim=0)
+                        deg[deg == 0] = 1
+                        N = deg ** -0.5
+                        L_sym = torch.eye(n_atoms) - N * L * N
+                        eig_vals, eig_vecs = torch.symeig(L_sym, eigenvectors=True)
                     idx = eig_vals.argsort()[0: max_freqs]  # Keep up to the maximum desired number of frequencies
                     eig_vals, eig_vecs = eig_vals[idx], eig_vecs[:, idx]
 
