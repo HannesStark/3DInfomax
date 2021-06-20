@@ -425,11 +425,14 @@ class QM9Dataset(Dataset):
             g.ndata['pos_enc'] = torch.stack([eig_vals, eig_vecs], dim=-1)
             if self.e_features_tensor != None:
                 e_features = self.e_features_tensor[e_start: e_end].to(self.device)
-                g.edata['w'] = torch.zeros(g.number_of_edges(), e_features.shape[1], dtype=torch.float32, device=self.device)
+                g.edata['w'] = torch.zeros(g.number_of_edges(), e_features.shape[1], dtype=torch.float32,
+                                           device=self.device)
                 g.edata['real'] = torch.zeros(g.number_of_edges(), dtype=torch.long, device=self.device)
                 edge_indices = self.edge_indices[:, e_start: e_end].to(self.device)
                 g.edges[edge_indices[0], edge_indices[1]].data['w'] = e_features
-                g.edges[edge_indices[0], edge_indices[1]].data['real'] = torch.ones(e_features.shape[0], dtype=torch.long, device=self.device)  # This indicates real edges
+                g.edges[edge_indices[0], edge_indices[1]].data['real'] = torch.ones(e_features.shape[0],
+                                                                                    dtype=torch.long,
+                                                                                    device=self.device)  # This indicates real edges
             return g
         elif return_type == 'se3Transformer_graph' or return_type == 'se3Transformer_graph3d':
             g = self.get_graph(idx, e_start, e_end).to(self.device)
@@ -493,6 +496,8 @@ class QM9Dataset(Dataset):
                       'electronegativity': [], 'aromatic-bond': [], 'formal-charge': [], 'radical-electron': [],
                       'in-ring': []}
 
+
+
         edge_indices = []  # edges of each molecule in coo format
         targets = []  # the 19 properties that should be predicted for the QM9 dataset
         total_atoms = 0
@@ -528,7 +533,6 @@ class QM9Dataset(Dataset):
 
             total_eigvecs.append(eig_vecs)
             total_eigvals.append(eig_vals.unsqueeze(0))
-
 
             type_idx = []
             for atom in mol.GetAtoms():
