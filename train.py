@@ -3,6 +3,8 @@ import os
 from itertools import chain
 
 from icecream import install
+from ogb.graphproppred import DglGraphPropPredDataset, collate_dgl
+from ogb.graphproppred.mol_encoder import AtomEncoder
 
 from commons.utils import seed_all, get_random_indices, TENSORBOARD_FUNCTIONS
 from datasets.ZINC_dataset import ZINCDataset
@@ -69,7 +71,51 @@ def train(args):
         train_zinc(args, device, metrics_dict)
     elif args.dataset == 'drugs' or args.dataset == 'geom_qm9':
         train_geom(args, device, metrics_dict)
+    elif args.dataset == 'molhiv':
+        train_molhiv(args, device, metrics_dict)
 
+
+def train_molhiv(args, device, metrics_dict):
+    dataset = DglGraphPropPredDataset(name='ogbg-molhiv')
+    AtomEncoder
+    split_idx = dataset.get_idx_split()
+    train_loader = DataLoader(dataset[split_idx["train"]], batch_size=32, shuffle=True, collate_fn=collate_dgl)
+    val_loader = DataLoader(dataset[split_idx["valid"]], batch_size=32, shuffle=False, collate_fn=collate_dgl)
+    test_loader = DataLoader(dataset[split_idx["test"]], batch_size=32, shuffle=False, collate_fn=collate_dgl)
+
+    model = globals()[args.model_type](node_dim=dataset[0][0].ndata['f'].shape[1],
+                                       edge_dim=dataset[0][0].edata['w'].shape[1] if args.use_e_features else 0,
+                                       **args.model_parameters)
+    print('model trainable params: ', sum(p.numel() for p in model.parameters() if p.requires_grad))
+    collate_function = globals()[args.collate_function] if args.collate_params == {} else globals()[
+        args.collate_function](**args.collate_params)
+
+
+    metrics = {metric: metrics_dict[metric] for metric in args.metrics}
+    tensorboard_functions = {function: TENSORBOARD_FUNCTIONS[function] for function in args.tensorboard_functions}
+
+    # Needs "from torch.optim import *" and "from models import *" to work
+    transferred_params = [v for k, v in model.named_parameters() if
+                          any(transfer_name in k for transfer_name in args.transfer_layers)]
+    new_params = [v for k, v in model.named_parameters() if
+                  all(transfer_name not in k for transfer_name in args.transfer_layers)]
+    transfer_lr = args.optimizer_params['lr'] if args.transferred_lr == None else args.transferred_lr
+    optim = globals()[args.optimizer]([{'params': new_params},
+                                       {'params': transferred_params, 'lr': transfer_lr}], **args.optimizer_params)
+    trainer = Trainer(model=model,
+                      args=args,
+                      metrics=metrics,
+                      main_metric=args.main_metric,
+                      main_metric_goal=args.main_metric_goal,
+                      optim=optim,
+                      loss_func=globals()[args.loss_func](**args.loss_params),
+                      device=device,
+                      tensorboard_functions=tensorboard_functions,
+                      scheduler_step_per_batch=args.scheduler_step_per_batch)
+    trainer.train(train_loader, val_loader)
+
+    if args.eval_on_test:
+        trainer.evaluation(test_loader, data_split='test')
 
 def train_zinc(args, device, metrics_dict):
     train_data = ZINCDataset(split='train', device=device, prefetch_graphs=args.prefetch_graphs)
@@ -116,6 +162,7 @@ def train_zinc(args, device, metrics_dict):
 
     if args.eval_on_test:
         trainer.evaluation(test_loader, data_split='test')
+
 
 
 def train_geom(args, device, metrics_dict):
@@ -363,7 +410,7 @@ def parse_arguments():
     p.add_argument('--prefetch_graphs', type=bool, default=True,
                    help='load graphs into memory (needs RAM and upfront computation) for faster data loading during training')
     p.add_argument('--patience', type=int, default=20, help='stop training after no improvement in this many epochs')
-    p.add_argument('--dataset', type=str, default='qm9', help='[qm9, zinc, drugs, geom_qm9]')
+    p.add_argument('--dataset', type=str, default='qm9', help='[qm9, zinc, drugs, geom_qm9, molhiv]')
     p.add_argument('--num_train', type=int, default=100000, help='n samples of the model samples to use for train')
     p.add_argument('--seed', type=int, default=123, help='seed for reproducibility')
     p.add_argument('--seed_data', type=int, default=123, help='if you want to use a different seed for the datasplit')
