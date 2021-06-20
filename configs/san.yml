@@ -4,7 +4,7 @@ num_epochs: 1000
 batch_size: 4
 prefetch_graphs: False
 log_iterations: 30
-patience: 25
+patience: 30
 num_train: 50000
 loss_func: L1Loss
 targets:
