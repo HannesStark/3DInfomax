@@ -117,10 +117,10 @@ class QM9Dataset(Dataset):
         which is the stuff that is commonly predicted by papers like DimeNet, Equivariant GNNs, Spherical message passing
         The returned targets will be in the order specified by this list
     features:
-        possible features are ['standard_normal_noise', 'implicit-valence','degree','hybridization','chirality','mass','electronegativity','aromatic-bond','formal-charge','radical-electron','in-ring','atomic-number', 'pos-enc', 'vec1', 'vec2', 'vec3', 'vec-1', 'vec-2', 'vec-3', 'inv_vec1', 'inv_vec2', 'inv_vec3', 'inv_vec-1', 'inv_vec-2', 'inv_vec-3']
+        possible features are ['standard_normal_noise', 'implicit-valence','degree','hybridization','chirality','mass','electronegativity','aromatic-bond','formal-charge','radical-electron','in-ring','atomic-number', 'vec1', 'vec2', 'vec3', 'vec-1', 'vec-2', 'vec-3', 'inv_vec1', 'inv_vec2', 'inv_vec3', 'inv_vec-1', 'inv_vec-2', 'inv_vec-3']
 
     features3d:
-        possible features are ['standard_normal_noise', 'implicit-valence','degree','hybridization','chirality','mass','electronegativity','aromatic-bond','formal-charge','radical-electron','in-ring','atomic-number', 'pos-enc', 'vec1', 'vec2', 'vec3', 'vec-1', 'vec-2', 'vec-3', 'inv_vec1', 'inv_vec2', 'inv_vec3', 'inv_vec-1', 'inv_vec-2', 'inv_vec-3']
+        possible features are ['standard_normal_noise', 'implicit-valence','degree','hybridization','chirality','mass','electronegativity','aromatic-bond','formal-charge','radical-electron','in-ring','atomic-number', 'vec1', 'vec2', 'vec3', 'vec-1', 'vec-2', 'vec-3', 'inv_vec1', 'inv_vec2', 'inv_vec3', 'inv_vec-1', 'inv_vec-2', 'inv_vec-3']
     e_features:
         possible are ['bond-type-onehot','stereo','conjugated','in-ring-edges']
     others: list
@@ -213,11 +213,6 @@ class QM9Dataset(Dataset):
             data_dict['standard_normal_noise'] = torch.normal(
                 mean=torch.zeros_like(data_dict['atomic_number_long'], dtype=torch.float),
                 std=torch.ones_like(data_dict['atomic_number_long'], dtype=torch.float))
-
-        if self.pos_dir:
-            self.pos_enc = data_dict['pos-enc']
-
-        data_dict['pos-enc'] = torch.abs(data_dict['pos-enc'])
 
         self.features_tensor = None if features == [] else torch.cat([data_dict[k] for k in features], dim=-1)
         self.features3d_tensor = None if features3d == [] else torch.cat([data_dict[k] for k in features3d], dim=-1)
@@ -511,7 +506,6 @@ class QM9Dataset(Dataset):
                       'in-ring': []}
         # inv_distance_eigvectors = {'inv_vec1': [], 'inv_vec2': [], 'inv_vec-1': [], 'inv_vec-2': [], 'inv_vec-3': []}
         # distance_eigvectors = {'vec1': [], 'vec2': [], 'vec-1': [], 'vec-2': [], 'vec-3': []}
-        positional_encodings = []
         edge_indices = []  # edges of each molecule in coo format
         targets = []  # the 19 properties that should be predicted for the QM9 dataset
         total_atoms = 0
@@ -528,12 +522,6 @@ class QM9Dataset(Dataset):
                 atom_float[key].append(torch.tensor(item)[:, None])
 
             adj = GetAdjacencyMatrix(mol, useBO=False, force=True)
-            adj_csr = csr_matrix(adj)
-            pos_enc, _ = graph_positional_encoder(adj=adj_csr, pos_type='laplacian_eigvec', num_pos=3,
-                                                  normalization=None,
-                                                  disconnected_comp=True)
-            positional_encodings.append(pos_enc)
-
             max_freqs = 10
             adj = torch.tensor(adj).float()
             D = torch.diag(adj.sum(dim=0))
@@ -619,7 +607,6 @@ class QM9Dataset(Dataset):
                           'atomic-number': torch.cat(atom_one_hot).float(),
                           'eig_vecs': torch.cat(total_eigvecs).float(),
                           'eig_vals': torch.cat(total_eigvals).float(),
-                          'pos-enc': torch.cat(positional_encodings).float(),
                           'edge_indices': torch.cat(edge_indices, dim=1),
                           'atomic_number_long': torch.tensor(data_qm9['Z'], dtype=torch.long)[:, None],
                           'coordinates': coordinates,
