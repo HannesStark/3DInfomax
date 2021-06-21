@@ -1,9 +1,8 @@
 experiment_name: 'edge_feat_correctLR_scheduling'
 
-device: cpu
 num_epochs: 1000
-batch_size: 100
-prefetch_graphs: False
+batch_size: 128
+prefetch_graphs: True
 log_iterations: 30
 patience: 50
 num_train: 500000

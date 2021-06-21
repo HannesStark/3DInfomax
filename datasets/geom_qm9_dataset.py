@@ -4,7 +4,8 @@ import pickle
 
 import torch
 import dgl
-from ogb.utils.features import bond_to_feature_vector, atom_to_feature_vector
+from ogb.utils.features import bond_to_feature_vector, atom_to_feature_vector, get_atom_feature_dims, \
+    get_bond_feature_dims
 from rdkit import Chem
 from rdkit.Chem.rdmolops import GetAdjacencyMatrix
 from torch.utils.data import Dataset
@@ -84,6 +85,9 @@ class GEOMqm9(Dataset):
         self.coordinates = data_dict['coordinates'][:, :3]
         self.conformations = data_dict['coordinates'] if 'conformations' in self.return_types else None
         self.edge_indices = data_dict['edge_indices']
+
+        self.atom_padding_indices = torch.tensor(get_atom_feature_dims(), dtype=torch.long, device=device)[None, :]
+        self.bond_padding_indices = torch.tensor(get_bond_feature_dims(), dtype=torch.long, device=device)[None, :]
 
         self.meta_dict = {k: data_dict[k] for k in ('smiles', 'edge_slices', 'atom_slices', 'n_atoms')}
 
@@ -213,12 +217,14 @@ class GEOMqm9(Dataset):
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
             g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2, dim=-1).unsqueeze(-1)
 
+            # set edge features with padding for virtual edges
             bond_features = self.e_features_tensor[e_start: e_end].to(self.device)
-            e_features = torch.full((n_atoms * n_atoms, bond_features.shape[1]), fill_value=200, dtype=torch.long,
-                                    device=self.device)  # 200 is the padding_index of the embedding layer
-            edge_indices = self.edge_indices[:, e_start: e_end]
+            e_features = self.bond_padding_indices.expand(n_atoms * n_atoms, -1)
+            edge_indices = self.edge_indices[:, e_start: e_end].to(self.device)
             bond_indices = edge_indices[0] * n_atoms + edge_indices[1]
-            e_features[bond_indices] = bond_features
+            # overwrite the bond features
+            e_features = e_features.scatter(dim=0, index=bond_indices[:, None].expand(-1, bond_features.shape[1]),
+                                            src=bond_features)
             src, dst = self.get_pairwise(n_atoms)
             g.edata['feat'] = e_features[src * n_atoms + dst]
             return g

@@ -13,8 +13,10 @@ class AtomEncoder(torch.nn.Module):
         self.atom_embedding_list = torch.nn.ModuleList()
 
         for i, dim in enumerate(full_atom_feature_dims):
-            dim += 1 if padding_idx else 0
-            emb = torch.nn.Embedding(dim, emb_dim, padding_idx=padding_idx)
+            if padding_idx:
+                emb = torch.nn.Embedding(dim + 1, emb_dim, padding_idx=dim)
+            else:
+                emb = torch.nn.Embedding(dim, emb_dim)
             torch.nn.init.xavier_uniform_(emb.weight.data)
             self.atom_embedding_list.append(emb)
 
@@ -34,8 +36,10 @@ class BondEncoder(torch.nn.Module):
         self.bond_embedding_list = torch.nn.ModuleList()
 
         for i, dim in enumerate(full_bond_feature_dims):
-            dim += 1 if padding_idx else 0
-            emb = torch.nn.Embedding(dim, emb_dim, padding_idx=padding_idx)
+            if padding_idx:
+                emb = torch.nn.Embedding(dim +1, emb_dim, padding_idx=dim)
+            else:
+                emb = torch.nn.Embedding(dim, emb_dim)
             torch.nn.init.xavier_uniform_(emb.weight.data)
             self.bond_embedding_list.append(emb)
 
