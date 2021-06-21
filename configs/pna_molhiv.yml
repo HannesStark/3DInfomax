@@ -1,16 +1,14 @@
-experiment_name: 'drugs_ogb_featurization'
+experiment_name: 'baseline'
 
-dataset: 'drugs'
+dataset: 'molhiv'
 num_epochs: 1000
 batch_size: 128
 prefetch_graphs: True
 log_iterations: 30
 patience: 30
-num_train: 120000
 loss_func: L1Loss
 targets:
-  - ensemblefreeenergy
-
+  - homo
 
 required_data:
   - mol_graph
@@ -19,6 +17,7 @@ metrics:
   - mae_denormalized
   - pearsonr
   - rsquared
+  - qm9_properties
   - mean_predictor_loss
 
 optimizer: Adam
@@ -45,7 +44,7 @@ model_parameters:
   mid_batch_norm: True
   last_batch_norm: True
   readout_batchnorm: True
-  readout_hidden_dim: 200
+  readout_hidden_dim: 128
   readout_layers: 2
   dropout: 0.0
   propagation_depth: 6
