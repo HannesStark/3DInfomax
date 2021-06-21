@@ -27,7 +27,7 @@ class SelfSupervisedTrainer(Trainer):
         loss = self.loss_func(view2d, view3d, nodes_per_graph=graph.batch_num_nodes())
         return loss, view2d, view3d
 
-    def evaluate_metrics(self, z2d, z3d, batch=None) -> Dict[str, float]:
+    def evaluate_metrics(self, z2d, z3d, batch=None, val=False) -> Dict[str, float]:
         metric_results = {}
         metric_results[f'mean_pred'] = torch.mean(z2d).item()
         metric_results[f'std_pred'] = torch.std(z2d).item()
@@ -40,10 +40,12 @@ class SelfSupervisedTrainer(Trainer):
                 pos_mask[node_indices[graph_idx - 1]: node_indices[graph_idx], graph_idx] = 1.
             pos_mask[0:node_indices[0], 0] = 1
             for key, metric in self.metrics.items():
-                metric_results[key] = metric(z2d, z3d, pos_mask).item()
+                if not hasattr(metric, 'val_only') or val:
+                    metric_results[key] = metric(z2d, z3d, pos_mask).item()
         else:
             for key, metric in self.metrics.items():
-                metric_results[key] = metric(z2d, z3d).item()
+                if not hasattr(metric, 'val_only') or val:
+                    metric_results[key] = metric(z2d, z3d).item()
         return metric_results
 
     def run_per_epoch_evaluations(self, data_loader):

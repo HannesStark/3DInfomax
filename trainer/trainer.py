@@ -176,7 +176,7 @@ class Trainer():
                                                                                        WarmUpWrapper) and self.lr_scheduler.total_warmup_steps > self.lr_scheduler._step)):  # step per batch if that is what we want to do or if we are using a warmup schedule and are still in the warmup period
             self.step_schedulers()
 
-    def evaluate_metrics(self, predictions, targets, val=False) -> Dict[str, float]:
+    def evaluate_metrics(self, predictions, targets, batch=None, val=False) -> Dict[str, float]:
         metric_results = {}
         metric_results[f'mean_pred'] = torch.mean(predictions).item()
         metric_results[f'std_pred'] = torch.std(predictions).item()

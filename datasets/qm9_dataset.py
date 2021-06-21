@@ -2,7 +2,8 @@ import os
 
 import torch
 import dgl
-from ogb.utils.features import atom_to_feature_vector, bond_to_feature_vector
+from ogb.utils.features import atom_to_feature_vector, bond_to_feature_vector, get_atom_feature_dims, \
+    get_bond_feature_dims
 from rdkit import Chem
 from rdkit.Chem.rdmolops import GetAdjacencyMatrix
 from torch.utils.data import Dataset
@@ -212,6 +213,9 @@ class QM9Dataset(Dataset):
 
         self.meta_dict = {k: data_dict[k] for k in ('mol_id', 'edge_slices', 'atom_slices', 'n_atoms')}
 
+        self.atom_padding_indices = torch.tensor(get_atom_feature_dims(), dtype=torch.long, device=device)[None, :]
+        self.bond_padding_indices = torch.tensor(get_atom_feature_dims(), dtype=torch.long, device=device)[None, :]
+
         if 'san_graph' in self.return_types:
             self.eig_vals = data_dict['eig_vals']
             self.eig_vecs = data_dict['eig_vecs']
@@ -349,8 +353,7 @@ class QM9Dataset(Dataset):
 
             # set edge features with padding for virtual edges
             bond_features = self.e_features_tensor[e_start: e_end].to(self.device)
-            e_features = torch.full((n_atoms * n_atoms, bond_features.shape[1]), fill_value=-1, dtype=torch.long,
-                                     device=self.device) # -1 is the padding_index of the embedding layer
+            e_features = self.bond_padding_indices.clone().expand((n_atoms * n_atoms, -1))
             edge_indices = self.edge_indices[:, e_start: e_end]
             bond_indices = edge_indices[0] * n_atoms + edge_indices[1]
             e_features[bond_indices] = bond_features
@@ -388,7 +391,7 @@ class QM9Dataset(Dataset):
             if self.e_features_tensor != None:
                 e_features = self.e_features_tensor[e_start: e_end].to(self.device)
                 g.edata['feat'] = torch.zeros(g.number_of_edges(), e_features.shape[1], dtype=torch.float32,
-                                           device=self.device)
+                                              device=self.device)
                 g.edata['real'] = torch.zeros(g.number_of_edges(), dtype=torch.long, device=self.device)
                 edge_indices = self.edge_indices[:, e_start: e_end].to(self.device)
                 g.edges[edge_indices[0], edge_indices[1]].data['feat'] = e_features

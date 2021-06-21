@@ -1,5 +1,6 @@
 experiment_name: 'edge_feat_correctLR_scheduling'
 
+device: cpu
 num_epochs: 1000
 batch_size: 100
 prefetch_graphs: False
