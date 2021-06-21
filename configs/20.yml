@@ -6,12 +6,6 @@ batch_size: 128
 log_iterations: 30
 patience: 30
 loss_func: L1Loss
-targets:
-  - homo
-
-required_data:
-  - mol_graph
-  - targets
 metrics:
   - ogb_molhiv
   - pearsonr

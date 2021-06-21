@@ -86,6 +86,7 @@ class Trainer():
             with torch.no_grad():
                 val_loss, val_predictions, val_targets = self.predict(val_loader, epoch)
                 metrics = self.evaluate_metrics(val_predictions, val_targets.float(), val=True)
+                metrics[type(self.loss_func).__name__] = val_loss
                 self.run_tensorboard_functions(val_predictions, val_targets, step=self.optim_steps, data_split='val')
 
                 val_score = metrics[self.main_metric]
@@ -154,10 +155,10 @@ class Trainer():
             loss, predictions, targets = self.process_batch(batch, optim)
             with torch.no_grad():
                 if self.optim_steps % args.log_iterations == 0 and optim != None:  # log every log_iterations during train
-                    metrics_results = self.evaluate_metrics(predictions, targets.float())
-                    metrics_results[type(self.loss_func).__name__] = loss.item()
+                    metrics = self.evaluate_metrics(predictions, targets.float())
+                    metrics[type(self.loss_func).__name__] = loss.item()
                     self.run_tensorboard_functions(predictions, targets, step=self.optim_steps, data_split='train')
-                    self.tensorboard_log(metrics_results, data_split='train', step=self.optim_steps, epoch=epoch)
+                    self.tensorboard_log(metrics, data_split='train', step=self.optim_steps, epoch=epoch)
                     print('[Epoch %d; Iter %5d/%5d] %s: loss: %.7f' % (epoch,
                                                                        i + 1, len(data_loader), 'train', loss.item()))
                 if optim == None:  # during validation or testing when we want to average metrics over all the data in that dataloader
@@ -186,12 +187,12 @@ class Trainer():
                 metric_results[key] = metric(predictions, targets).item()
         return metric_results
 
-    def tensorboard_log(self, metrics_results, data_split: str, epoch: int, step: int, log_hparam: bool = False):
-        metrics_results['epoch'] = epoch
+    def tensorboard_log(self, metrics, data_split: str, epoch: int, step: int, log_hparam: bool = False):
+        metrics['epoch'] = epoch
         for i, param_group in enumerate(self.optim.param_groups):
-            metrics_results[f'lr_param_group_{i}'] = param_group['lr']
+            metrics[f'lr_param_group_{i}'] = param_group['lr']
         logs = {}
-        for key, metric in metrics_results.items():
+        for key, metric in metrics.items():
             metric_name = f'{key}/{data_split}'
             logs[metric_name] = metric
             self.writer.add_scalar(metric_name, metric, step)
@@ -215,8 +216,10 @@ class Trainer():
         """
 
         self.model.eval()
-        metrics, predictions, targets = self.predict(data_loader)
+        loss, predictions, targets = self.predict(data_loader)
 
+        metrics = self.evaluate_metrics(predictions, targets.float())
+        metrics[type(self.loss_func).__name__] = loss
         with open(os.path.join(self.writer.log_dir, 'evaluation_' + data_split + '.txt'), 'w') as file:
             print('Statistics on ', data_split)
             for key, value in metrics.items():
