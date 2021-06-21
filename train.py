@@ -344,8 +344,7 @@ def train_qm9(args, device, metrics_dict):
     # Needs "from torch.optim import *" and "from models import *" to work
     if args.model3d_type:
         model3d = globals()[args.model3d_type](
-            node_dim=all_data[0][1].ndata['feat'].shape[1] if isinstance(all_data[0][1], dgl.DGLGraph) else
-            all_data[0][1].shape[-1],
+            node_dim=0, # 3d model has no input node features
             edge_dim=all_data[0][1].edata['d'].shape[
                 1] if args.use_e_features and isinstance(all_data[0][1], dgl.DGLGraph) else 0,
             avg_d=all_data.avg_degree,
