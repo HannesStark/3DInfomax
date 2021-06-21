@@ -220,7 +220,7 @@ class PNAGNN(nn.Module):
 
     def forward(self, graph: dgl.DGLGraph):
         graph.ndata['feat'] = self.atom_encoder(graph.ndata['feat'])
-        graph.edata['feat'] = self.atom_encoder(graph.edata['feat'])
+        graph.edata['feat'] = self.bond_encoder(graph.edata['feat'])
 
         for mp_layer in self.mp_layers:
             mp_layer(graph)

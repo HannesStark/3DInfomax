@@ -167,6 +167,7 @@ def train_geom(args, device, metrics_dict):
     dataset = GEOMDrugs if args.dataset == 'drugs' else GEOMqm9
     all_data = dataset(return_types=args.required_data,
                        target_tasks=args.targets,
+                       device=device,
                        prefetch_graphs=args.prefetch_graphs)
 
     all_idx = get_random_indices(len(all_data), args.seed_data)
@@ -279,6 +280,7 @@ def train_geom(args, device, metrics_dict):
 def train_qm9(args, device, metrics_dict):
     all_data = QM9Dataset(return_types=args.required_data,
                           target_tasks=args.targets,
+                          device=device,
                           dist_embedding=args.dist_embedding, num_radial=args.num_radial,
                           prefetch_graphs=args.prefetch_graphs)
 
@@ -392,7 +394,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/4.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/1.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
