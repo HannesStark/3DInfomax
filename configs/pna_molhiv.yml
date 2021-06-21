@@ -2,8 +2,7 @@ experiment_name: 'baseline'
 
 dataset: 'molhiv'
 num_epochs: 1000
-batch_size: 128
-prefetch_graphs: True
+batch_size: 6
 log_iterations: 30
 patience: 30
 loss_func: L1Loss
@@ -14,10 +13,9 @@ required_data:
   - mol_graph
   - targets
 metrics:
-  - mae_denormalized
+  - ogb_molhiv
   - pearsonr
   - rsquared
-  - qm9_properties
   - mean_predictor_loss
 
 optimizer: Adam

@@ -6,6 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import dgl.function as fn
 
+from commons.mol_encoder import AtomEncoder, BondEncoder
 from models.base_layers import MLP
 
 
@@ -56,9 +57,12 @@ class EGNNEdges(nn.Module):
                           batch_norm_momentum = batch_norm_momentum,
                           out_dim=target_dim,
                           layers=readout_layers)
+        self.atom_encoder = AtomEncoder(emb_dim=hidden_dim)
+        self.bond_encoder = BondEncoder(emb_dim=hidden_dim, padding_idx=200)
 
     def forward(self, graph: dgl.DGLGraph):
-        graph.apply_nodes(self.input_node_func)
+        graph.ndata['feat'] = self.atom_encoder(graph.ndata['feat'])
+        graph.edata['feat'] = self.bond_encoder(graph.edata['feat'])
 
         for mp_layer in self.mp_layers:
             mp_layer(graph)

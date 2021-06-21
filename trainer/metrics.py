@@ -1,6 +1,7 @@
 from typing import Union
 
 import torch
+from ogb.graphproppred import Evaluator
 from pytorch_lightning.metrics.utils import reduce
 from torch import Tensor
 from torch.nn import functional as F
@@ -50,13 +51,15 @@ class QM9DenormalizedL1(nn.Module):
         loss = F.l1_loss(preds, targets)
         return loss
 
+
 class MAE(nn.Module):
-    def __init__(self,):
+    def __init__(self, ):
         super().__init__()
 
     def forward(self, preds, targets):
         loss = F.l1_loss(preds, targets)
         return loss
+
 
 def denormalize(normalized: torch.tensor, means, stds, eV2meV):
     denormalized = normalized * stds[None, :] + means[None, :]  # [batchsize, n_tasks]
@@ -78,6 +81,19 @@ class QM9DenormalizedL2(nn.Module):
         preds = denormalize(preds, self.means, self.stds, self.eV2meV)
         targets = denormalize(targets, self.means, self.stds, self.eV2meV)
         return F.mse_loss(preds, targets)
+
+
+class OGBEvaluator(nn.Module):
+    def __init__(self, d_name):
+        super().__init__()
+        self.evaluator = Evaluator(name=d_name)
+        self.val_only = True
+
+    def forward(self, preds, targets):
+        if preds.shape[1] > 1:
+            return torch.tensor(float('NaN'))
+        input_dict = {"y_true": targets, "y_pred": preds}
+        return torch.tensor(self.evaluator.eval(input_dict))
 
 
 class Rsquared(nn.Module):
@@ -132,7 +148,7 @@ class Alignment(nn.Module):
         self.alpha = alpha
 
     def forward(self, x1: Tensor, x2: Tensor, pos_mask: Tensor = None) -> Tensor:
-        if x1.shape != x2.shape and pos_mask == None: # if we have noisy samples our x2 has them appended at the end so we just take the non noised ones to calculate the similaritiy
+        if x1.shape != x2.shape and pos_mask == None:  # if we have noisy samples our x2 has them appended at the end so we just take the non noised ones to calculate the similaritiy
             x2 = x2[:len(x1)]
         return (x1 - x2).norm(dim=1).pow(self.alpha).mean()
 
@@ -143,7 +159,7 @@ class Uniformity(nn.Module):
         self.t = t
 
     def forward(self, x1: Tensor, x2: Tensor, pos_mask: Tensor = None) -> Tensor:
-        return uniformity_loss(x1,x2)
+        return uniformity_loss(x1, x2)
 
 
 class TruePositiveRate(nn.Module):
@@ -153,7 +169,7 @@ class TruePositiveRate(nn.Module):
 
     def forward(self, x1: Tensor, x2: Tensor, pos_mask: Tensor = None) -> Tensor:
         batch_size, _ = x1.size()
-        if x1.shape != x2.shape and pos_mask == None: # if we have noisy samples our x2 has them appended at the end so we just take the non noised ones to calculate the similaritiy
+        if x1.shape != x2.shape and pos_mask == None:  # if we have noisy samples our x2 has them appended at the end so we just take the non noised ones to calculate the similaritiy
             x2 = x2[:batch_size]
         sim_matrix = torch.einsum('ik,jk->ij', x1, x2)
 
@@ -178,7 +194,7 @@ class TrueNegativeRate(nn.Module):
 
     def forward(self, x1: Tensor, x2: Tensor, pos_mask: Tensor = None) -> Tensor:
         batch_size, _ = x1.size()
-        if x1.shape != x2.shape and pos_mask == None: # if we have noisy samples our x2 has them appended at the end so we just take the non noised ones to calculate the similaritiy
+        if x1.shape != x2.shape and pos_mask == None:  # if we have noisy samples our x2 has them appended at the end so we just take the non noised ones to calculate the similaritiy
             x2 = x2[:batch_size]
         sim_matrix = torch.einsum('ik,jk->ij', x1, x2)
 
@@ -204,7 +220,7 @@ class ContrastiveAccuracy(nn.Module):
 
     def forward(self, x1: Tensor, x2: Tensor, pos_mask: Tensor = None) -> Tensor:
         batch_size, _ = x1.size()
-        if x1.shape != x2.shape and pos_mask == None: # if we have noisy samples our x2 has them appended at the end so we just take the non noised ones to calculate the similaritiy
+        if x1.shape != x2.shape and pos_mask == None:  # if we have noisy samples our x2 has them appended at the end so we just take the non noised ones to calculate the similaritiy
             x2 = x2[:batch_size]
         sim_matrix = torch.einsum('ik,jk->ij', x1, x2)
 
@@ -231,7 +247,7 @@ class F1Contrastive(nn.Module):
 
     def forward(self, x1: Tensor, x2: Tensor, pos_mask: Tensor = None) -> Tensor:
         batch_size, _ = x1.size()
-        if x1.shape != x2.shape and pos_mask == None: # if we have noisy samples our x2 has them appended at the end so we just take the non noised ones to calculate the similaritiy
+        if x1.shape != x2.shape and pos_mask == None:  # if we have noisy samples our x2 has them appended at the end so we just take the non noised ones to calculate the similaritiy
             x2 = x2[:batch_size]
         sim_matrix = torch.einsum('ik,jk->ij', x1, x2)
 
@@ -255,7 +271,7 @@ class PositiveSimilarity(nn.Module):
         super(PositiveSimilarity, self).__init__()
 
     def forward(self, x1: Tensor, x2: Tensor, pos_mask: Tensor = None) -> Tensor:
-        if x1.shape != x2.shape and pos_mask == None: # if we have noisy samples our x2 has them appended at the end so we just take the non noised ones to calculate the similaritiy
+        if x1.shape != x2.shape and pos_mask == None:  # if we have noisy samples our x2 has them appended at the end so we just take the non noised ones to calculate the similaritiy
             x2 = x2[:len(x1)]
 
         if pos_mask != None:  # if we are comparing local with global
@@ -270,6 +286,7 @@ class PositiveSimilarity(nn.Module):
             pos_sim = F.cosine_similarity(x1, x2)
         pos_sim = (pos_sim + 1) / 2
         return pos_sim.mean(dim=0)
+
 
 class PositiveSimilarityMultiplePositivesSeparate2d(nn.Module):
     """
@@ -287,12 +304,12 @@ class PositiveSimilarityMultiplePositivesSeparate2d(nn.Module):
         # only take the direct similarities such that one 2D representation is similar to one 3d conformer
         pos_sim = (z1 * z2).sum(dim=2)  # [batch_size, num_conformers]
 
-
         z1_abs = z1.norm(dim=2)
         z2_abs = z2.norm(dim=2)
         pos_sim /= (z1_abs * z2_abs)  # [batch_size, num_conformers]
         pos_sim = (pos_sim.sum(dim=1) + 1) / 2
         return pos_sim.mean(dim=0)
+
 
 class NegativeSimilarityMultiplePositivesSeparate2d(nn.Module):
     def __init__(self) -> None:
@@ -311,9 +328,10 @@ class NegativeSimilarityMultiplePositivesSeparate2d(nn.Module):
         sim_matrix = sim_matrix / torch.einsum('il,ju->ijlu', z1_abs, z2_abs)
 
         sim_matrix = sim_matrix.reshape(batch_size, batch_size, -1).sum(dim=2)  # [batch_size, batch_size]
-        neg_sim = (sim_matrix.sum(dim=1) - torch.diagonal(sim_matrix)) / (num_conformers**2 *(batch_size - 1))
+        neg_sim = (sim_matrix.sum(dim=1) - torch.diagonal(sim_matrix)) / (num_conformers ** 2 * (batch_size - 1))
         neg_sim = (neg_sim + 1) / 2
         return neg_sim.mean(dim=0)
+
 
 class NegativeSimilarity(nn.Module):
     def __init__(self) -> None:
@@ -321,7 +339,7 @@ class NegativeSimilarity(nn.Module):
 
     def forward(self, x1: Tensor, x2: Tensor, pos_mask: Tensor = None) -> Tensor:
         batch_size, _ = x1.size()
-        if x1.shape != x2.shape and pos_mask == None: # if we have noisy samples our x2 has them appended at the end so we just take the non noised ones to calculate the similaritiy
+        if x1.shape != x2.shape and pos_mask == None:  # if we have noisy samples our x2 has them appended at the end so we just take the non noised ones to calculate the similaritiy
             x2 = x2[:batch_size]
         sim_matrix = torch.einsum('ik,jk->ij', x1, x2)
 

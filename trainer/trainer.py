@@ -80,20 +80,22 @@ class Trainer():
         epochs_no_improve = 0  # counts every epoch that the validation accuracy did not improve for early stopping
         for epoch in range(self.start_epoch, args.num_epochs + 1):  # loop over the dataset multiple times
             self.model.train()
-            metrics, predictions, targets = self.predict(train_loader, epoch, optim=self.optim)
+            self.predict(train_loader, epoch, optim=self.optim)
 
             self.model.eval()
             with torch.no_grad():
-                metrics, val_predictions, val_targets = self.predict(val_loader, epoch)
-                val_loss = metrics[type(self.loss_func).__name__]
+                val_loss, val_predictions, val_targets = self.predict(val_loader, epoch)
+                metrics = self.evaluate_metrics(val_predictions, val_targets, val=True)
+                self.run_tensorboard_functions(val_predictions, val_targets, step=self.optim_steps, data_split='val')
+
+                val_score = metrics[self.main_metric]
                 if self.lr_scheduler != None and not self.scheduler_step_per_batch:
-                    self.step_schedulers(metrics=val_loss)
+                    self.step_schedulers(metrics=val_score)
 
                 if self.args.eval_per_epochs > 0 and epoch % self.args.eval_per_epochs == 0:
                     self.run_per_epoch_evaluations(val_loader)
 
                 self.tensorboard_log(metrics, data_split='val', epoch=epoch, log_hparam=True, step=self.optim_steps)
-                val_score = metrics[self.main_metric]
                 print('[Epoch %d] %s: %.6f val loss: %.6f' % (epoch, self.main_metric, val_score, val_loss))
 
                 # save the model with the best main_metric depending on wether we want to maximize or minimize the main metric
@@ -129,7 +131,7 @@ class Trainer():
         return loss, predictions, targets
 
     def predict(self, data_loader: DataLoader, epoch: int = 0, optim: torch.optim.Optimizer = None,
-                return_predictions: bool = False) -> Tuple[Dict, Union[torch.Tensor, None], Union[torch.Tensor, None]]:
+                return_predictions: bool = False) -> Tuple[float, Union[torch.Tensor, None], Union[torch.Tensor, None]]:
         """
         get predictions for data in dataloader and do backpropagation if an optimizer is provided
         Args:
@@ -144,37 +146,27 @@ class Trainer():
             targets: all targets of the epoch
         """
         args = self.args
-        total_metrics = {k: 0 for k in self.evaluate_metrics(torch.ones((2, 2), device=self.device),
-                                                             torch.ones((2, 2), device=self.device)).keys()}
-        total_metrics[type(self.loss_func).__name__] = 0
-        epoch_targets = []
-        epoch_predictions = []
+        epoch_targets = torch.tensor([]).to(self.device)
+        epoch_predictions = torch.tensor([]).to(self.device)
+        epoch_loss = 0
         for i, batch in enumerate(data_loader):
             batch = [element.to(self.device) for element in batch]
             loss, predictions, targets = self.process_batch(batch, optim)
-
             with torch.no_grad():
                 if self.optim_steps % args.log_iterations == 0 and optim != None:  # log every log_iterations during train
-                    metrics_results = self.evaluate_metrics(predictions, targets, batch)
+                    metrics_results = self.evaluate_metrics(predictions, targets)
                     metrics_results[type(self.loss_func).__name__] = loss.item()
                     self.run_tensorboard_functions(predictions, targets, step=self.optim_steps, data_split='train')
                     self.tensorboard_log(metrics_results, data_split='train', step=self.optim_steps, epoch=epoch)
                     print('[Epoch %d; Iter %5d/%5d] %s: loss: %.7f' % (epoch,
                                                                        i + 1, len(data_loader), 'train', loss.item()))
                 if optim == None:  # during validation or testing when we want to average metrics over all the data in that dataloader
-                    metrics_results = self.evaluate_metrics(predictions, targets, batch)
-                    metrics_results[type(self.loss_func).__name__] = loss.item()
-                    self.run_tensorboard_functions(predictions, targets, step=self.optim_steps, data_split='val')
-                    for key, value in metrics_results.items():
-                        total_metrics[key] += value
-                if return_predictions:
-                    epoch_predictions.append(predictions.detach())
-                    epoch_targets.append(targets.detach())
+                    epoch_loss += loss.item()
+                    epoch_targets = torch.cat((targets, epoch_targets), 0)
+                    epoch_predictions = torch.cat((predictions, epoch_predictions), 0)
 
-        total_metrics = {k: v / len(data_loader) for k, v in total_metrics.items()}
-        epoch_predictions = torch.cat(epoch_predictions, dim=0) if return_predictions else None
-        epoch_targets = torch.cat(epoch_targets, dim=0) if return_predictions else None
-        return total_metrics, epoch_predictions, epoch_targets
+        if optim == None:
+            return epoch_loss / len(data_loader), epoch_predictions, epoch_targets
 
     def after_optim_step(self):
         if self.optim_steps % self.args.log_iterations == 0:
@@ -183,14 +175,15 @@ class Trainer():
                                                                                        WarmUpWrapper) and self.lr_scheduler.total_warmup_steps > self.lr_scheduler._step)):  # step per batch if that is what we want to do or if we are using a warmup schedule and are still in the warmup period
             self.step_schedulers()
 
-    def evaluate_metrics(self, predictions, targets, batch=None) -> Dict[str, float]:
+    def evaluate_metrics(self, predictions, targets, val=False) -> Dict[str, float]:
         metric_results = {}
         metric_results[f'mean_pred'] = torch.mean(predictions).item()
         metric_results[f'std_pred'] = torch.std(predictions).item()
-        metric_results[f'mean_targets'] = torch.mean(targets).item()
-        metric_results[f'std_targets'] = torch.std(targets).item()
+        metric_results[f'mean_targets'] = torch.mean(targets.float()).item()
+        metric_results[f'std_targets'] = torch.std(targets.float()).item()
         for key, metric in self.metrics.items():
-            metric_results[key] = metric(predictions, targets).item()
+            if not hasattr(metric, 'val_only') or val:
+                metric_results[key] = metric(predictions, targets).item()
         return metric_results
 
     def tensorboard_log(self, metrics_results, data_split: str, epoch: int, step: int, log_hparam: bool = False):

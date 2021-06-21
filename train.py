@@ -40,9 +40,83 @@ from trainer.metrics import QM9DenormalizedL1, QM9DenormalizedL2, pearsonr, \
     QM9SingleTargetDenormalizedL1, Rsquared, NegativeSimilarity, MeanPredictorLoss, \
     F1Contrastive, PositiveSimilarity, ContrastiveAccuracy, TrueNegativeRate, TruePositiveRate, Alignment, Uniformity, \
     BatchVariance, DimensionCovariance, MAE, PositiveSimilarityMultiplePositivesSeparate2d, \
-    NegativeSimilarityMultiplePositivesSeparate2d
+    NegativeSimilarityMultiplePositivesSeparate2d, OGBEvaluator
 from trainer.trainer import Trainer
 
+def get_trainer(args, model, data, device, metrics):
+    tensorboard_functions = {function: TENSORBOARD_FUNCTIONS[function] for function in args.tensorboard_functions}
+    if args.model3d_type:
+        model3d = globals()[args.model3d_type](
+            node_dim=0,  # 3d model has no input node features
+            edge_dim=data[0][1].edata['d'].shape[
+                1] if args.use_e_features and isinstance(data[0][1], dgl.DGLGraph) else 0,
+            avg_d=data.avg_degree if hasattr(data, 'avg_degree') else 1,
+            **args.model3d_parameters)
+        print('3D model trainable params: ', sum(p.numel() for p in model3d.parameters() if p.requires_grad))
+
+        critic = None
+        if args.ssl_mode == 'byol':
+            ssl_trainer = BYOLTrainer
+        elif args.ssl_mode == 'alternating':
+            ssl_trainer = SelfSupervisedAlternatingTrainer
+        elif args.ssl_mode == 'contrastive':
+            ssl_trainer = SelfSupervisedTrainer
+        elif args.ssl_mode == 'philosophy':
+            ssl_trainer = PhilosophyTrainer
+            critic = globals()[args.critic_type](**args.critic_parameters)
+        return ssl_trainer(model=model,
+                           model3d=model3d,
+                           critic=critic,
+                           args=args,
+                           metrics=metrics,
+                           main_metric=args.main_metric,
+                           main_metric_goal=args.main_metric_goal,
+                           optim=globals()[args.optimizer],
+                           loss_func=globals()[args.loss_func](**args.loss_params),
+                           critic_loss=globals()[args.critic_loss](**args.critic_loss_params),
+                           device=device,
+                           tensorboard_functions=tensorboard_functions,
+                           scheduler_step_per_batch=args.scheduler_step_per_batch)
+    else:
+        return Trainer(model=model,
+                       args=args,
+                       metrics=metrics,
+                       main_metric=args.main_metric,
+                       main_metric_goal=args.main_metric_goal,
+                       optim=globals()[args.optimizer],
+                       loss_func=globals()[args.loss_func](**args.loss_params),
+                       device=device,
+                       tensorboard_functions=tensorboard_functions,
+                       scheduler_step_per_batch=args.scheduler_step_per_batch)
+
+
+def load_model(args, data, device):
+    try:
+        edge_dim = data[0][0].edata['feat'].shape[1] if args.use_e_features else 0
+    except:
+        edge_dim = data[0][0].edges['bond'].data['feat'].shape[1] if args.use_e_features else 0
+    model = globals()[args.model_type](node_dim=data[0][0].ndata['feat'].shape[1],
+                                       edge_dim=edge_dim,
+                                       avg_d=data.avg_degree if hasattr(data, 'avg_degree') else 1,
+                                       **args.model_parameters)
+    if args.pretrain_checkpoint:
+        # get arguments used during pretraining
+        with open(os.path.join(os.path.dirname(args.pretrain_checkpoint), 'train_arguments.yaml'), 'r') as arg_file:
+            pretrain_dict = yaml.load(arg_file, Loader=yaml.FullLoader)
+        pretrain_args = argparse.Namespace()
+        pretrain_args.__dict__.update(pretrain_dict)
+
+        checkpoint = torch.load(args.pretrain_checkpoint, map_location=device)
+        # get all the weights that have something from 'args.transfer_layers' in their keys name
+        # but only if they do not contain 'teacher' and remove 'student.' which we need for loading from BYOLWrapper
+        pretrained_gnn_dict = {k.replace('student.', ''): v for k, v in checkpoint['model_state_dict'].items() if any(
+            transfer_layer in k for transfer_layer in args.transfer_layers) and 'teacher' not in k and not any(
+            to_exclude in k for to_exclude in args.exclude_from_transfer)}
+        model_state_dict = model.state_dict()
+        model_state_dict.update(pretrained_gnn_dict)  # update the gnn layers with the pretrained weights
+        model.load_state_dict(model_state_dict)
+        return model, pretrain_args.num_train
+    return model, None
 
 def train(args):
     seed_all(args.seed)
@@ -50,6 +124,7 @@ def train(args):
     metrics_dict = {'pearsonr': pearsonr,
                     'rsquared': Rsquared(),
                     'mae': MAE(),
+                    'ogb_molhiv': OGBEvaluator(d_name='ogbg-molhiv'),
                     'positive_similarity': PositiveSimilarity(),
                     'positive_similarity_multiple_positives_separate2d': PositiveSimilarityMultiplePositivesSeparate2d(),
                     'negative_similarity': NegativeSimilarity(),
@@ -78,38 +153,20 @@ def train(args):
 def train_molhiv(args, device, metrics_dict):
     dataset = DglGraphPropPredDataset(name='ogbg-molhiv')
     split_idx = dataset.get_idx_split()
-    train_loader = DataLoader(dataset[split_idx["train"]], batch_size=32, shuffle=True, collate_fn=collate_dgl)
-    val_loader = DataLoader(dataset[split_idx["valid"]], batch_size=32, shuffle=False, collate_fn=collate_dgl)
-    test_loader = DataLoader(dataset[split_idx["test"]], batch_size=32, shuffle=False, collate_fn=collate_dgl)
+    train_loader = DataLoader(dataset[split_idx["train"]], batch_size=args.batch_size, shuffle=True,
+                              collate_fn=collate_dgl)
+    val_loader = DataLoader(dataset[split_idx["valid"]], batch_size=args.batch_size, shuffle=False,
+                            collate_fn=collate_dgl)
+    test_loader = DataLoader(dataset[split_idx["test"]], batch_size=args.batch_size, shuffle=False,
+                             collate_fn=collate_dgl)
 
-    model = globals()[args.model_type](node_dim=dataset[0][0].ndata['feat'].shape[1],
-                                       edge_dim=dataset[0][0].edata['feat'].shape[1] if args.use_e_features else 0,
-                                       **args.model_parameters)
-    print('model trainable params: ', sum(p.numel() for p in model.parameters() if p.requires_grad))
+    model, num_pretrain = load_model(args, data=dataset, device=device)
+
     collate_function = globals()[args.collate_function] if args.collate_params == {} else globals()[
         args.collate_function](**args.collate_params)
 
     metrics = {metric: metrics_dict[metric] for metric in args.metrics}
-    tensorboard_functions = {function: TENSORBOARD_FUNCTIONS[function] for function in args.tensorboard_functions}
-
-    # Needs "from torch.optim import *" and "from models import *" to work
-    transferred_params = [v for k, v in model.named_parameters() if
-                          any(transfer_name in k for transfer_name in args.transfer_layers)]
-    new_params = [v for k, v in model.named_parameters() if
-                  all(transfer_name not in k for transfer_name in args.transfer_layers)]
-    transfer_lr = args.optimizer_params['lr'] if args.transferred_lr == None else args.transferred_lr
-    optim = globals()[args.optimizer]([{'params': new_params},
-                                       {'params': transferred_params, 'lr': transfer_lr}], **args.optimizer_params)
-    trainer = Trainer(model=model,
-                      args=args,
-                      metrics=metrics,
-                      main_metric=args.main_metric,
-                      main_metric_goal=args.main_metric_goal,
-                      optim=optim,
-                      loss_func=globals()[args.loss_func](**args.loss_params),
-                      device=device,
-                      tensorboard_functions=tensorboard_functions,
-                      scheduler_step_per_batch=args.scheduler_step_per_batch)
+    trainer = get_trainer(args=args,model=model,data=dataset, device=device,metrics=metrics)
     trainer.train(train_loader, val_loader)
 
     if args.eval_on_test:
@@ -121,9 +178,7 @@ def train_zinc(args, device, metrics_dict):
     val_data = ZINCDataset(split='val', device=device, prefetch_graphs=args.prefetch_graphs)
     test_data = ZINCDataset(split='test', device=device, prefetch_graphs=args.prefetch_graphs)
 
-    model = globals()[args.model_type](node_dim=train_data[0][0].ndata['feat'].shape[1],
-                                       edge_dim=train_data[0][0].edata['feat'].shape[1] if args.use_e_features else 0,
-                                       **args.model_parameters)
+    model, num_pretrain = load_model(args, data=train_data, device=device)
     print('model trainable params: ', sum(p.numel() for p in model.parameters() if p.requires_grad))
     collate_function = globals()[args.collate_function] if args.collate_params == {} else globals()[
         args.collate_function](**args.collate_params)
@@ -137,26 +192,7 @@ def train_zinc(args, device, metrics_dict):
     test_loader = DataLoader(test_data, batch_size=args.batch_size, collate_fn=collate_function)
 
     metrics = {metric: metrics_dict[metric] for metric in args.metrics}
-    tensorboard_functions = {function: TENSORBOARD_FUNCTIONS[function] for function in args.tensorboard_functions}
-
-    # Needs "from torch.optim import *" and "from models import *" to work
-    transferred_params = [v for k, v in model.named_parameters() if
-                          any(transfer_name in k for transfer_name in args.transfer_layers)]
-    new_params = [v for k, v in model.named_parameters() if
-                  all(transfer_name not in k for transfer_name in args.transfer_layers)]
-    transfer_lr = args.optimizer_params['lr'] if args.transferred_lr == None else args.transferred_lr
-    optim = globals()[args.optimizer]([{'params': new_params},
-                                       {'params': transferred_params, 'lr': transfer_lr}], **args.optimizer_params)
-    trainer = Trainer(model=model,
-                      args=args,
-                      metrics=metrics,
-                      main_metric=args.main_metric,
-                      main_metric_goal=args.main_metric_goal,
-                      optim=optim,
-                      loss_func=globals()[args.loss_func](**args.loss_params),
-                      device=device,
-                      tensorboard_functions=tensorboard_functions,
-                      scheduler_step_per_batch=args.scheduler_step_per_batch)
+    trainer = get_trainer(args=args,model=model,data=all_data,device=device,metrics=metrics)
     trainer.train(train_loader, val_loader)
 
     if args.eval_on_test:
@@ -175,37 +211,13 @@ def train_geom(args, device, metrics_dict):
     test_idx = all_idx[len(model_idx): len(model_idx) + int(0.1 * len(all_data))]
     val_idx = all_idx[len(model_idx) + len(test_idx):]
     train_idx = model_idx[:args.num_train]
-    ic(len(train_idx))
     # for debugging purposes:
     # test_idx = all_idx[len(model_idx): len(model_idx) + 200]
     # val_idx = all_idx[len(model_idx) + len(test_idx): len(model_idx) + len(test_idx) + 3000]
 
-    try:
-        edge_dim = all_data[0][0].edata['feat'].shape[1] if args.use_e_features else 0
-    except:
-        edge_dim = all_data[0][0].edges['bond'].data['feat'].shape[1] if args.use_e_features else 0
-    model = globals()[args.model_type](node_dim=all_data[0][0].ndata['feat'].shape[1],
-                                       edge_dim=edge_dim,
-                                       avg_d=all_data.avg_degree,
-                                       **args.model_parameters)
-
+    model, num_pretrain = load_model(args, data=all_data, device=device)
     if args.pretrain_checkpoint:
-        # get arguments used during pretraining
-        with open(os.path.join(os.path.dirname(args.pretrain_checkpoint), 'train_arguments.yaml'), 'r') as arg_file:
-            pretrain_dict = yaml.load(arg_file, Loader=yaml.FullLoader)
-        pretrain_args = argparse.Namespace()
-        pretrain_args.__dict__.update(pretrain_dict)
-        train_idx = model_idx[pretrain_args.num_train: pretrain_args.num_train + args.num_train]
-
-        checkpoint = torch.load(args.pretrain_checkpoint, map_location=device)
-        # get all the weights that have something from 'args.transfer_layers' in their keys name
-        # but only if they do not contain 'teacher' and remove 'student.' which we need for loading from BYOLWrapper
-        pretrained_gnn_dict = {k.replace('student.', ''): v for k, v in checkpoint['model_state_dict'].items() if any(
-            transfer_layer in k for transfer_layer in args.transfer_layers) and 'teacher' not in k and not any(
-            to_exclude in k for to_exclude in args.exclude_from_transfer)}
-        model_state_dict = model.state_dict()
-        model_state_dict.update(pretrained_gnn_dict)  # update the gnn layers with the pretrained weights
-        model.load_state_dict(model_state_dict)
+        train_idx = model_idx[num_pretrain: num_pretrain + args.num_train]
     print('model trainable params: ', sum(p.numel() for p in model.parameters() if p.requires_grad))
 
     print(f'Training on {len(train_idx)} samples from the model sequences')
@@ -225,57 +237,11 @@ def train_geom(args, device, metrics_dict):
         metrics_dict.update({'mae_denormalized': QM9DenormalizedL1(dataset=all_data),
                              'mse_denormalized': QM9DenormalizedL2(dataset=all_data)})
     metrics = {metric: metrics_dict[metric] for metric in args.metrics}
-    tensorboard_functions = {function: TENSORBOARD_FUNCTIONS[function] for function in args.tensorboard_functions}
-
-    # Needs "from torch.optim import *" and "from models import *" to work
-    if args.model3d_type:
-        model3d = globals()[args.model3d_type](
-            node_dim=0, # 3d model has no input node features
-            edge_dim=all_data[0][1].edata['d'].shape[
-                1] if args.use_e_features and isinstance(all_data[0][1], dgl.DGLGraph) else 0,
-            avg_d=all_data.avg_degree,
-            **args.model3d_parameters)
-        print('3D model trainable params: ', sum(p.numel() for p in model3d.parameters() if p.requires_grad))
-
-        critic = None
-        if args.ssl_mode == 'byol':
-            ssl_trainer = BYOLTrainer
-        elif args.ssl_mode == 'alternating':
-            ssl_trainer = SelfSupervisedAlternatingTrainer
-        elif args.ssl_mode == 'contrastive':
-            ssl_trainer = SelfSupervisedTrainer
-        elif args.ssl_mode == 'philosophy':
-            ssl_trainer = PhilosophyTrainer
-            critic = globals()[args.critic_type](**args.critic_parameters)
-        trainer = ssl_trainer(model=model,
-                              model3d=model3d,
-                              critic=critic,
-                              args=args,
-                              metrics=metrics,
-                              main_metric=args.main_metric,
-                              main_metric_goal=args.main_metric_goal,
-                              optim=globals()[args.optimizer],
-                              loss_func=globals()[args.loss_func](**args.loss_params),
-                              critic_loss=globals()[args.critic_loss](**args.critic_loss_params),
-                              device=device,
-                              tensorboard_functions=tensorboard_functions,
-                              scheduler_step_per_batch=args.scheduler_step_per_batch)
-    else:
-        trainer = Trainer(model=model,
-                          args=args,
-                          metrics=metrics,
-                          main_metric=args.main_metric,
-                          main_metric_goal=args.main_metric_goal,
-                          optim=globals()[args.optimizer],
-                          loss_func=globals()[args.loss_func](**args.loss_params),
-                          device=device,
-                          tensorboard_functions=tensorboard_functions,
-                          scheduler_step_per_batch=args.scheduler_step_per_batch)
+    trainer = get_trainer(args=args,model=model,data=all_data,device=device,metrics=metrics)
     trainer.train(train_loader, val_loader)
 
     if args.eval_on_test:
         trainer.evaluation(test_loader, data_split='test')
-
 
 def train_qm9(args, device, metrics_dict):
     all_data = QM9Dataset(return_types=args.required_data,
@@ -292,32 +258,10 @@ def train_qm9(args, device, metrics_dict):
     # for debugging purposes:
     # test_idx = all_idx[len(model_idx): len(model_idx) + 200]
     # val_idx = all_idx[len(model_idx) + len(test_idx): len(model_idx) + len(test_idx) + 3000]
-    try:
-        edge_dim = all_data[0][0].edata['feat'].shape[1] if args.use_e_features else 0
-    except:
-        edge_dim = all_data[0][0].edges['bond'].data['feat'].shape[1] if args.use_e_features else 0
-    model = globals()[args.model_type](node_dim=all_data[0][0].ndata['feat'].shape[1],
-                                       edge_dim=edge_dim,
-                                       avg_d=all_data.avg_degree,
-                                       **args.model_parameters)
 
+    model, num_pretrain = load_model(args, data=all_data, device=device)
     if args.pretrain_checkpoint:
-        # get arguments used during pretraining
-        with open(os.path.join(os.path.dirname(args.pretrain_checkpoint), 'train_arguments.yaml'), 'r') as arg_file:
-            pretrain_dict = yaml.load(arg_file, Loader=yaml.FullLoader)
-        pretrain_args = argparse.Namespace()
-        pretrain_args.__dict__.update(pretrain_dict)
-        train_idx = model_idx[pretrain_args.num_train: pretrain_args.num_train + args.num_train]
-
-        checkpoint = torch.load(args.pretrain_checkpoint, map_location=device)
-        # get all the weights that have something from 'args.transfer_layers' in their keys name
-        # but only if they do not contain 'teacher' and remove 'student.' which we need for loading from BYOLWrapper
-        pretrained_gnn_dict = {k.replace('student.', ''): v for k, v in checkpoint['model_state_dict'].items() if any(
-            transfer_layer in k for transfer_layer in args.transfer_layers) and 'teacher' not in k and not any(
-            to_exclude in k for to_exclude in args.exclude_from_transfer)}
-        model_state_dict = model.state_dict()
-        model_state_dict.update(pretrained_gnn_dict)  # update the gnn layers with the pretrained weights
-        model.load_state_dict(model_state_dict)
+        train_idx = model_idx[num_pretrain: num_pretrain + args.num_train]
     print('model trainable params: ', sum(p.numel() for p in model.parameters() if p.requires_grad))
 
     print(f'Training on {len(train_idx)} samples from the model sequences')
@@ -336,57 +280,12 @@ def train_qm9(args, device, metrics_dict):
     metrics_dict.update({'mae_denormalized': QM9DenormalizedL1(dataset=all_data),
                          'mse_denormalized': QM9DenormalizedL2(dataset=all_data)})
     metrics = {metric: metrics_dict[metric] for metric in args.metrics if metric != 'qm9_properties'}
-    tensorboard_functions = {function: TENSORBOARD_FUNCTIONS[function] for function in args.tensorboard_functions}
     if 'qm9_properties' in args.metrics:
         metrics.update(
             {task: QM9SingleTargetDenormalizedL1(dataset=all_data, task=task) for task in all_data.target_tasks})
 
-    # Needs "from torch.optim import *" and "from models import *" to work
-    if args.model3d_type:
-        model3d = globals()[args.model3d_type](
-            node_dim=0, # 3d model has no input node features
-            edge_dim=all_data[0][1].edata['d'].shape[
-                1] if args.use_e_features and isinstance(all_data[0][1], dgl.DGLGraph) else 0,
-            avg_d=all_data.avg_degree,
-            **args.model3d_parameters)
-        print('3D model trainable params: ', sum(p.numel() for p in model3d.parameters() if p.requires_grad))
-
-        critic = None
-        if args.ssl_mode == 'byol':
-            ssl_trainer = BYOLTrainer
-        elif args.ssl_mode == 'alternating':
-            ssl_trainer = SelfSupervisedAlternatingTrainer
-        elif args.ssl_mode == 'contrastive':
-            ssl_trainer = SelfSupervisedTrainer
-        elif args.ssl_mode == 'philosophy':
-            ssl_trainer = PhilosophyTrainer
-            critic = globals()[args.critic_type](**args.critic_parameters)
-        trainer = ssl_trainer(model=model,
-                              model3d=model3d,
-                              critic=critic,
-                              args=args,
-                              metrics=metrics,
-                              main_metric=args.main_metric,
-                              main_metric_goal=args.main_metric_goal,
-                              optim=globals()[args.optimizer],
-                              loss_func=globals()[args.loss_func](**args.loss_params),
-                              critic_loss=globals()[args.critic_loss](**args.critic_loss_params),
-                              device=device,
-                              tensorboard_functions=tensorboard_functions,
-                              scheduler_step_per_batch=args.scheduler_step_per_batch)
-    else:
-        trainer = Trainer(model=model,
-                          args=args,
-                          metrics=metrics,
-                          main_metric=args.main_metric,
-                          main_metric_goal=args.main_metric_goal,
-                          optim=globals()[args.optimizer],
-                          loss_func=globals()[args.loss_func](**args.loss_params),
-                          device=device,
-                          tensorboard_functions=tensorboard_functions,
-                          scheduler_step_per_batch=args.scheduler_step_per_batch)
+    trainer = get_trainer(args=args,model=model,data=all_data,device=device,metrics=metrics)
     trainer.train(train_loader, val_loader)
-
     if args.eval_on_test:
         trainer.evaluation(test_loader, data_split='test')
 

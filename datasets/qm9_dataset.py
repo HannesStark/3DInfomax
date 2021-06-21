@@ -334,8 +334,7 @@ class QM9Dataset(Dataset):
             g = self.get_graph(idx, e_start, e_end, n_atoms).to(self.device)
             g.ndata['feat'] = self.features_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
-            if self.e_features_tensor != None:
-                g.edata['feat'] = self.e_features_tensor[e_start: e_end].to(self.device)
+            g.edata['feat'] = self.e_features_tensor[e_start: e_end].to(self.device)
             return g
         elif return_type == 'mol_graph3d':
             g = self.get_graph(idx, e_start, e_end, n_atoms).to(self.device)
@@ -347,15 +346,16 @@ class QM9Dataset(Dataset):
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
             g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2, dim=-1).unsqueeze(
                 -1)
-            if self.e_features_tensor != None:
-                bond_features = self.e_features_tensor[e_start: e_end].to(self.device)
-                e_features = torch.zeros((n_atoms * n_atoms, bond_features.shape[1]), dtype=torch.long,
-                                         device=self.device)
-                edge_indices = self.edge_indices[:, e_start: e_end]
-                bond_indices = edge_indices[0] * n_atoms + edge_indices[1]
-                e_features[bond_indices] = bond_features
-                src, dst = self.get_pairwise(n_atoms)
-                g.edata['feat'] = e_features[src * n_atoms + dst]
+
+            # set edge features with padding for virtual edges
+            bond_features = self.e_features_tensor[e_start: e_end].to(self.device)
+            e_features = torch.zeros((n_atoms * n_atoms, bond_features.shape[1]), dtype=torch.long,
+                                     device=self.device)
+            edge_indices = self.edge_indices[:, e_start: e_end]
+            bond_indices = edge_indices[0] * n_atoms + edge_indices[1]
+            e_features[bond_indices] = bond_features
+            src, dst = self.get_pairwise(n_atoms)
+            g.edata['feat'] = e_features[src * n_atoms + dst]
             if self.dist_embedding:
                 g.edata['d_rbf'] = self.dist_embedder(g.edata['feat']).to(self.device)
             return g
