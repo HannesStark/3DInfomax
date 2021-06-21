@@ -17,6 +17,8 @@ metrics:
   - pearsonr
   - rsquared
   - mean_predictor_loss
+main_metric: ogb_molhiv
+main_metric_goal: max
 
 optimizer: Adam
 optimizer_params:
@@ -32,7 +34,7 @@ lr_scheduler_params:
   factor: 0.5
   patience: 25
   min_lr: 5.0e-6
-  mode: 'min'
+  mode: 'max'
   verbose: True
 
 model_type: 'PNA'
