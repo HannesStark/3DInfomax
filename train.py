@@ -174,6 +174,7 @@ def train_geom(args, device, metrics_dict):
     test_idx = all_idx[len(model_idx): len(model_idx) + int(0.1 * len(all_data))]
     val_idx = all_idx[len(model_idx) + len(test_idx):]
     train_idx = model_idx[:args.num_train]
+    ic(len(train_idx))
     # for debugging purposes:
     # test_idx = all_idx[len(model_idx): len(model_idx) + 200]
     # val_idx = all_idx[len(model_idx) + len(test_idx): len(model_idx) + len(test_idx) + 3000]
@@ -228,8 +229,7 @@ def train_geom(args, device, metrics_dict):
     # Needs "from torch.optim import *" and "from models import *" to work
     if args.model3d_type:
         model3d = globals()[args.model3d_type](
-            node_dim=all_data[0][1].ndata['feat'].shape[1] if isinstance(all_data[0][1], dgl.DGLGraph) else
-            all_data[0][1].shape[-1],
+            node_dim=0, # 3d model has no input node features
             edge_dim=all_data[0][1].edata['d'].shape[
                 1] if args.use_e_features and isinstance(all_data[0][1], dgl.DGLGraph) else 0,
             avg_d=all_data.avg_degree,
@@ -392,7 +392,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/1.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/4.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')

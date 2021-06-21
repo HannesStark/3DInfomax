@@ -205,7 +205,6 @@ class QM9Dataset(Dataset):
         data_dict = torch.load(os.path.join(self.qm9_directory, 'processed', self.processed_file))
 
         self.features_tensor = data_dict['atom_features']
-        self.features3d_tensor = torch.ones_like(data_dict['atomic_number_long'], dtype=torch.long)
 
         self.e_features_tensor = data_dict['edge_features']
         self.coordinates = data_dict['coordinates']
@@ -237,16 +236,16 @@ class QM9Dataset(Dataset):
             print(
                 'Load complete graphs into memory (set prefetch_graphs to False to load them on the fly => slower training)')
             self.complete_graphs = []
-            for idx in tqdm(range(len(self.meta_dict['edge_slices']) - 1)):
-                src, dst = self.get_pairwise(self.meta_dict['n_atoms'][idx])
+            for idx, n_atoms in tqdm(enumerate(self.meta_dict['n_atoms'])):
+                src, dst = self.get_pairwise(n_atoms)
                 self.complete_graphs.append(dgl.graph((src, dst)))
         if self.prefetch_graphs and (
                 'mol_complete_graph' in self.return_types or 'mol_complete_graph3d' in self.return_types):
             print(
                 'Load mol_complete_graph graphs into memory (set prefetch_graphs to False to load them on the fly => slower training)')
             self.mol_complete_graphs = []
-            for idx in tqdm(range(len(self.meta_dict['edge_slices']) - 1)):
-                src, dst = self.get_pairwise(self.meta_dict['n_atoms'][idx])
+            for idx, n_atoms in tqdm(enumerate(self.meta_dict['n_atoms'])):
+                src, dst = self.get_pairwise(n_atoms)
                 self.mol_complete_graphs.append(
                     dgl.heterograph({('atom', 'bond', 'atom'): (src, dst), ('atom', 'complete', 'atom'): (src, dst)}))
         print('Finish loading data into memory')
@@ -340,7 +339,6 @@ class QM9Dataset(Dataset):
             return g
         elif return_type == 'mol_graph3d':
             g = self.get_graph(idx, e_start, e_end, n_atoms).to(self.device)
-            g.ndata['feat'] = self.features3d_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
             return g
         elif return_type == 'complete_graph':  # complete graph without self loops
@@ -363,7 +361,6 @@ class QM9Dataset(Dataset):
             return g
         elif return_type == 'complete_graph3d':
             g = self.get_complete_graph(idx, n_atoms).to(self.device)
-            g.ndata['feat'] = self.features3d_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
             g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2, dim=-1).unsqueeze(
                 -1)
@@ -405,9 +402,6 @@ class QM9Dataset(Dataset):
             if self.transform:
                 x = self.transform(x)
             g.ndata['x'] = x
-            g.ndata['feat'] = self.features3d_tensor[start: start + n_atoms].to(self.device)[
-                ..., None] if return_type == 'se3Transformer_graph3d' else \
-                self.features_tensor[start: start + n_atoms].to(self.device)[..., None]
             edge_indices = self.edge_indices[:, e_start: e_end].to(self.device)
             g.edata['d'] = x[edge_indices[0]] - x[edge_indices[1]]
             if self.e_features_tensor != None and return_type == 'se3Transformer_graph':

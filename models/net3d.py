@@ -22,19 +22,6 @@ class Net3D(nn.Module):
                  message_net_layers=2, **kwargs):
         super(Net3D, self).__init__()
         self.fourier_encodings = fourier_encodings
-        self.input = MLP(
-            in_dim=node_dim,
-            hidden_size=hidden_dim,
-            out_dim=hidden_dim,
-            mid_batch_norm=batch_norm,
-            last_batch_norm=batch_norm,
-            batch_norm_momentum=batch_norm_momentum,
-            layers=1,
-            mid_activation=activation,
-            dropout=dropout,
-            last_activation=activation,
-        )
-
         edge_in_dim = 1 if fourier_encodings == 0 else 2 * fourier_encodings + 1
         self.edge_input = MLP(
             in_dim=edge_in_dim,
@@ -48,10 +35,31 @@ class Net3D(nn.Module):
             dropout=dropout,
             last_activation=activation,
         )
+
+        self.node_dim = node_dim
+        if self.node_dim > 0:
+            self.input = MLP(
+                in_dim=node_dim,
+                hidden_size=hidden_dim,
+                out_dim=hidden_dim,
+                mid_batch_norm=batch_norm,
+                last_batch_norm=batch_norm,
+                batch_norm_momentum=batch_norm_momentum,
+                layers=1,
+                mid_activation=activation,
+                dropout=dropout,
+                last_activation=activation,
+            )
+        else:
+            self.node_embedding = nn.Parameter(torch.empty((hidden_dim,)))
+            nn.init.normal_(self.node_embedding)
+
+
+
         self.mp_layers = nn.ModuleList()
         for _ in range(propagation_depth):
             self.mp_layers.append(
-                Net3DLayer(node_dim, edge_dim=hidden_dim, hidden_dim=hidden_dim, batch_norm=batch_norm,
+                Net3DLayer(edge_dim=hidden_dim, hidden_dim=hidden_dim, batch_norm=batch_norm,
                            batch_norm_momentum=batch_norm_momentum,
                            dropout=dropout,
                            mid_activation=activation, reduce_func=reduce_func, message_net_layers=message_net_layers,
@@ -71,8 +79,8 @@ class Net3D(nn.Module):
                 dropout=dropout,
                 last_activation='None',
             )
-        self.node_embedding = nn.Parameter(torch.empty((hidden_dim,)))
-        nn.init.normal_(self.node_embedding)
+
+
         if readout_hidden_dim == None:
             readout_hidden_dim = hidden_dim
         self.readout_aggregators = readout_aggregators
@@ -83,7 +91,10 @@ class Net3D(nn.Module):
                           layers=readout_layers)
 
     def forward(self, graph: dgl.DGLGraph):
-        graph.ndata['feat'] = self.node_embedding[None,:].expand(graph.number_of_nodes(), -1)
+        if self.node_dim > 0:
+            graph.apply_nodes(self.input_node_func)
+        else:
+            graph.ndata['feat'] = self.node_embedding[None,:].expand(graph.number_of_nodes(), -1)
 
         if self.fourier_encodings > 0:
             graph.edata['d'] = fourier_encode_dist(graph.edata['d'], num_encodings=self.fourier_encodings)
@@ -110,7 +121,7 @@ class Net3D(nn.Module):
 
 
 class Net3DLayer(nn.Module):
-    def __init__(self, node_dim, edge_dim, reduce_func, hidden_dim, batch_norm, batch_norm_momentum, dropout,
+    def __init__(self, edge_dim, reduce_func, hidden_dim, batch_norm, batch_norm_momentum, dropout,
                  mid_activation, message_net_layers, update_net_layers):
         super(Net3DLayer, self).__init__()
         self.message_network = MLP(
