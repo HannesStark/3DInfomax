@@ -1,14 +1,31 @@
 experiment_name: 'edge_feat_correctLR_scheduling'
 
 num_epochs: 1000
-batch_size: 100
-prefetch_graphs: False
+batch_size: 128
+prefetch_graphs: True
 log_iterations: 30
 patience: 50
 num_train: 500000
 loss_func: L1Loss
 targets:
   - homo
+features:
+  - 'implicit-valence'
+  - 'degree'
+  - 'hybridization'
+  - 'chirality'
+  - 'mass'
+  - 'electronegativity'
+  - 'aromatic-bond'
+  - 'formal-charge'
+  - 'radical-electron'
+  - 'in-ring'
+  - 'atomic-number'
+e_features:
+  - 'bond-type-onehot'
+  - 'stereo'
+  - 'conjugated'
+  - 'in-ring-edges'
 required_data:
   - complete_graph
   - targets

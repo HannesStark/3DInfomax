@@ -85,7 +85,7 @@ class Trainer():
             self.model.eval()
             with torch.no_grad():
                 val_loss, val_predictions, val_targets = self.predict(val_loader, epoch)
-                metrics = self.evaluate_metrics(val_predictions, val_targets, val=True)
+                metrics = self.evaluate_metrics(val_predictions, val_targets.float(), val=True)
                 self.run_tensorboard_functions(val_predictions, val_targets, step=self.optim_steps, data_split='val')
 
                 val_score = metrics[self.main_metric]
@@ -154,7 +154,7 @@ class Trainer():
             loss, predictions, targets = self.process_batch(batch, optim)
             with torch.no_grad():
                 if self.optim_steps % args.log_iterations == 0 and optim != None:  # log every log_iterations during train
-                    metrics_results = self.evaluate_metrics(predictions, targets)
+                    metrics_results = self.evaluate_metrics(predictions, targets.float())
                     metrics_results[type(self.loss_func).__name__] = loss.item()
                     self.run_tensorboard_functions(predictions, targets, step=self.optim_steps, data_split='train')
                     self.tensorboard_log(metrics_results, data_split='train', step=self.optim_steps, epoch=epoch)
@@ -179,8 +179,8 @@ class Trainer():
         metric_results = {}
         metric_results[f'mean_pred'] = torch.mean(predictions).item()
         metric_results[f'std_pred'] = torch.std(predictions).item()
-        metric_results[f'mean_targets'] = torch.mean(targets.float()).item()
-        metric_results[f'std_targets'] = torch.std(targets.float()).item()
+        metric_results[f'mean_targets'] = torch.mean(targets).item()
+        metric_results[f'std_targets'] = torch.std(targets).item()
         for key, metric in self.metrics.items():
             if not hasattr(metric, 'val_only') or val:
                 metric_results[key] = metric(predictions, targets).item()

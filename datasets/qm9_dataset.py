@@ -349,8 +349,8 @@ class QM9Dataset(Dataset):
 
             # set edge features with padding for virtual edges
             bond_features = self.e_features_tensor[e_start: e_end].to(self.device)
-            e_features = torch.zeros((n_atoms * n_atoms, bond_features.shape[1]), dtype=torch.long,
-                                     device=self.device)
+            e_features = torch.full((n_atoms * n_atoms, bond_features.shape[1]), fill_value=200, dtype=torch.long,
+                                     device=self.device) # 200 is the padding_index of the embedding layer
             edge_indices = self.edge_indices[:, e_start: e_end]
             bond_indices = edge_indices[0] * n_atoms + edge_indices[1]
             e_features[bond_indices] = bond_features

@@ -87,13 +87,13 @@ class OGBEvaluator(nn.Module):
     def __init__(self, d_name):
         super().__init__()
         self.evaluator = Evaluator(name=d_name)
-        self.val_only = True
+        #self.val_only = True
 
     def forward(self, preds, targets):
         if preds.shape[1] > 1:
             return torch.tensor(float('NaN'))
         input_dict = {"y_true": targets, "y_pred": preds}
-        return torch.tensor(self.evaluator.eval(input_dict))
+        return torch.tensor(self.evaluator.eval(input_dict)['rocauc'])
 
 
 class Rsquared(nn.Module):
