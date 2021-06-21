@@ -1,4 +1,4 @@
-experiment_name: 'baseline'
+experiment_name: 'geom_qm9_baseline'
 
 dataset: 'geom_qm9'
 num_epochs: 1000

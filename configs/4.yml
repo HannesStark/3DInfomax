@@ -1,4 +1,4 @@
-experiment_name: 'NTXent_tiny_20hidden'
+experiment_name: 'drugs_NTXent_tiny_20hidden'
 
 dataset: 'drugs'
 num_epochs: 1000
