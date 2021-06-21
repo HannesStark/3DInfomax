@@ -33,7 +33,7 @@ class EGNNEdges(nn.Module):
         self.mp_layers = nn.ModuleList()
         for _ in range(propagation_depth):
             self.mp_layers.append(
-                EGCEdgeLayer(node_dim, edge_dim=edge_dim, hidden_dim=hidden_dim, batch_norm=batch_norm, batch_norm_momentum = batch_norm_momentum, dropout=dropout,
+                EGCEdgeLayer(node_dim, edge_dim=hidden_dim, hidden_dim=hidden_dim, batch_norm=batch_norm, batch_norm_momentum = batch_norm_momentum, dropout=dropout,
                          mid_activation=mid_activation, reduce_func=reduce_func))
 
         self.node_wise_output_network = MLP(
@@ -58,7 +58,7 @@ class EGNNEdges(nn.Module):
                           out_dim=target_dim,
                           layers=readout_layers)
         self.atom_encoder = AtomEncoder(emb_dim=hidden_dim)
-        self.bond_encoder = BondEncoder(emb_dim=hidden_dim, padding_idx=200)
+        self.bond_encoder = BondEncoder(emb_dim=hidden_dim, padding_idx=-1)
 
     def forward(self, graph: dgl.DGLGraph):
         graph.ndata['feat'] = self.atom_encoder(graph.ndata['feat'])

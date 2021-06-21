@@ -1,2 +1,2 @@
 # continue training from checkpoint:
-checkpoint: runs/PNA_tune_NTXent_2Layer_3DNet_10hidden_19-06_06-28-42/last_checkpoint.pt
+checkpoint: runs/PNA_NTXent_tiny_20hidden_20-06_19-00-00/last_checkpoint.pt
