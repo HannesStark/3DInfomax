@@ -5,10 +5,10 @@ import torch
 import numpy as np
 from functools import partial
 
-from ogb.graphproppred.mol_encoder import AtomEncoder, BondEncoder
 from torch import nn
 import torch.nn.functional as F
 
+from commons.mol_encoder import AtomEncoder, BondEncoder
 from models.base_layers import MLP
 
 EPS = 1e-5
