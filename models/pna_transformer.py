@@ -88,7 +88,7 @@ PNA_SCALERS = {
 }
 
 
-class PNA(nn.Module):
+class PNAasdasdf(nn.Module):
     """
     Message Passing Neural Network that does not use 3D information
     """
@@ -116,7 +116,7 @@ class PNA(nn.Module):
                  pretrans_layers: int = 1,
                  batch_norm_momentum=0.1,
                  **kwargs):
-        super(PNA, self).__init__()
+        super(PNAasdasdf, self).__init__()
         self.node_gnn = PNAGNN(node_dim=node_dim,
                                edge_dim=edge_dim,
                                hidden_dim=hidden_dim,

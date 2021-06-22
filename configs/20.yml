@@ -22,7 +22,7 @@ optimizer_params:
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [1500]
+  warmup_steps: [0]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
@@ -53,9 +53,6 @@ model_parameters:
     - amplification
     - attenuation
   readout_aggregators:
-    - min
-    - max
-    - mean
     - sum
   pretrans_layers: 1
   posttrans_layers: 1

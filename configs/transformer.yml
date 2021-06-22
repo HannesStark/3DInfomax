@@ -11,8 +11,9 @@ targets:
   - homo
 
 required_data:
-  - nodes
+  - raw_features
   - targets
+  - n_atoms
 metrics:
   - mae_denormalized
 
@@ -38,10 +39,12 @@ lr_scheduler_params:
   mode: 'min'
   verbose: True
 
-model_type: 'Transformer'
+model_type: 'TransformerPlain'
 model_parameters:
   target_dim: 1
-  hidden_dim: 128
+  hidden_dim: 64
+  nhead: 4
+  dim_feedforward: 1024
   dropout: 0.0
   propagation_depth: 6
 

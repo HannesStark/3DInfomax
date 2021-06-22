@@ -14,7 +14,7 @@ from models.base_layers import MLP
 EPS = 1e-5
 
 
-class Transformer(nn.Module):
+class TransformerPlain(nn.Module):
     """
     Message Passing Neural Network that does not use 3D information
     """
@@ -26,25 +26,23 @@ class Transformer(nn.Module):
                  dropout,
                  nhead,
                  dim_feedforward,
-                 readout_aggregators: List[str],
                  readout_batchnorm: bool = True,
                  readout_hidden_dim=None,
                  activation: str = 'relu',
                  readout_layers: int = 2,
                  batch_norm_momentum=0.1,
                  **kwargs):
-        super(Transformer, self).__init__()
+        super(TransformerPlain, self).__init__()
         self.node_gnn = TransformerGNN(node_dim=node_dim, hidden_dim=hidden_dim, dim_feedforward=dim_feedforward,
                                        nhead=nhead, dropout=dropout, activation=activation)
         if readout_hidden_dim == None:
             readout_hidden_dim = hidden_dim
-        self.readout_aggregators = readout_aggregators
-        self.output = MLP(in_dim=hidden_dim * len(self.readout_aggregators), hidden_size=readout_hidden_dim,
+        self.output = MLP(in_dim=hidden_dim, hidden_size=readout_hidden_dim,
                           mid_batch_norm=readout_batchnorm, out_dim=target_dim,
                           layers=readout_layers, batch_norm_momentum=batch_norm_momentum)
 
-    def forward(self, nodes):
-        emb = self.node_gnn(nodes)
+    def forward(self, h, mask):
+        emb = self.node_gnn(h, mask)
         return self.output(emb)
 
 
@@ -69,5 +67,15 @@ class TransformerGNN(nn.Module):
         self.atom_encoder = AtomEncoder(emb_dim=hidden_dim)
         self.bond_encoder = BondEncoder(emb_dim=hidden_dim)
 
-    def forward(self, nodes):
-        pass
+    def forward(self, h, mask):
+        batch_size, max_num_atoms, _ = h.size()
+        h = self.atom_encoder(h.view(-1, h.shape[-1]))
+        h = h.view(batch_size, max_num_atoms, -1)  # [batch_size, max_num_atoms, hidden_dim]
+        ic(h.shape)
+        ic(mask.shape)
+        h_in = h
+
+        for mp_layer in self.mp_layers:
+            h = mp_layer(h, src_key_padding_mask=mask)
+
+        return h

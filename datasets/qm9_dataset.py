@@ -152,7 +152,7 @@ class QM9Dataset(Dataset):
                                     'raw_features', 'coordinates',
                                     'dist_embedding',
                                     'mol_id', 'targets',
-                                    'one_hot_bond_types', 'edge_indices', 'smiles', 'atomic_number_long']
+                                    'one_hot_bond_types', 'edge_indices', 'smiles', 'atomic_number_long', 'n_atoms']
         self.qm9_directory = 'dataset/QM9'
         self.processed_file = 'qm9_processed.pt'
         self.distances_file = 'qm9_distances.pt'
@@ -414,6 +414,8 @@ class QM9Dataset(Dataset):
             return g
         elif return_type == 'raw_features':
             return self.features_tensor[start: start + n_atoms]
+        elif return_type == 'n_atoms':
+            return self.meta_dict['n_atoms'][start: start + n_atoms]
         elif return_type == 'coordinates':
             return self.coordinates[start: start + n_atoms]
         elif return_type == 'mol_id':

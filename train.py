@@ -38,10 +38,11 @@ from torch.utils.data import DataLoader, Subset
 
 from trainer.metrics import QM9DenormalizedL1, QM9DenormalizedL2, \
     QM9SingleTargetDenormalizedL1, Rsquared, NegativeSimilarity, MeanPredictorLoss, \
-     PositiveSimilarity, ContrastiveAccuracy, TrueNegativeRate, TruePositiveRate, Alignment, Uniformity, \
+    PositiveSimilarity, ContrastiveAccuracy, TrueNegativeRate, TruePositiveRate, Alignment, Uniformity, \
     BatchVariance, DimensionCovariance, MAE, PositiveSimilarityMultiplePositivesSeparate2d, \
     NegativeSimilarityMultiplePositivesSeparate2d, OGBEvaluator
 from trainer.trainer import Trainer
+
 
 def get_trainer(args, model, data, device, metrics):
     tensorboard_functions = {function: TENSORBOARD_FUNCTIONS[function] for function in args.tensorboard_functions}
@@ -91,11 +92,16 @@ def get_trainer(args, model, data, device, metrics):
 
 
 def load_model(args, data, device):
-    try:
-        edge_dim = data[0][0].edata['feat'].shape[1] if args.use_e_features else 0
-    except:
-        edge_dim = data[0][0].edges['bond'].data['feat'].shape[1] if args.use_e_features else 0
-    model = globals()[args.model_type](node_dim=data[0][0].ndata['feat'].shape[1],
+    if isinstance(data[0][0], dgl.DGLGraph):
+        node_dim = data[0][0].ndata['feat'].shape[1]
+        try:
+            edge_dim = data[0][0].edata['feat'].shape[1] if args.use_e_features else 0
+        except:
+            edge_dim = data[0][0].edges['bond'].data['feat'].shape[1] if args.use_e_features else 0
+    else:
+        node_dim = data[0][0].shape[1]
+        edge_dim = None
+    model = globals()[args.model_type](node_dim=node_dim,
                                        edge_dim=edge_dim,
                                        avg_d=data.avg_degree if hasattr(data, 'avg_degree') else 1,
                                        **args.model_parameters)
@@ -117,6 +123,7 @@ def load_model(args, data, device):
         model.load_state_dict(model_state_dict)
         return model, pretrain_args.num_train
     return model, None
+
 
 def train(args):
     seed_all(args.seed)
@@ -164,7 +171,7 @@ def train_molhiv(args, device, metrics_dict):
         args.collate_function](**args.collate_params)
 
     metrics = {metric: metrics_dict[metric] for metric in args.metrics}
-    trainer = get_trainer(args=args,model=model,data=dataset, device=device,metrics=metrics)
+    trainer = get_trainer(args=args, model=model, data=dataset, device=device, metrics=metrics)
     trainer.train(train_loader, val_loader)
 
     if args.eval_on_test:
@@ -190,7 +197,7 @@ def train_zinc(args, device, metrics_dict):
     test_loader = DataLoader(test_data, batch_size=args.batch_size, collate_fn=collate_function)
 
     metrics = {metric: metrics_dict[metric] for metric in args.metrics}
-    trainer = get_trainer(args=args,model=model,data=all_data,device=device,metrics=metrics)
+    trainer = get_trainer(args=args, model=model, data=all_data, device=device, metrics=metrics)
     trainer.train(train_loader, val_loader)
 
     if args.eval_on_test:
@@ -235,11 +242,12 @@ def train_geom(args, device, metrics_dict):
         metrics_dict.update({'mae_denormalized': QM9DenormalizedL1(dataset=all_data),
                              'mse_denormalized': QM9DenormalizedL2(dataset=all_data)})
     metrics = {metric: metrics_dict[metric] for metric in args.metrics}
-    trainer = get_trainer(args=args,model=model,data=all_data,device=device,metrics=metrics)
+    trainer = get_trainer(args=args, model=model, data=all_data, device=device, metrics=metrics)
     trainer.train(train_loader, val_loader)
 
     if args.eval_on_test:
         trainer.evaluation(test_loader, data_split='test')
+
 
 def train_qm9(args, device, metrics_dict):
     all_data = QM9Dataset(return_types=args.required_data,
@@ -282,7 +290,7 @@ def train_qm9(args, device, metrics_dict):
         metrics.update(
             {task: QM9SingleTargetDenormalizedL1(dataset=all_data, task=task) for task in all_data.target_tasks})
 
-    trainer = get_trainer(args=args,model=model,data=all_data,device=device,metrics=metrics)
+    trainer = get_trainer(args=args, model=model, data=all_data, device=device, metrics=metrics)
     trainer.train(train_loader, val_loader)
     if args.eval_on_test:
         trainer.evaluation(test_loader, data_split='test')
@@ -290,7 +298,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/pna.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/transformer.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
