@@ -1,18 +1,18 @@
-experiment_name: 'tune_geom_qm9_NTXent_ogb_featurization'
+experiment_name: 'tune_drugs_NTXent_ogb'
 
-pretrain_checkpoint: runs/PNA_geom_qm9_NTXent_ogb_featurization_21-06_08-40-11/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_drugs_NTXent_ogb_21-06_09-27-02/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
   - batch_norm
 
-dataset: 'geom_qm9'
+dataset: 'drugs'
 num_epochs: 1000
 batch_size: 128
 prefetch_graphs: True
 log_iterations: 30
 patience: 30
-num_train: 50000
+num_train: 120000
 loss_func: L1Loss
 targets:
   - ensemblefreeenergy
@@ -22,9 +22,7 @@ required_data:
   - targets
 metrics:
   - mae_denormalized
-
   - rsquared
-
 optimizer: Adam
 optimizer_params:
   lr: 7.0e-5
