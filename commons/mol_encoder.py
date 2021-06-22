@@ -7,13 +7,13 @@ full_bond_feature_dims = get_bond_feature_dims()
 
 class AtomEncoder(torch.nn.Module):
 
-    def __init__(self, emb_dim, padding_idx=None):
+    def __init__(self, emb_dim, pad_last_idx=False):
         super(AtomEncoder, self).__init__()
 
         self.atom_embedding_list = torch.nn.ModuleList()
 
         for i, dim in enumerate(full_atom_feature_dims):
-            if padding_idx:
+            if pad_last_idx:
                 emb = torch.nn.Embedding(dim + 1, emb_dim, padding_idx=dim)
             else:
                 emb = torch.nn.Embedding(dim, emb_dim)
@@ -30,13 +30,13 @@ class AtomEncoder(torch.nn.Module):
 
 class BondEncoder(torch.nn.Module):
 
-    def __init__(self, emb_dim, padding_idx=None):
+    def __init__(self, emb_dim, pad_last_idx=False):
         super(BondEncoder, self).__init__()
 
         self.bond_embedding_list = torch.nn.ModuleList()
 
         for i, dim in enumerate(full_bond_feature_dims):
-            if padding_idx:
+            if pad_last_idx:
                 emb = torch.nn.Embedding(dim +1, emb_dim, padding_idx=dim)
             else:
                 emb = torch.nn.Embedding(dim, emb_dim)

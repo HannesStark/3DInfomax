@@ -119,7 +119,7 @@ class Trainer():
     def forward_pass(self, batch):
         targets = batch[-1]  # the last entry of the batch tuple is always the targets
         predictions = self.model(*tuple(batch[:-1]))  # foward the rest of the batch to the model
-        return self.loss_func(predictions, targets), predictions, targets
+        return self.loss_func(predictions, targets.float()), predictions, targets
 
     def process_batch(self, batch, optim):
         loss, predictions, targets = self.forward_pass(batch)

@@ -5,7 +5,7 @@ num_epochs: 1000
 batch_size: 128
 log_iterations: 30
 patience: 30
-loss_func: L1Loss
+loss_func: BCEWithLogitsLoss
 metrics:
   - ogb_molhiv
   - pearsonr

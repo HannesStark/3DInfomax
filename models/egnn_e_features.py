@@ -58,7 +58,7 @@ class EGNNEdges(nn.Module):
                           out_dim=target_dim,
                           layers=readout_layers)
         self.atom_encoder = AtomEncoder(emb_dim=hidden_dim)
-        self.bond_encoder = BondEncoder(emb_dim=hidden_dim, padding_idx=-1)
+        self.bond_encoder = BondEncoder(emb_dim=hidden_dim, pad_last_idx=-1)
 
     def forward(self, graph: dgl.DGLGraph):
         graph.ndata['feat'] = self.atom_encoder(graph.ndata['feat'])
