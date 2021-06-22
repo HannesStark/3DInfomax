@@ -17,7 +17,7 @@ main_metric_goal: max
 optimizer: Adam
 optimizer_params:
   lr: 0.01
-  weight_decay: 3e-6
+  weight_decay: 3.0e-6
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
