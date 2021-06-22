@@ -36,9 +36,9 @@ from datasets.samplers import *  # do not remove
 from datasets.qm9_dataset import QM9Dataset
 from torch.utils.data import DataLoader, Subset
 
-from trainer.metrics import QM9DenormalizedL1, QM9DenormalizedL2, pearsonr, \
+from trainer.metrics import QM9DenormalizedL1, QM9DenormalizedL2, \
     QM9SingleTargetDenormalizedL1, Rsquared, NegativeSimilarity, MeanPredictorLoss, \
-    F1Contrastive, PositiveSimilarity, ContrastiveAccuracy, TrueNegativeRate, TruePositiveRate, Alignment, Uniformity, \
+     PositiveSimilarity, ContrastiveAccuracy, TrueNegativeRate, TruePositiveRate, Alignment, Uniformity, \
     BatchVariance, DimensionCovariance, MAE, PositiveSimilarityMultiplePositivesSeparate2d, \
     NegativeSimilarityMultiplePositivesSeparate2d, OGBEvaluator
 from trainer.trainer import Trainer
