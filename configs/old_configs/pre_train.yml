@@ -33,7 +33,7 @@ required_data:
   - pairwise_distances_squared
 metrics:
   - mae
-  - pearsonr
+
   - rsquared
 main_metric: loss
 collate_function: pairwise_distance_collate

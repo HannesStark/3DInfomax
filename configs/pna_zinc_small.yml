@@ -9,7 +9,7 @@ dataset: zinc
 loss_func: L1Loss
 
 metrics:
-  - pearsonr
+
   - rsquared
   - mean_predictor_loss
   - mae

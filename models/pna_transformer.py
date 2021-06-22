@@ -197,7 +197,7 @@ class PNAGNN(nn.Module):
         self.mp_layers = nn.ModuleList()
 
         for _ in range(propagation_depth):
-            self.mp_layers.append(PNALayer(in_dim=hidden_dim,
+            self.mp_layers.append(PNATransformerLayer(in_dim=hidden_dim,
                                            out_dim=int(hidden_dim),
                                            in_dim_edges=hidden_dim,
                                            aggregators=aggregators,
@@ -262,7 +262,6 @@ class PNATransformerLayer(nn.Module):
         if in_dim != out_dim:
             self.residual = False
 
-        TransformerEncoderLayer
 
         self.pretrans = MLP(
             in_dim=(2 * in_dim + in_dim_edges + 1) if self.pairwise_distances else (2 * in_dim + in_dim_edges),

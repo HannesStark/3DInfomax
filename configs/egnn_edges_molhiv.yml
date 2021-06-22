@@ -10,7 +10,7 @@ num_train: 500000
 loss_func: L1Loss
 metrics:
   - mae_denormalized
-  - pearsonr
+
   - rsquared
   - qm9_properties
   - mean_predictor_loss

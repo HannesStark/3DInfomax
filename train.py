@@ -121,15 +121,13 @@ def load_model(args, data, device):
 def train(args):
     seed_all(args.seed)
     device = torch.device("cuda:0" if torch.cuda.is_available() and args.device == 'cuda' else "cpu")
-    metrics_dict = {'pearsonr': pearsonr,
-                    'rsquared': Rsquared(),
+    metrics_dict = {'rsquared': Rsquared(),
                     'mae': MAE(),
                     'ogb_molhiv': OGBEvaluator(d_name='ogbg-molhiv'),
                     'positive_similarity': PositiveSimilarity(),
                     'positive_similarity_multiple_positives_separate2d': PositiveSimilarityMultiplePositivesSeparate2d(),
                     'negative_similarity': NegativeSimilarity(),
                     'negative_similarity_multiple_positives_separate2d': NegativeSimilarityMultiplePositivesSeparate2d(),
-                    'f1_contrastive': F1Contrastive(threshold=0.5009, device=device),
                     'contrastive_accuracy': ContrastiveAccuracy(threshold=0.5009),
                     'true_negative_rate': TrueNegativeRate(threshold=0.5009),
                     'true_positive_rate': TruePositiveRate(threshold=0.5009),
@@ -292,7 +290,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/pna_molhiv.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/pna.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')

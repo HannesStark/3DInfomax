@@ -16,7 +16,7 @@ dist_embedding: True
 
 metrics:
   - mae_denormalized
-  - pearsonr
+
   - rsquared
   - qm9_properties
 use_edge_features: False

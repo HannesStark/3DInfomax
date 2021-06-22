@@ -16,7 +16,7 @@ required_data:
   - targets
 metrics:
   - mae_denormalized
-  - pearsonr
+
   - rsquared
   - mean_predictor_loss
 

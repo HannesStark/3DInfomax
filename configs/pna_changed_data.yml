@@ -33,7 +33,7 @@ required_data:
   - targets
 metrics:
   - mae_denormalized
-  - pearsonr
+
   - rsquared
   - qm9_properties
   - mean_predictor_loss

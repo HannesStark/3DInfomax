@@ -29,7 +29,7 @@ required_data:
   - dist_embedding
 metrics:
   - mae
-  - pearsonr
+
   - rsquared
 main_metric: mae
 collate_function: pairwise_distance_collate
