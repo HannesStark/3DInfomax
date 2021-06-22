@@ -35,6 +35,11 @@ class TransformerPlain(nn.Module):
         super(TransformerPlain, self).__init__()
         self.node_gnn = TransformerGNN(node_dim=node_dim, hidden_dim=hidden_dim, dim_feedforward=dim_feedforward,
                                        nhead=nhead, dropout=dropout, activation=activation)
+
+        self.readout_query = nn.Parameter(torch.empty((hidden_dim,)))
+        nn.init.normal_(self.readout_query)
+        self.readout_attention = nn.MultiheadAttention(hidden_dim, num_heads=nhead, dropout=dropout, batch_first=True)
+
         if readout_hidden_dim == None:
             readout_hidden_dim = hidden_dim
         self.output = MLP(in_dim=hidden_dim, hidden_size=readout_hidden_dim,
@@ -42,8 +47,12 @@ class TransformerPlain(nn.Module):
                           layers=readout_layers, batch_norm_momentum=batch_norm_momentum)
 
     def forward(self, h, mask):
-        emb = self.node_gnn(h, mask)
-        return self.output(emb)
+        batch_size, max_num_atoms, _ = h.size()
+        h = self.node_gnn(h, mask)
+
+        readout_query = self.readout_query[None, None, :].expand((batch_size, -1, -1))
+        pooled, attention_weights = self.readout_attention(readout_query, h, h, key_padding_mask=mask)
+        return self.output(pooled)
 
 
 class TransformerGNN(nn.Module):
@@ -71,11 +80,8 @@ class TransformerGNN(nn.Module):
         batch_size, max_num_atoms, _ = h.size()
         h = self.atom_encoder(h.view(-1, h.shape[-1]))
         h = h.view(batch_size, max_num_atoms, -1)  # [batch_size, max_num_atoms, hidden_dim]
-        ic(h.shape)
-        ic(mask.shape)
         h_in = h
 
         for mp_layer in self.mp_layers:
             h = mp_layer(h, src_key_padding_mask=mask)
-
         return h

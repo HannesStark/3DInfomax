@@ -155,7 +155,7 @@ def padded_collate(batch):
 
     # create mask corresponding to the zero padding used for the shorter sequences in the batch.
     # All values corresponding to padding are True and the rest is False.
-    n_atoms = torch.tensor([len(item[2]) for item in batch])
+    n_atoms = torch.tensor([len(item[0]) for item in batch])
     mask = torch.arange(features.shape[1])[None, :] >= n_atoms[:, None]  # [batch_size, n_atoms]
     return features, mask, target
 

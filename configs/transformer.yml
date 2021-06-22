@@ -13,7 +13,6 @@ targets:
 required_data:
   - raw_features
   - targets
-  - n_atoms
 metrics:
   - mae_denormalized
 
@@ -42,11 +41,11 @@ lr_scheduler_params:
 model_type: 'TransformerPlain'
 model_parameters:
   target_dim: 1
-  hidden_dim: 64
+  hidden_dim: 100
   nhead: 4
   dim_feedforward: 1024
   dropout: 0.0
-  propagation_depth: 6
+  propagation_depth: 10
 
 
 # continue training from checkpoint:

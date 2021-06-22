@@ -415,7 +415,7 @@ class QM9Dataset(Dataset):
         elif return_type == 'raw_features':
             return self.features_tensor[start: start + n_atoms]
         elif return_type == 'n_atoms':
-            return self.meta_dict['n_atoms'][start: start + n_atoms]
+            return self.meta_dict['n_atoms'][n_atoms]
         elif return_type == 'coordinates':
             return self.coordinates[start: start + n_atoms]
         elif return_type == 'mol_id':
