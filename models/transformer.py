@@ -70,7 +70,7 @@ class TransformerGNN(nn.Module):
         self.bond_encoder = BondEncoder(emb_dim=hidden_dim)
 
     def forward(self, nodes):
-
+        pass
 
 
 
