@@ -418,6 +418,14 @@ class QM9Dataset(Dataset):
             return self.meta_dict['n_atoms'][n_atoms]
         elif return_type == 'coordinates':
             return self.coordinates[start: start + n_atoms]
+        elif return_type == 'laplacian_encoding':
+            eig_vals = self.eig_vals[idx].to(self.device)
+            sign_flip = torch.rand(eig_vals.shape[0], device=self.device)
+            sign_flip[sign_flip >= 0.5] = 1.0
+            sign_flip[sign_flip < 0.5] = -1.0
+            eig_vecs = self.eig_vecs[start: start + n_atoms].to(self.device) * sign_flip.unsqueeze(0)
+            eig_vals = eig_vals.unsqueeze(0).repeat(n_atoms, 1)
+            retun = torch.stack([eig_vals, eig_vecs], dim=-1)
         elif return_type == 'mol_id':
             return self.meta_dict['mol_id'][idx]
         elif return_type == 'targets':

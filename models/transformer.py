@@ -46,7 +46,7 @@ class TransformerPlain(nn.Module):
                           mid_batch_norm=readout_batchnorm, out_dim=target_dim,
                           layers=readout_layers, batch_norm_momentum=batch_norm_momentum)
 
-    def forward(self, h, mask):
+    def forward(self, h, pos_enc, mask):
         batch_size, max_num_atoms, _ = h.size()
         h = self.node_gnn(h, mask)
 

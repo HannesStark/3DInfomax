@@ -159,6 +159,23 @@ def padded_collate(batch):
     mask = torch.arange(features.shape[1])[None, :] >= n_atoms[:, None]  # [batch_size, n_atoms]
     return features, mask, target
 
+def padded_collate_positional_encoding(batch):
+    """
+    Takes list of tuples with molecule features of variable sizes (different n_atoms) and pads them with zeros for processing as a sequence
+    Args:
+        batch: list of tuples with embeddings and the corresponding label
+    """
+
+    features = pad_sequence([item[0] for item in batch], batch_first=True)
+    pos_enc = pad_sequence([item[1] for item in batch], batch_first=True)
+    target = torch.stack([item[2] for item in batch])
+
+    # create mask corresponding to the zero padding used for the shorter sequences in the batch.
+    # All values corresponding to padding are True and the rest is False.
+    n_atoms = torch.tensor([len(item[0]) for item in batch])
+    mask = torch.arange(features.shape[1])[None, :] >= n_atoms[:, None]  # [batch_size, n_atoms]
+    return features, pos_enc, mask, target
+
 
 def padded_distances_collate(batch):
     """
