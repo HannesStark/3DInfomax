@@ -87,6 +87,7 @@ class Trainer():
                 val_loss, val_predictions, val_targets = self.predict(val_loader, epoch)
                 metrics = self.evaluate_metrics(val_predictions, val_targets.float(), val=True)
                 metrics[type(self.loss_func).__name__] = val_loss
+                ic(metrics)
                 self.run_tensorboard_functions(val_predictions, val_targets, step=self.optim_steps, data_split='val')
 
                 val_score = metrics[self.main_metric]
@@ -194,6 +195,7 @@ class Trainer():
         logs = {}
         for key, metric in metrics.items():
             metric_name = f'{key}/{data_split}'
+            ic(metric_name)
             logs[metric_name] = metric
             self.writer.add_scalar(metric_name, metric, step)
 

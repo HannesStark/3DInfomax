@@ -2,13 +2,11 @@ from typing import Union
 
 import torch
 from ogb.graphproppred import Evaluator
-from pytorch_lightning.metrics.utils import reduce
 from torch import Tensor
 from torch.nn import functional as F
 import torch.nn as nn
 import numpy as np
 
-from pytorch_lightning.metrics import F1
 
 from commons.losses import cov_loss, std_loss, uniformity_loss
 from datasets.geom_drugs_dataset import GEOMDrugs
@@ -240,27 +238,6 @@ class ContrastiveAccuracy(nn.Module):
         return (true_positives / num_positives + true_negatives / num_negatives) / 2
 
 
-class F1Contrastive(nn.Module):
-    def __init__(self, threshold=0.5, device='cuda') -> None:
-        super(F1Contrastive, self).__init__()
-        self.f1 = F1(num_classes=1, average='weighted', threshold=threshold).to(device)
-
-    def forward(self, x1: Tensor, x2: Tensor, pos_mask: Tensor = None) -> Tensor:
-        batch_size, _ = x1.size()
-        if x1.shape != x2.shape and pos_mask == None:  # if we have noisy samples our x2 has them appended at the end so we just take the non noised ones to calculate the similaritiy
-            x2 = x2[:batch_size]
-        sim_matrix = torch.einsum('ik,jk->ij', x1, x2)
-
-        x1_abs = x1.norm(dim=1)
-        x2_abs = x2.norm(dim=1)
-        sim_matrix = sim_matrix / torch.einsum('i,j->ij', x1_abs, x2_abs)
-        preds = (sim_matrix.view(-1) + 1) / 2
-        if pos_mask != None:  # if we are comparing local with global
-            targets = pos_mask.view(-1)
-        else:  # if we are comparing global with global
-            targets = torch.eye(batch_size, device=x1.device).view(-1)
-        return self.f1(preds, targets.long())
-
 
 class PositiveSimilarity(nn.Module):
     """
@@ -367,76 +344,3 @@ class MetricFunctionToClass(nn.Module):
                 preds: torch.Tensor,
                 target: torch.Tensor, ):
         return self.function(preds=preds, target=target, **self.kwargs)
-
-
-def pearsonr(
-        preds: torch.Tensor,
-        target: torch.Tensor,
-        reduction: str = 'elementwise_mean'
-) -> torch.Tensor:
-    """
-    Computes the pearsonr correlation.
-    
-    Arguments
-    ------------
-        preds: estimated labels
-        target: ground truth labels
-        reduction: a method to reduce metric score over labels.
-            - ``'elementwise_mean'``: takes the mean (default)
-            - ``'sum'``: takes the sum
-            - ``'none'``: no reduction will be applied
-
-    Returns
-    -------------
-        Tensor with the pearsonr
-
-    Example:
-        >>> x = torch.tensor([0., 1, 2, 3])
-        >>> y = torch.tensor([0., 1, 2, 2])
-        >>> pearsonr(x, y)
-        tensor(0.9439)
-    """
-
-    shifted_x = preds - torch.mean(preds, dim=0)
-    shifted_y = target - torch.mean(target, dim=0)
-    sigma_x = torch.sqrt(torch.sum(shifted_x ** 2, dim=0))
-    sigma_y = torch.sqrt(torch.sum(shifted_y ** 2, dim=0))
-
-    pearson = torch.sum(shifted_x * shifted_y, dim=0) / (sigma_x * sigma_y + 1.0e-10)
-    pearson = torch.clamp(pearson, min=-1, max=1)
-    pearson = reduce(pearson, reduction=reduction)
-    return pearson
-
-
-def spearmanr(
-        preds: torch.Tensor,
-        target: torch.Tensor,
-        reduction: str = 'elementwise_mean'
-) -> torch.Tensor:
-    """
-    Computes the spearmanr correlation.
-    
-    Arguments
-    ------------
-        preds: estimated labels
-        target: ground truth labels
-        reduction: a method to reduce metric score over labels.
-            - ``'elementwise_mean'``: takes the mean (default)
-            - ``'sum'``: takes the sum
-            - ``'none'``: no reduction will be applied
-
-    Returns
-    -------------
-        Tensor with the spearmanr
-
-    Example:
-        >>> x = torch.tensor([0., 1, 2, 3])
-        >>> y = torch.tensor([0., 1, 2, 1.5])
-        >>> spearmanr(x, y)
-        tensor(0.8)
-    """
-
-    pred_rank = torch.argsort(preds, dim=0).float()
-    target_rank = torch.argsort(target, dim=0).float()
-    spearman = pearsonr(pred_rank, target_rank, reduction=reduction)
-    return spearman
