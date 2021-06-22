@@ -208,17 +208,10 @@ class Trainer():
             tensorboard_function(predictions, targets, self.writer, step, data_split=data_split)
 
     def evaluation(self, data_loader: DataLoader, data_split: str = ''):
-        """
-
-
-        Returns:
-
-        """
-
         self.model.eval()
         loss, predictions, targets = self.predict(data_loader)
 
-        metrics = self.evaluate_metrics(predictions, targets.float())
+        metrics = self.evaluate_metrics(predictions, targets.float(), val=True)
         metrics[type(self.loss_func).__name__] = loss
         with open(os.path.join(self.writer.log_dir, 'evaluation_' + data_split + '.txt'), 'w') as file:
             print('Statistics on ', data_split)

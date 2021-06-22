@@ -50,7 +50,7 @@ lr_scheduler_params:
 model_type: 'PNA'
 model_parameters:
   target_dim: 1
-  hidden_dim: 90
+  hidden_dim: 128
   mid_batch_norm: True
   last_batch_norm: True
   dropout: 0.0
