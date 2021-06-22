@@ -1,5 +1,7 @@
 name: graph
 channels:
+  - pytorch
+  - dglteam
   - conda-forge
   - defaults
 dependencies:
