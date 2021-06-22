@@ -65,12 +65,9 @@ class TransformerGNN(nn.Module):
         for _ in range(propagation_depth):
             self.mp_layers.append(
                 TransformerEncoderLayer(d_model=hidden_dim, dim_feedforward=dim_feedforward, nhead=nhead,
-                                        dropout=dropout, activation=activation))
+                                        batch_first=True, dropout=dropout, activation=activation))
         self.atom_encoder = AtomEncoder(emb_dim=hidden_dim)
         self.bond_encoder = BondEncoder(emb_dim=hidden_dim)
 
     def forward(self, nodes):
         pass
-
-
-

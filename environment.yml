@@ -1,34 +1,18 @@
-name: ssg
+name: graph
 channels:
   - conda-forge
   - defaults
 dependencies:
-  - python[version='>=3.7']
-  - dgl-cuda10.2
-  - appdirs
-  - pytorch=1.8.1
-  - loguru
-  - hydra-core[version='>=1.0']
-  - pip
-  - omegaconf[version='>=2.0.0']
-  - ogb
-  - rdkit[version='>=2020.09']
-  - s3fs
-  - scikit-learn
-  - tensorboard
+  - rdkit
+  - torchaudio
   - cudatoolkit=10.2
-  - seaborn
-  - torchmetrics[version='>=0.2.0']
-  - pandas[version='>=1.0']
-  - tqdm
-  - click
-  - fsspec
-  - umap-learn
-  - gcsfs
-  - matplotlib[version='>=3.0.1']
-  - ipywidgets
-  - mordred
   - torchvision
-  - numpy
-  - pytorch-lightning[version='>=1.2.3']
-  - scipy[version='>=1.4']
+  - pytorch
+  - dgl-cuda10.2
+  - networkx=2.5
+  - tensorboard
+  - pip:
+      - icecream
+      - ogb
+      - pyaml
+      - seaborn
