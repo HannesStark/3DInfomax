@@ -43,7 +43,7 @@ class PhilosophyTrainer(SelfSupervisedTrainer):
             self.optim_critic.zero_grad()
 
             self.optim_steps += 1
-        return peasant_loss, philosopher_loss, critic_loss, view2d, view3d
+        return peasant_loss, philosopher_loss, critic_loss, view2d.detach(), view3d.detach()
 
     def predict(self, data_loader: DataLoader, epoch: int = 0, optim: torch.optim.Optimizer = None,
                 return_predictions: bool = False) -> Tuple[Dict, Union[torch.Tensor, None], Union[torch.Tensor, None]]:

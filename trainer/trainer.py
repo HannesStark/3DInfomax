@@ -87,7 +87,6 @@ class Trainer():
                 val_loss, val_predictions, val_targets = self.predict(val_loader, epoch)
                 metrics = self.evaluate_metrics(val_predictions, val_targets.float(), val=True)
                 metrics[type(self.loss_func).__name__] = val_loss
-                ic(metrics)
                 self.run_tensorboard_functions(val_predictions, val_targets, step=self.optim_steps, data_split='val')
 
                 val_score = metrics[self.main_metric]
@@ -110,6 +109,8 @@ class Trainer():
                 self.save_checkpoint(epoch, checkpoint_name='last_checkpoint.pt')
 
                 if epochs_no_improve >= args.patience:  # stopping criterion
+                    print(
+                        f'Early stopping criterion based on -{self.main_metric}- that should be {self.main_metric_goal} reached after {epoch} epochs. Best model checkpoint was in epoch {epoch - epochs_no_improve}.')
                     break
 
         # evaluate on best checkpoint
@@ -130,7 +131,7 @@ class Trainer():
             self.after_optim_step()  # overwrite to do stuff before zeroing out grads
             self.optim.zero_grad()
             self.optim_steps += 1
-        return loss, predictions, targets
+        return loss, predictions.detach(), targets.detach()
 
     def predict(self, data_loader: DataLoader, epoch: int = 0, optim: torch.optim.Optimizer = None,
                 return_predictions: bool = False) -> Tuple[float, Union[torch.Tensor, None], Union[torch.Tensor, None]]:
@@ -195,7 +196,6 @@ class Trainer():
         logs = {}
         for key, metric in metrics.items():
             metric_name = f'{key}/{data_split}'
-            ic(metric_name)
             logs[metric_name] = metric
             self.writer.add_scalar(metric_name, metric, step)
 
