@@ -1,4 +1,10 @@
-experiment_name: 'geom_qm9_baseline'
+experiment_name: 'tune_geom_qm9_NTXent_ogb_featurization'
+
+pretrain_checkpoint: runs/PNA_geom_qm9_NTXent_ogb_featurization_21-06_08-40-11/best_checkpoint.pt
+transfer_layers:
+  - gnn
+exclude_from_transfer:
+  - batch_norm
 
 dataset: 'geom_qm9'
 num_epochs: 1000
@@ -12,48 +18,60 @@ targets:
   - ensemblefreeenergy
 
 required_data:
-  - complete_graph
+  - mol_graph
   - targets
 metrics:
   - mae_denormalized
   - pearsonr
   - rsquared
-  - mean_predictor_loss
+  - qm9_properties
 
 optimizer: Adam
 optimizer_params:
-  lr: 1.0e-4
+  lr: 7.0e-5
+  weight_decay: 1.0e-11
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [1500]
+  warmup_steps: [700,700,390]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
   factor: 0.5
   patience: 25
-  min_lr: 5.0e-6
+  min_lr: 1.0e-6
   mode: 'min'
   verbose: True
 
+
+
 # Model parameters
-model_type: 'EGNNEdges'
+model_type: 'PNA'
 model_parameters:
   target_dim: 1
-  hidden_dim: 128
-  reduce_func: 'sum'
-  propagation_depth: 7
+  hidden_dim: 90
+  mid_batch_norm: True
+  last_batch_norm: True
   dropout: 0.0
-  readout_batchnorm: True
-  readout_hidden_dim: 128
-  readout_layers: 2
+  propagation_depth: 6
+  aggregators:
+    - mean
+    - max
+    - min
+    - std
+  scalers:
+    - identity
+    - amplification
+    - attenuation
   readout_aggregators:
     - min
     - max
     - mean
     - sum
-  batch_norm: True
+  pretrans_layers: 2
+  posttrans_layers: 1
+  residual: True
 
 
 # continue training from checkpoint:
