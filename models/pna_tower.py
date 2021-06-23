@@ -1,10 +1,14 @@
+import dgl
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import dgl.function as fn
+
+from commons.mol_encoder import AtomEncoder
+
 EPS = 1e-5
 import numpy as np
-from models.base_layers import MLP
+from models.base_layers import MLP, MLPReadout
 
 """
     code from:
@@ -87,23 +91,30 @@ AGGREGATORS = {'mean': aggregate_mean, 'sum': aggregate_sum, 'max': aggregate_ma
                'std': aggregate_std, 'var': aggregate_var, 'moment3': aggregate_moment_3, 'moment4': aggregate_moment_4,
                'moment5': aggregate_moment_5}
 
-class PNANet(nn.Module):
-    def __init__(self, hidden_dim, out_dim, in_feat_dropout, dropout, propagation_depth, readout_aggregators, readout_layers, batch_norm, aggregators, scalers, avg_d, residual, posttrans_layers, pretrans_layers):
+class PNAOriginal(nn.Module):
+    def __init__(self, hidden_dim, last_layer_dim, target_dim, in_feat_dropout, dropout, propagation_depth, readout_aggregators, readout_hidden_dim, readout_layers, batch_norm, aggregators, scalers, avg_d, residual, posttrans_layers, pretrans_layers):
         super().__init__()
-        hidden_dim = net_params['hidden_dim']
-        out_dim = net_params['out_dim']
-        in_feat_dropout = net_params['in_feat_dropout']
-        dropout = net_params['dropout']
-        n_layers = net_params['L']
-        self.readout = net_params['readout']
-        self.batch_norm = net_params['batch_norm']
-        self.aggregators = net_params['aggregators']
-        self.scalers = net_params['scalers']
-        self.avg_d = net_params['avg_d']
-        self.residual = net_params['residual']
-        posttrans_layers = net_params['posttrans_layers']
-        device = net_params['device']
-        self.device = device
+
+
+        self.gnn = PNASimpleGNN(hidden_dim=hidden_dim, last_layer_dim=last_layer_dim, in_feat_dropout=in_feat_dropout, dropout=dropout, propagation_depth=propagation_depth, posttrans_layers=posttrans_layers)
+
+        self.readout_aggregators = readout_aggregators
+        self.MLP_layer = MLPReadout(last_layer_dim * len(self.readout_aggregators), target_dim)  # 1 out dim since regression problem
+
+    def forward(self, g):
+        h = g.ndata['feat']
+
+
+        g.ndata['feat'] = h
+
+        readouts_to_cat = [dgl.readout_nodes(g, 'feat', op=aggr) for aggr in self.readout_aggregators]
+        readout = torch.cat(readouts_to_cat, dim=-1)
+        return self.MLP_layer(readout)
+
+
+class PNASimpleGNN(nn.Module):
+    def __init__(self, hidden_dim, last_layer_dim, in_feat_dropout, dropout, propagation_depth,posttrans_layers):
+        super().__init__()
 
         self.in_feat_dropout = nn.Dropout(in_feat_dropout)
         self.embedding_h = AtomEncoder(emb_dim=hidden_dim)
@@ -112,13 +123,13 @@ class PNANet(nn.Module):
             [PNASimpleLayer(in_dim=hidden_dim, out_dim=hidden_dim, dropout=dropout,
                       batch_norm=self.batch_norm, residual=self.residual, aggregators=self.aggregators,
                       scalers=self.scalers, avg_d=self.avg_d, posttrans_layers=posttrans_layers)
-             for _ in range(n_layers - 1)])
-        self.layers.append(PNASimpleLayer(in_dim=hidden_dim, out_dim=out_dim, dropout=dropout,
+             for _ in range(propagation_depth - 1)])
+        self.layers.append(PNASimpleLayer(in_dim=hidden_dim, out_dim=last_layer_dim, dropout=dropout,
                                     batch_norm=self.batch_norm,
                                     residual=self.residual, aggregators=self.aggregators, scalers=self.scalers,
                                     avg_d=self.avg_d, posttrans_layers=posttrans_layers))
 
-        self.MLP_layer = MLPReadout(out_dim, 1)  # 1 out dim since regression problem
+        self.output = MLPReadout(last_layer_dim, 1)  # 1 out dim since regression problem
 
     def forward(self, g, h):
         h = self.embedding_h(h)
@@ -127,70 +138,9 @@ class PNANet(nn.Module):
         for i, conv in enumerate(self.layers):
             h = conv(g, h)
 
-        g.ndata['h'] = h
+        g.ndata['feat'] = h
 
-        if self.readout == "sum":
-            hg = dgl.sum_nodes(g, 'h')
-        elif self.readout == "max":
-            hg = dgl.max_nodes(g, 'h')
-        elif self.readout == "mean":
-            hg = dgl.mean_nodes(g, 'h')
-        else:
-            hg = dgl.mean_nodes(g, 'h')  # default readout is mean nodes
-
-        return self.MLP_layer(hg)
-class PNANetGNN(nn.Module):
-    def __init__(self, net_params):
-        super().__init__()
-        hidden_dim = net_params['hidden_dim']
-        out_dim = net_params['out_dim']
-        in_feat_dropout = net_params['in_feat_dropout']
-        dropout = net_params['dropout']
-        n_layers = net_params['L']
-        self.readout = net_params['readout']
-        self.batch_norm = net_params['batch_norm']
-        self.aggregators = net_params['aggregators']
-        self.scalers = net_params['scalers']
-        self.avg_d = net_params['avg_d']
-        self.residual = net_params['residual']
-        posttrans_layers = net_params['posttrans_layers']
-        device = net_params['device']
-        self.device = device
-
-        self.in_feat_dropout = nn.Dropout(in_feat_dropout)
-        self.embedding_h = AtomEncoder(emb_dim=hidden_dim)
-
-        self.layers = nn.ModuleList(
-            [PNASimpleLayer(in_dim=hidden_dim, out_dim=hidden_dim, dropout=dropout,
-                      batch_norm=self.batch_norm, residual=self.residual, aggregators=self.aggregators,
-                      scalers=self.scalers, avg_d=self.avg_d, posttrans_layers=posttrans_layers)
-             for _ in range(n_layers - 1)])
-        self.layers.append(PNASimpleLayer(in_dim=hidden_dim, out_dim=out_dim, dropout=dropout,
-                                    batch_norm=self.batch_norm,
-                                    residual=self.residual, aggregators=self.aggregators, scalers=self.scalers,
-                                    avg_d=self.avg_d, posttrans_layers=posttrans_layers))
-
-        self.MLP_layer = MLPReadout(out_dim, 1)  # 1 out dim since regression problem
-
-    def forward(self, g, h):
-        h = self.embedding_h(h)
-        h = self.in_feat_dropout(h)
-
-        for i, conv in enumerate(self.layers):
-            h = conv(g, h)
-
-        g.ndata['h'] = h
-
-        if self.readout == "sum":
-            hg = dgl.sum_nodes(g, 'h')
-        elif self.readout == "max":
-            hg = dgl.max_nodes(g, 'h')
-        elif self.readout == "mean":
-            hg = dgl.mean_nodes(g, 'h')
-        else:
-            hg = dgl.mean_nodes(g, 'h')  # default readout is mean nodes
-
-        return self.MLP_layer(hg)
+        return g, h
 
 class PNATower(nn.Module):
     def __init__(self, in_dim, out_dim, dropout, graph_norm, batch_norm, aggregators, scalers, avg_d,
@@ -212,7 +162,7 @@ class PNATower(nn.Module):
 
     def pretrans_edges(self, edges):
         if self.edge_features:
-            z2 = torch.cat([edges.src['feat'], edges.dst['feat'], edges.data['ef']], dim=1)
+            z2 = torch.cat([edges.src['feat'], edges.dst['feat'], edges.data['feat']], dim=1)
         else:
             z2 = torch.cat([edges.src['feat'], edges.dst['feat']], dim=1)
         return {'e': self.pretrans(z2)}
@@ -233,7 +183,7 @@ class PNATower(nn.Module):
     def forward(self, g, h, e, snorm_n):
         g.ndata['feat'] = h
         if self.edge_features: # add the edges information only if edge_features = True
-            g.edata['ef'] = e
+            g.edata['feat'] = e
 
         # pretransformation
         g.apply_edges(self.pretrans_edges)

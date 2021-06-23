@@ -1,4 +1,4 @@
-experiment_name: 'molhiv_no_warmup'
+experiment_name: 'baseline'
 
 dataset: 'molhiv'
 num_epochs: 1000
@@ -15,19 +15,22 @@ main_metric_goal: max
 
 optimizer: Adam
 optimizer_params:
-  lr: 0.01
-  weight_decay: 3.0e-6
+  lr: 1.0e-4
 
 scheduler_step_per_batch: False
-lr_scheduler: ReduceLROnPlateau
+lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
+  warmup_steps: [1500]
+  interpolation: 'linear'
+  # parameters of scheduler to run after warmup
+  wrapped_scheduler: ReduceLROnPlateau
   factor: 0.5
-  patience: 20
-  min_lr: 1.0e-4
-  mode: 'max'
+  patience: 25
+  min_lr: 5.0e-6
+  mode: 'min'
   verbose: True
 
-model_type: 'PNA'
+model_type: 'PNAOriginal'
 model_parameters:
   target_dim: 1
   hidden_dim: 70
