@@ -1,9 +1,9 @@
-experiment_name: 'NTXent_large_pna'
+experiment_name: 'NTXent_128_hidden'
 
 num_epochs: 1000
 batch_size: 500
 prefetch_graphs: True
-log_iterations: 50
+log_iterations: 1
 patience: 35
 loss_func: NTXent
 loss_params:
@@ -48,20 +48,24 @@ lr_scheduler_params:
 
 
 
-# Model parameters
-model_type: 'PNA'
+model_type: 'PNAOriginal'
 model_parameters:
-  target_dim: 256
-  hidden_dim: 200
+  target_dim: 1
+  hidden_dim: 128
+  last_layer_dim: 128
   mid_batch_norm: True
   last_batch_norm: True
+  graph_norm: True
   readout_batchnorm: True
-  # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
-  batch_norm_momentum: 0.96
-  readout_hidden_dim: 200
+  edge_hidden_dim: 70
+  readout_hidden_dim: 70
   readout_layers: 2
   dropout: 0.0
-  propagation_depth: 7
+  in_feat_dropout: 0.0
+  propagation_depth: 4
+  towers: 5
+  divide_input_first: False
+  divide_input_last: True
   aggregators:
     - mean
     - max
@@ -72,12 +76,14 @@ model_parameters:
     - amplification
     - attenuation
   readout_aggregators:
-    - min
-    - max
     - mean
-  pretrans_layers: 2
+    - max
+    - min
+    - sum
+  pretrans_layers: 1
   posttrans_layers: 1
   residual: True
+  gru: False
 
 # Model parameters
 model3d_type: 'Net3D'

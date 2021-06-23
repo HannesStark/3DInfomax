@@ -120,8 +120,6 @@ class QM9Dataset(Dataset):
 
     features3d:
         possible features are ['standard_normal_noise', 'implicit-valence','degree','hybridization','chirality','mass','electronegativity','aromatic-bond','formal-charge','radical-electron','in-ring','atomic-number', 'vec1', 'vec2', 'vec3', 'vec-1', 'vec-2', 'vec-3', 'inv_vec1', 'inv_vec2', 'inv_vec3', 'inv_vec-1', 'inv_vec-2', 'inv_vec-3']
-    e_features:
-        possible are ['bond-type-onehot','stereo','conjugated','in-ring-edges']
     others: list
         TODO
 

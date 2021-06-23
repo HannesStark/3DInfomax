@@ -42,6 +42,7 @@ model_parameters:
   last_batch_norm: True
   graph_norm: True
   readout_batchnorm: True
+  edge_feat: True
   edge_hidden_dim: 70
   readout_hidden_dim: 70
   readout_layers: 2
