@@ -153,7 +153,7 @@ class Trainer():
         epoch_predictions = torch.tensor([]).to(self.device)
         epoch_loss = 0
         for i, batch in enumerate(data_loader):
-            batch = [element.to(self.device) for element in batch]
+            batch = [element.to(self.device) if element is not None else None for element in batch]
             loss, predictions, targets = self.process_batch(batch, optim)
             with torch.no_grad():
                 if self.optim_steps % args.log_iterations == 0 and optim != None:  # log every log_iterations during train

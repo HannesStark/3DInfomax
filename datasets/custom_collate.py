@@ -172,13 +172,13 @@ def padded_collate(batch):
     """
 
     features = pad_sequence([item[0] for item in batch], batch_first=True)
-    target = torch.stack([item[1] for item in batch])
+    targets = torch.stack([item[1] for item in batch])
 
     # create mask corresponding to the zero padding used for the shorter sequences in the batch.
     # All values corresponding to padding are True and the rest is False.
     n_atoms = torch.tensor([len(item[0]) for item in batch])
     mask = torch.arange(features.shape[1])[None, :] >= n_atoms[:, None]  # [batch_size, n_atoms]
-    return features, mask, target
+    return features, mask, targets
 
 def padded_collate_positional_encoding(batch):
     """
@@ -189,19 +189,22 @@ def padded_collate_positional_encoding(batch):
 
     features = pad_sequence([item[0] for item in batch], batch_first=True)
     pos_enc = pad_sequence([item[1] for item in batch], batch_first=True)
-    target = torch.stack([item[2] for item in batch])
+    targets = torch.stack([item[2] for item in batch])
 
     # create mask corresponding to the zero padding used for the shorter sequences in the batch.
     # All values corresponding to padding are True and the rest is False.
     n_atoms = torch.tensor([len(item[0]) for item in batch])
     mask = torch.arange(features.shape[1])[None, :] >= n_atoms[:, None]  # [batch_size, n_atoms]
-    return features, pos_enc, mask, target
+    return features, pos_enc, mask, targets
 
 
 def molhiv_padded_collate(batch: List[Tuple]):
     graphs, targets = map(list, zip(*batch))
-    batched_graph = dgl.batch(graphs)
-    return batched_graph, torch.stack(targets)
+    features = pad_sequence([graph.ndata['feat'] for graph in graphs], batch_first=True)
+
+    n_atoms = torch.tensor([graph.number_of_nodes() for graph in graphs])
+    mask = torch.arange(features.shape[1])[None, :] >= n_atoms[:, None]  # [batch_size, n_atoms]
+    return features, None, mask, torch.stack(targets)
 
 def padded_distances_collate(batch):
     """

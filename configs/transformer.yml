@@ -1,4 +1,4 @@
-experiment_name: 'baseline'
+experiment_name: 'graphormer_settings'
 
 num_epochs: 1000
 batch_size: 128
@@ -20,31 +20,31 @@ metrics:
   - mean_predictor_loss
 collate_function: padded_collate_positional_encoding
 
-optimizer: Adam
+optimizer: AdamW
 optimizer_params:
-  lr: 1.0e-4
+  lr: 2.0e-4
 
-scheduler_step_per_batch: False
+scheduler_step_per_batch: True
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [1500]
+  warmup_steps: [40000]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
-  wrapped_scheduler: ReduceLROnPlateau
-  factor: 0.5
-  patience: 25
-  min_lr: 5.0e-6
-  mode: 'min'
-  verbose: True
+  wrapped_scheduler: OneCycleLR
+  epochs: 200
+  steps_per_epoch: 391
+  anneal_strategy: 'linear'
+  max_lr: 2.0e-4
+
 
 model_type: 'TransformerPlain'
 model_parameters:
   target_dim: 1
-  hidden_dim: 100
-  nhead: 4
-  dim_feedforward: 1024
+  hidden_dim: 512
+  nhead: 32
+  dim_feedforward: 512
   dropout: 0.1
-  propagation_depth: 10
+  propagation_depth: 6
 
 
 # continue training from checkpoint:
