@@ -24,7 +24,7 @@ metrics:
   - batch_variance
   - dimension_covariance
 main_metric: loss
-collate_function: contrastive_collate
+collate_function: s_norm_contrastive_collate
 
 optimizer: Adam
 optimizer_params:

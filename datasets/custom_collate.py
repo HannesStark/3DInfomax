@@ -27,6 +27,17 @@ def pairwise_distance_collate(batch: List[Tuple]):
     return batched_mol_graph, torch.cat(pairwise_indices, dim=-1), torch.cat(distances)
 
 
+def s_norm_contrastive_collate(batch: List[Tuple]):
+    # optionally take targets
+    graphs, graphs3d = map(list, zip(*batch))
+    tab_sizes_n = [graphs[i].number_of_nodes() for i in range(len(graphs))]
+    tab_snorm_n = [torch.FloatTensor(size, 1).fill_(1. / float(size)) for size in tab_sizes_n]
+    snorm_n = torch.cat(tab_snorm_n).sqrt()
+    batched_graph = dgl.batch(graphs)
+    batched_graph3d = dgl.batch(graphs3d)
+
+    return batched_graph, batched_graph3d, snorm_n
+
 def contrastive_collate(batch: List[Tuple]):
     # optionally take targets
     graphs, graphs3d, *targets = map(list, zip(*batch))
