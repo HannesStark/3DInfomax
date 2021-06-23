@@ -60,6 +60,7 @@ def aggregate_var(h):
     var = torch.relu(h_mean_squares - h_mean * h_mean)
     return var
 
+
 class GRU(nn.Module):
     """
         Wrapper class for the GRU used by the GNN framework, nn.GRU is used for the Gated Recurrent Unit itself
@@ -83,6 +84,7 @@ class GRU(nn.Module):
         x = self.gru(x, y)[1]
         x = x.squeeze()
         return x
+
 
 def aggregate_moment(h, n=3):
     # for each node (E[(X-E[X])^n])^{1/n}
@@ -266,7 +268,7 @@ class PNALayer(nn.Module):
         super().__init__()
         assert ((
                     not divide_input) or in_dim % towers == 0), "if divide_input is set the number of towers has to divide in_dim"
-        assert (out_dim % towers == 0), "the number of towers has to divide the out_dim"
+        assert (out_dim % towers == 0), "the number of towers has to divide the last_layer_dim"
         assert avg_d is not None
 
         # retrieve the aggregators and scalers functions
@@ -340,6 +342,7 @@ class PNAOriginalSimple(nn.Module):
         readout = torch.cat(readouts_to_cat, dim=-1)
         return self.MLP_layer(readout)
 
+
 class PNAGNNSimple(nn.Module):
     def __init__(self, hidden_dim, last_layer_dim, in_feat_dropout, dropout, residual, aggregators, scalers, avg_d,
                  last_batch_norm, mid_batch_norm, propagation_depth, posttrans_layers):
@@ -372,6 +375,7 @@ class PNAGNNSimple(nn.Module):
         g.ndata['feat'] = h
 
         return g, h
+
 
 class PNASimpleLayer(nn.Module):
 

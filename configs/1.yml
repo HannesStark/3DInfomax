@@ -1,4 +1,4 @@
-experiment_name: 'NTXent_128hidden_2pretrans_7propagation'
+experiment_name: 'NTXent_130hidden_2pretrans_7propagation'
 
 num_epochs: 1000
 batch_size: 500
@@ -51,8 +51,8 @@ lr_scheduler_params:
 model_type: 'PNAOriginal'
 model_parameters:
   target_dim: 256
-  hidden_dim: 128
-  last_layer_dim: 128
+  hidden_dim: 130
+  last_layer_dim: 130
   mid_batch_norm: True
   last_batch_norm: True
   graph_norm: True

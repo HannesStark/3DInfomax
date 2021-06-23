@@ -1,4 +1,4 @@
-experiment_name: '128_hidden'
+experiment_name: '130_hidden'
 
 num_epochs: 1000
 batch_size: 128
@@ -36,8 +36,8 @@ lr_scheduler_params:
 model_type: 'PNAOriginal'
 model_parameters:
   target_dim: 1
-  hidden_dim: 128
-  last_layer_dim: 128
+  hidden_dim: 130
+  last_layer_dim: 130
   mid_batch_norm: True
   last_batch_norm: True
   graph_norm: True
