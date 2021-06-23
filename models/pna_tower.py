@@ -29,12 +29,12 @@ def scale_identity(h, D=None, avg_d=None):
 
 def scale_amplification(h, D, avg_d):
     # log(D + 1) / d * h     where d is the average of the ``log(D + 1)`` in the training set
-    return h * (np.log(D + 1) / avg_d["log"])
+    return h * (np.log(D + 1) / avg_d)
 
 
 def scale_attenuation(h, D, avg_d):
     # (log(D + 1))^-1 / d * X     where d is the average of the ``log(D + 1))^-1`` in the training set
-    return h * (avg_d["log"] / np.log(D + 1))
+    return h * (avg_d / np.log(D + 1))
 
 
 SCALERS = {'identity': scale_identity, 'amplification': scale_amplification, 'attenuation': scale_attenuation}
@@ -91,29 +91,27 @@ AGGREGATORS = {'mean': aggregate_mean, 'sum': aggregate_sum, 'max': aggregate_ma
                'std': aggregate_std, 'var': aggregate_var, 'moment3': aggregate_moment_3, 'moment4': aggregate_moment_4,
                'moment5': aggregate_moment_5}
 
-class PNAOriginal(nn.Module):
-    def __init__(self, hidden_dim, last_layer_dim, target_dim, in_feat_dropout, dropout, propagation_depth, readout_aggregators, readout_hidden_dim, readout_layers, batch_norm, aggregators, scalers, avg_d, residual, posttrans_layers, pretrans_layers):
+class PNAOriginalSimple(nn.Module):
+    def __init__(self, hidden_dim, last_layer_dim, target_dim, in_feat_dropout, dropout, last_batch_norm, mid_batch_norm, propagation_depth, readout_aggregators, readout_hidden_dim, readout_layers, aggregators, scalers, avg_d, residual, posttrans_layers, pretrans_layers, **kwargs):
         super().__init__()
 
 
-        self.gnn = PNASimpleGNN(hidden_dim=hidden_dim, last_layer_dim=last_layer_dim, in_feat_dropout=in_feat_dropout, dropout=dropout, propagation_depth=propagation_depth, posttrans_layers=posttrans_layers)
+        self.gnn = PNAGNNSimple(hidden_dim=hidden_dim, last_layer_dim=last_layer_dim, last_batch_norm=last_batch_norm, mid_batch_norm=mid_batch_norm, in_feat_dropout=in_feat_dropout, dropout=dropout, aggregators=aggregators, scalers=scalers, residual=residual, avg_d=avg_d, propagation_depth=propagation_depth, posttrans_layers=posttrans_layers)
 
         self.readout_aggregators = readout_aggregators
         self.MLP_layer = MLPReadout(last_layer_dim * len(self.readout_aggregators), target_dim)  # 1 out dim since regression problem
 
     def forward(self, g):
         h = g.ndata['feat']
-
-
-        g.ndata['feat'] = h
+        g, h = self.gnn(g, h)
 
         readouts_to_cat = [dgl.readout_nodes(g, 'feat', op=aggr) for aggr in self.readout_aggregators]
         readout = torch.cat(readouts_to_cat, dim=-1)
         return self.MLP_layer(readout)
 
 
-class PNASimpleGNN(nn.Module):
-    def __init__(self, hidden_dim, last_layer_dim, in_feat_dropout, dropout, propagation_depth,posttrans_layers):
+class PNAGNNSimple(nn.Module):
+    def __init__(self, hidden_dim, last_layer_dim, in_feat_dropout, dropout, residual, aggregators, scalers, avg_d, last_batch_norm, mid_batch_norm, propagation_depth,posttrans_layers):
         super().__init__()
 
         self.in_feat_dropout = nn.Dropout(in_feat_dropout)
@@ -121,13 +119,14 @@ class PNASimpleGNN(nn.Module):
 
         self.layers = nn.ModuleList(
             [PNASimpleLayer(in_dim=hidden_dim, out_dim=hidden_dim, dropout=dropout,
-                      batch_norm=self.batch_norm, residual=self.residual, aggregators=self.aggregators,
-                      scalers=self.scalers, avg_d=self.avg_d, posttrans_layers=posttrans_layers)
+                      last_batch_norm=last_batch_norm, mid_batch_norm=mid_batch_norm, residual=residual, aggregators=aggregators,
+                      scalers=scalers, avg_d=avg_d, posttrans_layers=posttrans_layers)
              for _ in range(propagation_depth - 1)])
+
         self.layers.append(PNASimpleLayer(in_dim=hidden_dim, out_dim=last_layer_dim, dropout=dropout,
-                                    batch_norm=self.batch_norm,
-                                    residual=self.residual, aggregators=self.aggregators, scalers=self.scalers,
-                                    avg_d=self.avg_d, posttrans_layers=posttrans_layers))
+                                    last_batch_norm=last_batch_norm, mid_batch_norm=mid_batch_norm,
+                                    residual=residual, aggregators=aggregators, scalers=scalers,
+                                    avg_d=avg_d, posttrans_layers=posttrans_layers))
 
         self.output = MLPReadout(last_layer_dim, 1)  # 1 out dim since regression problem
 
@@ -232,8 +231,8 @@ class PNALayer(nn.Module):
         assert avg_d is not None
 
         # retrieve the aggregators and scalers functions
-        aggregators = [AGGREGATORS[aggr] for aggr in aggregators.split()]
-        scalers = [SCALERS[scale] for scale in scalers.split()]
+        aggregators = [AGGREGATORS[aggr] for aggr in aggregators]
+        scalers = [SCALERS[scale] for scale in scalers]
 
         self.divide_input = divide_input
         self.input_tower = in_dim // towers if divide_input else in_dim
@@ -279,39 +278,27 @@ class PNALayer(nn.Module):
 
 class PNASimpleLayer(nn.Module):
 
-    def __init__(self, in_dim, out_dim, aggregators, scalers, avg_d, dropout, batch_norm, residual,
+    def __init__(self, in_dim, out_dim, aggregators, scalers, avg_d, dropout, last_batch_norm, mid_batch_norm, residual,
                 posttrans_layers=1):
-        """
-        A simpler version of PNA layer that simply aggregates the neighbourhood (similar to GCN and GIN),
-        without using the pretransformation or the tower mechanisms of the MPNN. It does not support edge features.
-        :param in_dim:              size of the input per node
-        :param out_dim:             size of the output per node
-        :param aggregators:         set of aggregation function identifiers
-        :param scalers:             set of scaling functions identifiers
-        :param avg_d:               average degree of nodes in the training set, used by scalers to normalize
-        :param dropout:             dropout used
-        :param batch_norm:          whether to use batch normalisation
-        :param posttrans_layers:    number of layers in the transformation after the aggregation
-        """
+
         super().__init__()
 
         # retrieve the aggregators and scalers functions
-        aggregators = [AGGREGATORS[aggr] for aggr in aggregators.split()]
-        scalers = [SCALERS[scale] for scale in scalers.split()]
+        aggregators = [AGGREGATORS[aggr] for aggr in aggregators]
+        scalers = [SCALERS[scale] for scale in scalers]
 
         self.aggregators = aggregators
         self.scalers = scalers
         self.in_dim = in_dim
         self.out_dim = out_dim
-        self.dropout = dropout
-        self.batch_norm = batch_norm
         self.residual = residual
 
-        self.batchnorm_h = nn.BatchNorm1d(out_dim)
-        self.posttrans = MLP(in_dim=(len(aggregators) * len(scalers)) * in_dim, hidden_size=out_dim,
+        self.posttrans = MLP(in_dim=(len(aggregators) * len(scalers)) * in_dim, hidden_size=out_dim, last_batch_norm=last_batch_norm,
+                             mid_batch_norm=mid_batch_norm,
                              out_dim=out_dim, layers=posttrans_layers, mid_activation='relu',
                              last_activation='none')
         self.avg_d = avg_d
+        self.dropout = nn.Dropout(p=dropout)
 
 
     def reduce_func(self, nodes):
@@ -333,14 +320,11 @@ class PNASimpleLayer(nn.Module):
         # posttransformation
         h = self.posttrans(h)
 
-        # batch normalization and residual
-        if self.batch_norm:
-            h = self.batchnorm_h(h)
         h = F.relu(h)
         if self.residual:
             h = h_in + h
 
-        h = F.dropout(h, self.dropout, training=self.training)
+        h = self.dropout(h)
         return h
 
     def __repr__(self):
