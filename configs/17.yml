@@ -1,23 +1,18 @@
-experiment_name: '130_hidden'
+experiment_name: '70hidden_5props_2pretrans'
 
+dataset: 'molhiv'
 num_epochs: 1000
 batch_size: 128
-prefetch_graphs: True
-log_iterations: 1
+log_iterations: 30
 patience: 30
-num_train: 50000
-loss_func: L1Loss
-targets:
-  - homo
-
-required_data:
-  - mol_graph
-  - targets
+loss_func: BCEWithLogitsLoss
 metrics:
-  - mae_denormalized
+  - ogb_molhiv
   - rsquared
-  - qm9_properties
   - mean_predictor_loss
+main_metric: ogb_molhiv
+main_metric_goal: max
+
 collate_function: s_norm_graph_collate
 
 optimizer: Adam
@@ -36,18 +31,18 @@ lr_scheduler_params:
 model_type: 'PNAOriginal'
 model_parameters:
   target_dim: 1
-  hidden_dim: 130
-  last_layer_dim: 130
+  hidden_dim: 70
+  last_layer_dim: 70
   mid_batch_norm: True
   last_batch_norm: True
   graph_norm: True
   readout_batchnorm: True
-  edge_hidden_dim: 70
+  edge_hidden_dim: 30
   readout_hidden_dim: 70
   readout_layers: 2
   dropout: 0.0
   in_feat_dropout: 0.0
-  propagation_depth: 4
+  propagation_depth: 5
   towers: 5
   divide_input_first: False
   divide_input_last: True
@@ -65,7 +60,7 @@ model_parameters:
     - max
     - min
     - sum
-  pretrans_layers: 1
+  pretrans_layers: 2
   posttrans_layers: 1
   residual: True
   gru: False

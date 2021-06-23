@@ -1,4 +1,4 @@
-experiment_name: 'baseline'
+experiment_name: '5propagations'
 
 dataset: 'molhiv'
 num_epochs: 1000
@@ -38,7 +38,7 @@ model_parameters:
   dropout: 0.3
   in_feat_dropout: 0.0
   last_layer_dim: 70
-  propagation_depth: 4
+  propagation_depth: 5
   aggregators:
     - mean
     - max
