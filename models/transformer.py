@@ -52,7 +52,7 @@ class TransformerPlain(nn.Module):
 
         readout_query = self.readout_query[None, None, :].expand((batch_size, -1, -1))
         pooled, attention_weights = self.readout_attention(readout_query, h, h, key_padding_mask=mask)
-        return self.output(pooled)
+        return self.output(pooled).squeeze()
 
 
 class TransformerGNN(nn.Module):

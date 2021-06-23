@@ -19,7 +19,7 @@ metrics:
   - rsquared
   - qm9_properties
   - mean_predictor_loss
-collate_function: padded_collate
+collate_function: padded_collate_positional_encoding
 
 optimizer: Adam
 optimizer_params:
