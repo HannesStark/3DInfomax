@@ -159,17 +159,19 @@ def train(args):
 def train_molhiv(args, device, metrics_dict):
     dataset = DglGraphPropPredDataset(name='ogbg-molhiv')
     split_idx = dataset.get_idx_split()
+    collate_function = globals()[args.collate_function] if args.collate_params == {} else globals()[
+        args.collate_function](**args.collate_params)
+
     train_loader = DataLoader(dataset[split_idx["train"]], batch_size=args.batch_size, shuffle=True,
-                              collate_fn=collate_dgl)
+                              collate_fn=collate_function)
     val_loader = DataLoader(dataset[split_idx["valid"]], batch_size=args.batch_size, shuffle=False,
-                            collate_fn=collate_dgl)
+                            collate_fn=collate_function)
     test_loader = DataLoader(dataset[split_idx["test"]], batch_size=args.batch_size, shuffle=False,
-                             collate_fn=collate_dgl)
+                             collate_fn=collate_function)
 
     model, num_pretrain = load_model(args, data=dataset, device=device)
 
-    collate_function = globals()[args.collate_function] if args.collate_params == {} else globals()[
-        args.collate_function](**args.collate_params)
+
 
     metrics = {metric: metrics_dict[metric] for metric in args.metrics}
     trainer = get_trainer(args=args, model=model, data=dataset, device=device, metrics=metrics)
@@ -299,7 +301,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/1.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/17.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
