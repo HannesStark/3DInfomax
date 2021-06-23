@@ -2,38 +2,38 @@ experiment_name: 'baseline'
 
 num_epochs: 1000
 batch_size: 128
-prefetch_graphs: False
-log_iterations: 1
+prefetch_graphs: True
+log_iterations: 30
 patience: 30
 num_train: 50000
 loss_func: L1Loss
 targets:
   - homo
-
 required_data:
   - raw_features
+  - positional_encoding
   - targets
 metrics:
   - mae_denormalized
   - rsquared
   - qm9_properties
   - mean_predictor_loss
-collate_function: padded_collate
+collate_function: padded_collate_positional_encoding
 
 optimizer: Adam
 optimizer_params:
-  lr: 1.0e-3
+  lr: 1.0e-4
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [2]
+  warmup_steps: [1500]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
   factor: 0.5
   patience: 25
-  min_lr: 5.0e-5
+  min_lr: 5.0e-6
   mode: 'min'
   verbose: True
 
@@ -41,9 +41,9 @@ model_type: 'TransformerPlain'
 model_parameters:
   target_dim: 1
   hidden_dim: 100
-  nhead: 2
+  nhead: 4
   dim_feedforward: 1024
-  dropout: 0.0
+  dropout: 0.1
   propagation_depth: 10
 
 

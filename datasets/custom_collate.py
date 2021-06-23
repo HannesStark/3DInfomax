@@ -11,6 +11,8 @@ def graph_collate(batch: List[Tuple]):
     batched_graph = dgl.batch(graphs)
     return batched_graph, torch.stack(targets)
 
+
+
 def s_norm_graph_collate(batch: List[Tuple]):
     graphs, targets = map(list, zip(*batch))
     tab_sizes_n = [graphs[i].number_of_nodes() for i in range(len(graphs))]
@@ -195,6 +197,11 @@ def padded_collate_positional_encoding(batch):
     mask = torch.arange(features.shape[1])[None, :] >= n_atoms[:, None]  # [batch_size, n_atoms]
     return features, pos_enc, mask, target
 
+
+def molhiv_padded_collate(batch: List[Tuple]):
+    graphs, targets = map(list, zip(*batch))
+    batched_graph = dgl.batch(graphs)
+    return batched_graph, torch.stack(targets)
 
 def padded_distances_collate(batch):
     """

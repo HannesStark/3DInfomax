@@ -150,7 +150,8 @@ class QM9Dataset(Dataset):
                                     'raw_features', 'coordinates',
                                     'dist_embedding',
                                     'mol_id', 'targets',
-                                    'one_hot_bond_types', 'edge_indices', 'smiles', 'atomic_number_long', 'n_atoms']
+                                    'one_hot_bond_types', 'edge_indices', 'smiles', 'atomic_number_long', 'n_atoms',
+                                    'positional_encoding']
         self.qm9_directory = 'dataset/QM9'
         self.processed_file = 'qm9_processed.pt'
         self.distances_file = 'qm9_distances.pt'
@@ -214,7 +215,7 @@ class QM9Dataset(Dataset):
         self.atom_padding_indices = torch.tensor(get_atom_feature_dims(), dtype=torch.long, device=device)[None, :]
         self.bond_padding_indices = torch.tensor(get_bond_feature_dims(), dtype=torch.long, device=device)[None, :]
 
-        if 'san_graph' in self.return_types:
+        if 'san_graph' in self.return_types or 'positional_encoding' in self.return_types:
             self.eig_vals = data_dict['eig_vals']
             self.eig_vecs = data_dict['eig_vecs']
 
@@ -416,7 +417,7 @@ class QM9Dataset(Dataset):
             return self.meta_dict['n_atoms'][n_atoms]
         elif return_type == 'coordinates':
             return self.coordinates[start: start + n_atoms]
-        elif return_type == 'laplacian_encoding':
+        elif return_type == 'positional_encoding':
             eig_vals = self.eig_vals[idx].to(self.device)
             sign_flip = torch.rand(eig_vals.shape[0], device=self.device)
             sign_flip[sign_flip >= 0.5] = 1.0
