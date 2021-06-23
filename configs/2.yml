@@ -16,7 +16,6 @@ required_data:
 metrics:
   - positive_similarity
   - negative_similarity
-  - f1_contrastive
   - contrastive_accuracy
   - true_negative_rate
   - true_positive_rate
