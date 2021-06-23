@@ -104,6 +104,7 @@ def load_model(args, data, device):
     model = globals()[args.model_type](node_dim=node_dim,
                                        edge_dim=edge_dim,
                                        avg_d=data.avg_degree if hasattr(data, 'avg_degree') else 1,
+                                       device=device,
                                        **args.model_parameters)
     if args.pretrain_checkpoint:
         # get arguments used during pretraining
@@ -298,7 +299,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/pna_original_simple.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/pna_original.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')

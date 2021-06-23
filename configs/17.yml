@@ -1,60 +1,73 @@
-experiment_name: 'drugs_baseline'
+experiment_name: '128_hidden'
 
-dataset: 'drugs'
 num_epochs: 1000
 batch_size: 128
 prefetch_graphs: True
-log_iterations: 30
+log_iterations: 1
 patience: 30
-num_train: 120000
+num_train: 50000
 loss_func: L1Loss
 targets:
-  - ensemblefreeenergy
-
+  - homo
 
 required_data:
-  - complete_graph
+  - mol_graph
   - targets
 metrics:
   - mae_denormalized
-
   - rsquared
+  - qm9_properties
   - mean_predictor_loss
+collate_function: s_norm_graph_collate
 
 optimizer: Adam
 optimizer_params:
   lr: 1.0e-4
 
 scheduler_step_per_batch: False
-lr_scheduler: WarmUpWrapper
+lr_scheduler: ReduceLROnPlateau
 lr_scheduler_params:
-  warmup_steps: [1500]
-  interpolation: 'linear'
-  # parameters of scheduler to run after warmup
-  wrapped_scheduler: ReduceLROnPlateau
   factor: 0.5
   patience: 25
   min_lr: 5.0e-6
   mode: 'min'
   verbose: True
 
-# Model parameters
-model_type: 'EGNNEdges'
+model_type: 'PNAOriginal'
 model_parameters:
   target_dim: 1
   hidden_dim: 128
-  reduce_func: 'sum'
-  propagation_depth: 7
-  dropout: 0.0
+  last_layer_dim: 128
+  mid_batch_norm: True
+  last_batch_norm: True
+  graph_norm: True
   readout_batchnorm: True
-  readout_hidden_dim: 128
+  edge_hidden_dim: 70
   readout_layers: 2
-  readout_aggregators:
-    - min
-    - max
+  dropout: 0.0
+  in_feat_dropout: 0.0
+  propagation_depth: 4
+  towers: 5
+  divide_input_first: False
+  divide_input_last: True
+  aggregators:
     - mean
+    - max
+    - min
+    - std
+  scalers:
+    - identity
+    - amplification
+    - attenuation
+  readout_aggregators:
+    - mean
+    - max
+    - min
     - sum
-  batch_norm: True
+  pretrans_layers: 1
+  posttrans_layers: 1
+  residual: True
+  gru: False
 
 
 # continue training from checkpoint:

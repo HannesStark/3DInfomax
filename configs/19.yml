@@ -3,7 +3,7 @@ experiment_name: 'baseline'
 num_epochs: 1000
 batch_size: 128
 prefetch_graphs: True
-log_iterations: 30
+log_iterations: 1
 patience: 30
 num_train: 50000
 loss_func: L1Loss
@@ -18,6 +18,7 @@ metrics:
   - rsquared
   - qm9_properties
   - mean_predictor_loss
+collate_function: s_norm_graph_collate
 
 optimizer: Adam
 optimizer_params:
@@ -32,19 +33,24 @@ lr_scheduler_params:
   mode: 'min'
   verbose: True
 
-model_type: 'PNAOriginalSimple'
+model_type: 'PNAOriginal'
 model_parameters:
   target_dim: 1
-  hidden_dim: 70
+  hidden_dim: 90
+  last_layer_dim: 90
   mid_batch_norm: True
   last_batch_norm: True
+  graph_norm: True
   readout_batchnorm: True
+  edge_hidden_dim: 70
   readout_hidden_dim: 70
   readout_layers: 2
-  dropout: 0.3
+  dropout: 0.0
   in_feat_dropout: 0.0
-  last_layer_dim: 70
   propagation_depth: 4
+  towers: 5
+  divide_input_first: False
+  divide_input_last: True
   aggregators:
     - mean
     - max
@@ -56,9 +62,13 @@ model_parameters:
     - attenuation
   readout_aggregators:
     - mean
+    - max
+    - min
+    - sum
   pretrans_layers: 1
   posttrans_layers: 1
   residual: True
+  gru: False
 
 
 # continue training from checkpoint:

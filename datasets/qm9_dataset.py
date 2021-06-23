@@ -425,7 +425,7 @@ class QM9Dataset(Dataset):
             sign_flip[sign_flip < 0.5] = -1.0
             eig_vecs = self.eig_vecs[start: start + n_atoms].to(self.device) * sign_flip.unsqueeze(0)
             eig_vals = eig_vals.unsqueeze(0).repeat(n_atoms, 1)
-            retun = torch.stack([eig_vals, eig_vecs], dim=-1)
+            return torch.stack([eig_vals, eig_vecs], dim=-1)
         elif return_type == 'mol_id':
             return self.meta_dict['mol_id'][idx]
         elif return_type == 'targets':

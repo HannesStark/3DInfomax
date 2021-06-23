@@ -2,7 +2,7 @@ experiment_name: 'baseline'
 
 num_epochs: 1000
 batch_size: 128
-prefetch_graphs: True
+prefetch_graphs: False
 log_iterations: 30
 patience: 30
 num_train: 50000
