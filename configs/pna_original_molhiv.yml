@@ -1,4 +1,4 @@
-experiment_name: 'molhiv_notowers_nodivide'
+experiment_name: '70hidden_4props'
 
 dataset: 'molhiv'
 num_epochs: 1000
@@ -43,9 +43,9 @@ model_parameters:
   dropout: 0.0
   in_feat_dropout: 0.0
   propagation_depth: 4
-  towers: 1
+  towers: 5
   divide_input_first: False
-  divide_input_last: False
+  divide_input_last: True
   aggregators:
     - mean
     - max
