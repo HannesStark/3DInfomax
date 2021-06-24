@@ -15,15 +15,16 @@ class MPNN(nn.Module):
 
     def __init__(self, hidden_dim, last_layer_dim, target_dim, in_feat_dropout, dropout, last_batch_norm,
                  mid_batch_norm, propagation_depth, readout_aggregators, residual, posttrans_layers, pretrans_layers,
-                 device, edge_hidden_dim, graph_norm, aggregation, gru_enable=False, edge_feat=True, **kwargs):
+                 device, edge_hidden_dim, graph_norm, aggregation, use_3d=False, gru_enable=False, edge_feat=True,
+                 **kwargs):
         super().__init__()
 
         self.gnn = MPNNGNN(hidden_dim=hidden_dim, last_layer_dim=last_layer_dim, last_batch_norm=last_batch_norm,
                            mid_batch_norm=mid_batch_norm, in_feat_dropout=in_feat_dropout, dropout=dropout,
                            aggregation=aggregation, residual=residual, propagation_depth=propagation_depth,
-                           posttrans_layers=posttrans_layers, device=device, pretrans_layers=pretrans_layers,
-                           gru_enable=gru_enable, edge_hidden_dim=edge_hidden_dim, edge_feat=edge_feat,
-                           graph_norm=graph_norm)
+                           use_3d=use_3d, posttrans_layers=posttrans_layers, device=device,
+                           pretrans_layers=pretrans_layers, gru_enable=gru_enable, edge_hidden_dim=edge_hidden_dim,
+                           edge_feat=edge_feat, graph_norm=graph_norm)
 
         self.readout_aggregators = readout_aggregators
         self.output = MLPReadout(last_layer_dim * len(self.readout_aggregators), target_dim)
@@ -39,7 +40,7 @@ class MPNN(nn.Module):
 
 
 class MPNNGNN(nn.Module):
-    def __init__(self, hidden_dim, last_layer_dim, in_feat_dropout, dropout, propagation_depth, graph_norm,
+    def __init__(self, hidden_dim, last_layer_dim, in_feat_dropout, dropout, propagation_depth, graph_norm, use_3d,
                  mid_batch_norm, last_batch_norm, residual, edge_feat, edge_hidden_dim, pretrans_layers, aggregation,
                  posttrans_layers, gru_enable, device):
         super().__init__()
@@ -56,12 +57,12 @@ class MPNNGNN(nn.Module):
                                              last_batch_norm=last_batch_norm, residual=residual,
                                              edge_features=edge_feat, edge_hidden_dim=edge_hidden_dim,
                                              aggregation=aggregation, pretrans_layers=pretrans_layers,
-                                             posttrans_layers=posttrans_layers) for _
+                                             posttrans_layers=posttrans_layers, use_3d=use_3d) for _
                                      in range(propagation_depth - 1)])
         self.layers.append(MPLayer(in_dim=hidden_dim, out_dim=last_layer_dim, dropout=dropout, graph_norm=graph_norm,
                                    mid_batch_norm=mid_batch_norm, last_batch_norm=last_batch_norm, residual=residual,
                                    aggregation=aggregation, edge_features=edge_feat, edge_hidden_dim=edge_hidden_dim,
-                                   pretrans_layers=pretrans_layers, posttrans_layers=posttrans_layers))
+                                   pretrans_layers=pretrans_layers, posttrans_layers=posttrans_layers, use_3d=use_3d))
 
         if self.gru_enable:
             self.gru = GRU(hidden_dim, hidden_dim, device)
@@ -84,7 +85,7 @@ class MPNNGNN(nn.Module):
 
 class MPLayer(nn.Module):
 
-    def __init__(self, in_dim, out_dim, dropout, graph_norm, mid_batch_norm, last_batch_norm, aggregation='sum',
+    def __init__(self, in_dim, out_dim, dropout, graph_norm, mid_batch_norm, last_batch_norm, use_3d, aggregation='sum',
                  pretrans_layers=1, posttrans_layers=1, residual=False, edge_features=False, edge_hidden_dim=0):
 
         super().__init__()
@@ -94,12 +95,14 @@ class MPLayer(nn.Module):
         self.aggregation = aggregation
         self.edge_features = edge_features
         self.residual = residual
+        self.use_3d = use_3d
         if in_dim != out_dim:
             self.residual = False
         self.dropout = nn.Dropout(dropout)
         self.graph_norm = graph_norm
         self.edge_features = edge_features
-        self.pretrans = MLP(in_dim=2 * in_dim + (edge_hidden_dim if edge_features else 0), hidden_size=in_dim,
+        self.pretrans = MLP(in_dim=2 * in_dim + (edge_hidden_dim if edge_features else 0) + (1 if use_3d else 0),
+                            hidden_size=in_dim,
                             out_dim=in_dim, layers=pretrans_layers, mid_activation='relu', last_activation='none')
         self.posttrans = MLP(in_dim=2 * in_dim, hidden_size=out_dim, mid_batch_norm=mid_batch_norm,
                              last_batch_norm=last_batch_norm, out_dim=out_dim, layers=posttrans_layers,
@@ -138,6 +141,9 @@ class MPLayer(nn.Module):
             z2 = torch.cat([edges.src['feat'], edges.dst['feat'], edges.data['feat']], dim=1)
         else:
             z2 = torch.cat([edges.src['feat'], edges.dst['feat']], dim=1)
+        if self.use_3d:
+            squared_distance = torch.sum((edges.src['x'] - edges.dst['x']) ** 2, dim=-1)[:, None]
+            z2 = torch.cat([z2, squared_distance], dim=1)
         return {'e': self.pretrans(z2)}
 
     def message_func(self, edges):
