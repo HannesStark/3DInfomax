@@ -120,15 +120,15 @@ class PNAOriginal(nn.Module):
     def __init__(self, hidden_dim, last_layer_dim, target_dim, in_feat_dropout, dropout, last_batch_norm,
                  mid_batch_norm, propagation_depth, readout_aggregators, readout_hidden_dim, readout_layers,
                  aggregators, scalers, avg_d, residual, posttrans_layers, pretrans_layers, device, edge_hidden_dim,
-                 graph_norm,
-                 gru_enable=False, divide_input_last=True, divide_input_first=True, edge_feat=True, towers=1, **kwargs):
+                 graph_norm, use_3d=False, gru_enable=False, divide_input_last=True, divide_input_first=True,
+                 edge_feat=True, towers=1, **kwargs):
         super().__init__()
 
         self.gnn = PNAGNNOriginal(hidden_dim=hidden_dim, last_layer_dim=last_layer_dim, last_batch_norm=last_batch_norm,
                                   mid_batch_norm=mid_batch_norm, in_feat_dropout=in_feat_dropout, dropout=dropout,
                                   aggregators=aggregators, scalers=scalers, residual=residual, avg_d=avg_d,
                                   propagation_depth=propagation_depth, posttrans_layers=posttrans_layers, device=device,
-                                  pretrans_layers=pretrans_layers, gru_enable=gru_enable,
+                                  pretrans_layers=pretrans_layers, gru_enable=gru_enable, use_3d=use_3d,
                                   edge_hidden_dim=edge_hidden_dim, divide_input_first=divide_input_first,
                                   divide_input_last=divide_input_last, edge_feat=edge_feat, graph_norm=graph_norm,
                                   towers=towers)
@@ -148,7 +148,7 @@ class PNAOriginal(nn.Module):
 
 class PNAGNNOriginal(nn.Module):
     def __init__(self, hidden_dim, last_layer_dim, in_feat_dropout, dropout, propagation_depth, graph_norm,
-                 mid_batch_norm, last_batch_norm, residual, aggregators, scalers, avg_d,
+                 mid_batch_norm, last_batch_norm, residual, aggregators, scalers, avg_d, use_3d,
                  towers, divide_input_first, divide_input_last, edge_feat, edge_hidden_dim, pretrans_layers,
                  posttrans_layers, gru_enable, device):
         super().__init__()
@@ -162,7 +162,7 @@ class PNAGNNOriginal(nn.Module):
 
         self.layers = nn.ModuleList([PNALayer(in_dim=hidden_dim, out_dim=hidden_dim, dropout=dropout,
                                               graph_norm=graph_norm, mid_batch_norm=mid_batch_norm,
-                                              last_batch_norm=last_batch_norm,
+                                              last_batch_norm=last_batch_norm, use_3d=use_3d,
                                               residual=residual, aggregators=aggregators, scalers=scalers,
                                               avg_d=avg_d, towers=towers, edge_features=edge_feat,
                                               edge_hidden_dim=edge_hidden_dim, divide_input=divide_input_first,
@@ -170,7 +170,7 @@ class PNAGNNOriginal(nn.Module):
                                      in range(propagation_depth - 1)])
         self.layers.append(PNALayer(in_dim=hidden_dim, out_dim=last_layer_dim, dropout=dropout,
                                     graph_norm=graph_norm, mid_batch_norm=mid_batch_norm,
-                                    last_batch_norm=last_batch_norm,
+                                    last_batch_norm=last_batch_norm, use_3d=use_3d,
                                     residual=residual, aggregators=aggregators, scalers=scalers,
                                     avg_d=avg_d, towers=towers, divide_input=divide_input_last,
                                     edge_features=edge_feat, edge_hidden_dim=edge_hidden_dim,
@@ -178,6 +178,8 @@ class PNAGNNOriginal(nn.Module):
 
         if self.gru_enable:
             self.gru = GRU(hidden_dim, hidden_dim, device)
+
+        self.MLP_layer = MLPReadout(hidden_dim, 1)  # 1 out dim since regression problem
 
     def forward(self, g, h, e, snorm_n):
         h = self.embedding_h(h)
@@ -197,17 +199,18 @@ class PNAGNNOriginal(nn.Module):
 
 class PNATower(nn.Module):
     def __init__(self, in_dim, out_dim, dropout, graph_norm, mid_batch_norm, last_batch_norm, aggregators, scalers,
-                 avg_d,
-                 pretrans_layers, posttrans_layers, edge_features, edge_hidden_dim):
+                 avg_d, use_3d, pretrans_layers, posttrans_layers, edge_features, edge_hidden_dim):
         super().__init__()
         self.dropout = nn.Dropout(dropout)
         self.graph_norm = graph_norm
         self.edge_features = edge_features
+        self.use_3d = use_3d
 
         self.aggregators = aggregators
         self.scalers = scalers
-        self.pretrans = MLP(in_dim=2 * in_dim + (edge_hidden_dim if edge_features else 0), hidden_size=in_dim,
-                            out_dim=in_dim, layers=pretrans_layers, mid_activation='relu', last_activation='none')
+        self.pretrans = MLP(in_dim=2 * in_dim + (edge_hidden_dim if edge_features else 0) + (1 if use_3d else 0),
+                            hidden_size=in_dim, out_dim=in_dim, layers=pretrans_layers, mid_activation='relu',
+                            last_activation='none')
         self.posttrans = MLP(in_dim=(len(aggregators) * len(scalers) + 1) * in_dim, hidden_size=out_dim,
                              mid_batch_norm=mid_batch_norm, last_batch_norm=last_batch_norm,
                              out_dim=out_dim, layers=posttrans_layers, mid_activation='relu', last_activation='none')
@@ -218,6 +221,9 @@ class PNATower(nn.Module):
             z2 = torch.cat([edges.src['feat'], edges.dst['feat'], edges.data['feat']], dim=1)
         else:
             z2 = torch.cat([edges.src['feat'], edges.dst['feat']], dim=1)
+        if self.use_3d:
+            squared_distance = torch.sum((edges.src['x'] - edges.dst['x']) ** 2, dim=-1)[:, None]
+            z2 = torch.cat([z2, squared_distance], dim=1)
         return {'e': self.pretrans(z2)}
 
     def message_func(self, edges):
@@ -257,7 +263,7 @@ class PNATower(nn.Module):
 
 class PNALayer(nn.Module):
 
-    def __init__(self, in_dim, out_dim, aggregators, scalers, avg_d, dropout, graph_norm, mid_batch_norm,
+    def __init__(self, in_dim, out_dim, aggregators, scalers, avg_d, dropout, graph_norm, mid_batch_norm, use_3d,
                  last_batch_norm, towers=1,
                  pretrans_layers=1, posttrans_layers=1, divide_input=True, residual=False, edge_features=False,
                  edge_hidden_dim=0):
@@ -288,7 +294,7 @@ class PNALayer(nn.Module):
             self.towers.append(PNATower(in_dim=self.input_tower, out_dim=self.output_tower, aggregators=aggregators,
                                         scalers=scalers, avg_d=avg_d, pretrans_layers=pretrans_layers,
                                         posttrans_layers=posttrans_layers, mid_batch_norm=mid_batch_norm,
-                                        last_batch_norm=last_batch_norm, dropout=dropout,
+                                        last_batch_norm=last_batch_norm, dropout=dropout, use_3d=use_3d,
                                         graph_norm=graph_norm, edge_features=edge_features,
                                         edge_hidden_dim=edge_hidden_dim))
         # mixing network
