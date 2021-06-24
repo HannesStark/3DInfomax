@@ -1,4 +1,4 @@
-experiment_name: '70hidden_4props'
+experiment_name: 'molhiv_70hidden_4props'
 
 dataset: 'molhiv'
 num_epochs: 1000

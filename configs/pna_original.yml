@@ -3,7 +3,7 @@ experiment_name: 'baseline'
 num_epochs: 1000
 batch_size: 128
 prefetch_graphs: True
-log_iterations: 1
+log_iterations: 30
 patience: 30
 num_train: 50000
 loss_func: L1Loss

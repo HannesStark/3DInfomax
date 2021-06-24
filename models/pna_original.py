@@ -134,7 +134,6 @@ class PNAOriginal(nn.Module):
                                   towers=towers)
 
         self.readout_aggregators = readout_aggregators
-        ic(last_layer_dim * len(self.readout_aggregators))
         self.output = MLPReadout(last_layer_dim * len(self.readout_aggregators), target_dim)
 
     def forward(self, g, snorm_n):
@@ -179,8 +178,6 @@ class PNAGNNOriginal(nn.Module):
 
         if self.gru_enable:
             self.gru = GRU(hidden_dim, hidden_dim, device)
-
-        self.MLP_layer = MLPReadout(last_layer_dim, 1)  # 1 out dim since regression problem
 
     def forward(self, g, h, e, snorm_n):
         h = self.embedding_h(h)

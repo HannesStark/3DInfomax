@@ -2,75 +2,63 @@ experiment_name: 'baseline'
 
 num_epochs: 1000
 batch_size: 128
-prefetch_graphs: False
+prefetch_graphs: True
 log_iterations: 30
-patience: 50
+patience: 30
 num_train: 50000
 loss_func: L1Loss
 targets:
   - homo
-features:
-  - 'implicit-valence'
-  - 'degree'
-  - 'hybridization'
-  - 'chirality'
-  - 'mass'
-  - 'electronegativity'
-  - 'aromatic-bond'
-  - 'formal-charge'
-  - 'radical-electron'
-  - 'in-ring'
-  - 'atomic-number'
-e_features:
-  - 'bond-type-onehot'
-  - 'stereo'
-  - 'conjugated'
-  - 'in-ring-edges'
-
-
 
 required_data:
   - mol_graph
   - targets
 metrics:
   - mae_denormalized
-
+  - pearsonr
   - rsquared
   - qm9_properties
   - mean_predictor_loss
-#  - cosine
-#  - contrastive_cosine
+collate_function: s_norm_graph_collate
 
 optimizer: Adam
 optimizer_params:
   lr: 1.0e-4
 
-lr_scheduler: ReduceLROnPlateau
 scheduler_step_per_batch: False
+lr_scheduler: ReduceLROnPlateau
 lr_scheduler_params:
-  factor: 0.6
+  factor: 0.5
   patience: 25
-  min_lr: 5.0e-5
+  min_lr: 5.0e-6
   mode: 'min'
   verbose: True
 
-# Model parameters
 model_type: 'MPNN'
 model_parameters:
   target_dim: 1
+  aggregation: 'sum'
   hidden_dim: 90
+  last_layer_dim: 90
   mid_batch_norm: True
   last_batch_norm: True
+  graph_norm: True
+  readout_batchnorm: True
+  edge_hidden_dim: 70
+  readout_hidden_dim: 70
+  readout_layers: 2
   dropout: 0.0
-  propagation_depth: 6
+  in_feat_dropout: 0.0
+  propagation_depth: 4
   readout_aggregators:
-    - sum
-    - min
-    - max
     - mean
-  pretrans_layers: 2
+    - max
+    - min
+    - sum
+  pretrans_layers: 1
   posttrans_layers: 1
   residual: True
+  gru: False
 
 
 # continue training from checkpoint:
