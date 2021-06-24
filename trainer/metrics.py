@@ -1,8 +1,10 @@
+
 from typing import Union
 
 import torch
 from ogb.graphproppred import Evaluator
 from torch import Tensor
+from torch.distributed import reduce
 from torch.nn import functional as F
 import torch.nn as nn
 import numpy as np
@@ -12,6 +14,25 @@ from commons.losses import cov_loss, std_loss, uniformity_loss
 from datasets.geom_drugs_dataset import GEOMDrugs
 from datasets.qm9_dataset import QM9Dataset
 
+
+class PearsonR(nn.Module):
+    """
+    Takes a single target property of the QM9 dataset, denormalizes it and turns in into meV from eV if it  is an energy
+    """
+
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, preds, targets):
+        shifted_x = preds - torch.mean(preds, dim=0)
+        shifted_y = targets - torch.mean(targets, dim=0)
+        sigma_x = torch.sqrt(torch.sum(shifted_x ** 2, dim=0))
+        sigma_y = torch.sqrt(torch.sum(shifted_y ** 2, dim=0))
+
+        pearson = torch.sum(shifted_x * shifted_y, dim=0) / (sigma_x * sigma_y + 1e-8)
+        pearson = torch.clamp(pearson, min=-1, max=1)
+        pearson = pearson.mean()
+        return pearson
 
 class QM9SingleTargetDenormalizedL1(nn.Module):
     """
