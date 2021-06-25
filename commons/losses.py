@@ -272,9 +272,7 @@ class NTXentMultiplePositivesV3(_Loss):
             sim_matrix = sim_matrix / torch.einsum('i,ju->iju', z1_abs, z2_abs)
 
         sim_matrix = torch.exp(sim_matrix / self.tau)  # [batch_size, batch_size, num_conformers]
-        ic(sim_matrix.shape)
-        pos_sim = torch.diagonal(sim_matrix)  # [batch_size, num_conformers]
-        ic(pos_sim.shape)
+        pos_sim = sim_matrix[range(batch_size), range(batch_size), :]  # [batch_size, num_conformers]
         loss = pos_sim / (sim_matrix.sum(dim=1) - pos_sim)
         loss = - torch.log(loss).mean()
 
