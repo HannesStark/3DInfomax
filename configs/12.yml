@@ -4,7 +4,7 @@ dataset: geom_qm9
 num_epochs: 1000
 batch_size: 500
 prefetch_graphs: True
-log_iterations: 1
+log_iterations: 50
 patience: 35
 loss_func: NTXentMultiplePositivesV2
 loss_params:
@@ -26,7 +26,7 @@ metrics:
 main_metric: loss
 collate_function: ConformerCollate
 collate_params:
-  num_conformers: 10
+  num_conformers: 5
 
 optimizer: Adam
 optimizer_params:

@@ -48,7 +48,7 @@ class TransformerPlain(nn.Module):
 
     def forward(self, h, pos_enc, mask):
         batch_size, max_num_atoms, _ = h.size()
-        h = self.node_gnn(h, mask)
+        h = self.node_gnn(h, pos_enc,mask)
 
         readout_query = self.readout_query[None, None, :].expand((batch_size, -1, -1))
         # pooled: [batch_size, 1, hidden_dim]
@@ -78,7 +78,7 @@ class TransformerGNN(nn.Module):
         self.atom_encoder = AtomEncoder(emb_dim=hidden_dim)
         self.bond_encoder = BondEncoder(emb_dim=hidden_dim)
 
-    def forward(self, h, mask):
+    def forward(self, h, pos_enc, mask):
         batch_size, max_num_atoms, _ = h.size()
         h = self.atom_encoder(h.view(-1, h.shape[-1]))
         h = h.view(batch_size, max_num_atoms, -1)  # [batch_size, max_num_atoms, hidden_dim]

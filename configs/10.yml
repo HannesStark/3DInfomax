@@ -26,7 +26,7 @@ metrics:
 main_metric: loss
 collate_function: ConformerCollate
 collate_params:
-  num_conformers: 10
+  num_conformers: 5
 
 optimizer: Adam
 optimizer_params:

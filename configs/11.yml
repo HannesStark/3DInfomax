@@ -2,7 +2,7 @@ experiment_name: 'drugs_NTXentMultiplePositivesV3_V3'
 
 dataset: 'drugs'
 num_epochs: 1000
-batch_size: 250
+batch_size: 500
 prefetch_graphs: True
 log_iterations: 50
 patience: 35
@@ -21,14 +21,12 @@ metrics:
   - contrastive_accuracy
   - true_negative_rate
   - true_positive_rate
-  - uniformity
-  - alignment
   - batch_variance
   - dimension_covariance
 main_metric: loss
 collate_function: ConformerCollate
 collate_params:
-  num_conformers: 10
+  num_conformers: 5
 
 optimizer: Adam
 optimizer_params:

@@ -84,12 +84,9 @@ class Trainer():
 
             self.model.eval()
             with torch.no_grad():
-                val_loss, val_predictions, val_targets = self.predict(val_loader, epoch)
-                metrics = self.evaluate_metrics(val_predictions, val_targets.float(), val=True)
-                metrics[type(self.loss_func).__name__] = val_loss
-                self.run_tensorboard_functions(val_predictions, val_targets, step=self.optim_steps, data_split='val')
-
+                metrics = self.predict(val_loader, epoch)
                 val_score = metrics[self.main_metric]
+
                 if self.lr_scheduler != None and not self.scheduler_step_per_batch:
                     self.step_schedulers(metrics=val_score)
 
@@ -97,6 +94,7 @@ class Trainer():
                     self.run_per_epoch_evaluations(val_loader)
 
                 self.tensorboard_log(metrics, data_split='val', epoch=epoch, log_hparam=True, step=self.optim_steps)
+                val_loss = metrics[type(self.loss_func).__name__]
                 print('[Epoch %d] %s: %.6f val loss: %.6f' % (epoch, self.main_metric, val_score, val_loss))
 
                 # save the model with the best main_metric depending on wether we want to maximize or minimize the main metric
@@ -134,7 +132,7 @@ class Trainer():
         return loss, predictions.detach(), targets.detach()
 
     def predict(self, data_loader: DataLoader, epoch: int = 0, optim: torch.optim.Optimizer = None,
-                return_predictions: bool = False) -> Tuple[float, Union[torch.Tensor, None], Union[torch.Tensor, None]]:
+                return_predictions: bool = False) -> Dict:
         """
         get predictions for data in dataloader and do backpropagation if an optimizer is provided
         Args:
@@ -149,8 +147,9 @@ class Trainer():
             targets: all targets of the epoch
         """
         args = self.args
-        epoch_targets = torch.tensor([]).to(self.device)
-        epoch_predictions = torch.tensor([]).to(self.device)
+        total_metrics = {k: 0 for k in self.evaluate_metrics(torch.ones((2, 2), device=self.device),
+                                                             torch.ones((2, 2), device=self.device)).keys()}
+        total_metrics[type(self.loss_func).__name__] = 0
         epoch_loss = 0
         for i, batch in enumerate(data_loader):
             batch = [element.to(self.device) if element is not None else None for element in batch]
@@ -165,11 +164,14 @@ class Trainer():
                                                                        i + 1, len(data_loader), 'train', loss.item()))
                 if optim == None:  # during validation or testing when we want to average metrics over all the data in that dataloader
                     epoch_loss += loss.item()
-                    epoch_targets = torch.cat((targets, epoch_targets), 0)
-                    epoch_predictions = torch.cat((predictions, epoch_predictions), 0)
+                    metrics_results = self.evaluate_metrics(predictions, targets, batch)
+                    metrics_results[type(self.loss_func).__name__] = loss.item()
+                    self.run_tensorboard_functions(predictions, targets, step=self.optim_steps, data_split='val')
+                    for key, value in metrics_results.items():
+                        total_metrics[key] += value
 
         if optim == None:
-            return epoch_loss / len(data_loader), epoch_predictions, epoch_targets
+            return {k: v / len(data_loader) for k, v in total_metrics.items()}
 
     def after_optim_step(self):
         if self.optim_steps % self.args.log_iterations == 0:
@@ -179,15 +181,15 @@ class Trainer():
             self.step_schedulers()
 
     def evaluate_metrics(self, predictions, targets, batch=None, val=False) -> Dict[str, float]:
-        metric_results = {}
-        metric_results[f'mean_pred'] = torch.mean(predictions).item()
-        metric_results[f'std_pred'] = torch.std(predictions).item()
-        metric_results[f'mean_targets'] = torch.mean(targets).item()
-        metric_results[f'std_targets'] = torch.std(targets).item()
+        metrics = {}
+        metrics[f'mean_pred'] = torch.mean(predictions).item()
+        metrics[f'std_pred'] = torch.std(predictions).item()
+        metrics[f'mean_targets'] = torch.mean(targets).item()
+        metrics[f'std_targets'] = torch.std(targets).item()
         for key, metric in self.metrics.items():
             if not hasattr(metric, 'val_only') or val:
-                metric_results[key] = metric(predictions, targets).item()
-        return metric_results
+                metrics[key] = metric(predictions, targets).item()
+        return metrics
 
     def tensorboard_log(self, metrics, data_split: str, epoch: int, step: int, log_hparam: bool = False):
         metrics['epoch'] = epoch
@@ -211,10 +213,8 @@ class Trainer():
 
     def evaluation(self, data_loader: DataLoader, data_split: str = ''):
         self.model.eval()
-        loss, predictions, targets = self.predict(data_loader)
+        metrics = self.predict(data_loader)
 
-        metrics = self.evaluate_metrics(predictions, targets.float(), val=True)
-        metrics[type(self.loss_func).__name__] = loss
         with open(os.path.join(self.writer.log_dir, 'evaluation_' + data_split + '.txt'), 'w') as file:
             print('Statistics on ', data_split)
             for key, value in metrics.items():
