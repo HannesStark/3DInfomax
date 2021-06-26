@@ -32,8 +32,8 @@ collate_params:
 
 optimizer: Adam
 optimizer_params:
-  lr: 8.0e-5
-  weight_decay: 5.0e-7
+  lr: 8.0e-6
+  weight_decay: 5.0e-9
 
 
 scheduler_step_per_batch: False

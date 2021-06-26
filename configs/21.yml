@@ -1,4 +1,4 @@
-experiment_name: 'baseline'
+experiment_name: 'baseline_lower_batchsize'
 
 dataset: 'ogbg-mollipo'
 num_epochs: 1000
