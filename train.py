@@ -266,8 +266,8 @@ def train_qm9(args, device, metrics_dict):
     val_idx = all_idx[len(model_idx) + len(test_idx):]
     train_idx = model_idx[:args.num_train]
     # for debugging purposes:
-    test_idx = all_idx[len(model_idx): len(model_idx) + 200]
-    val_idx = all_idx[len(model_idx) + len(test_idx): len(model_idx) + len(test_idx) + 3000]
+    # test_idx = all_idx[len(model_idx): len(model_idx) + 200]
+    # val_idx = all_idx[len(model_idx) + len(test_idx): len(model_idx) + len(test_idx) + 3000]
 
     model, num_pretrain = load_model(args, data=all_data, device=device)
     if args.pretrain_checkpoint:

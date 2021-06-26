@@ -1,2 +1,75 @@
-checkpoint: runs/PNAOriginal_130hidden_2pretrans_7propagation_baseline_for_pretrain_23-06_10-42-08/last_checkpoint.pt
-log_iterations: 50
+experiment_name: 'prop_depth_7_noTowers'
+
+num_epochs: 1000
+batch_size: 128
+prefetch_graphs: True
+log_iterations: 1
+patience: 30
+num_train: 50000
+loss_func: L1Loss
+targets:
+  - homo
+
+required_data:
+  - mol_graph
+  - targets
+metrics:
+  - mae_denormalized
+  - rsquared
+  - qm9_properties
+  - mean_predictor_loss
+collate_function: s_norm_graph_collate
+
+optimizer: Adam
+optimizer_params:
+  lr: 1.0e-4
+
+scheduler_step_per_batch: False
+lr_scheduler: ReduceLROnPlateau
+lr_scheduler_params:
+  factor: 0.5
+  patience: 25
+  min_lr: 5.0e-6
+  mode: 'min'
+  verbose: True
+
+model_type: 'PNAOriginal'
+model_parameters:
+  target_dim: 1
+  hidden_dim: 90
+  last_layer_dim: 90
+  mid_batch_norm: True
+  last_batch_norm: True
+  graph_norm: True
+  readout_batchnorm: True
+  edge_hidden_dim: 70
+  readout_hidden_dim: 70
+  readout_layers: 2
+  dropout: 0.0
+  in_feat_dropout: 0.0
+  propagation_depth: 7
+  towers: 1
+  divide_input_first: False
+  divide_input_last: False
+  aggregators:
+    - mean
+    - max
+    - min
+    - std
+  scalers:
+    - identity
+    - amplification
+    - attenuation
+  readout_aggregators:
+    - mean
+    - max
+    - min
+    - sum
+  pretrans_layers: 1
+  posttrans_layers: 1
+  residual: True
+  gru: False
+
+
+# continue training from checkpoint:
+#checkpoint: runs/PNAReadout_2_layer_03-04_15-29-07/last_checkpoint.pt
