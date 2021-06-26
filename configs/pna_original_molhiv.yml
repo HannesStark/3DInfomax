@@ -1,17 +1,17 @@
 experiment_name: 'molhiv_70hidden_4props'
 
-dataset: 'molhiv'
+dataset: 'ogbg-molhiv'
 num_epochs: 1000
 batch_size: 128
 log_iterations: 30
 patience: 30
 loss_func: BCEWithLogitsLoss
 metrics:
-  - ogb_molhiv
   - rsquared
   - mean_predictor_loss
-main_metric: ogb_molhiv
 main_metric_goal: max
+val_per_batch: False
+
 
 collate_function: s_norm_graph_collate
 

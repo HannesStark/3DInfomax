@@ -33,6 +33,7 @@ class Trainer():
         self.loss_func = loss_func
         self.tensorboard_functions = tensorboard_functions
         self.metrics = metrics
+        self.val_per_batch = args.val_per_batch
         self.main_metric = type(self.loss_func).__name__ if main_metric == 'loss' else main_metric
         self.main_metric_goal = main_metric_goal
         self.scheduler_step_per_batch = scheduler_step_per_batch
@@ -54,7 +55,7 @@ class Trainer():
             self.optim_steps = 0
             self.best_val_score = -np.inf if self.main_metric_goal == 'max' else np.inf  # running score to decide whether or not a new model should be saved
             self.writer = SummaryWriter(
-                '{}/{}_{}_{}'.format(args.logdir, args.model_type, args.experiment_name,
+                '{}/{}_{}_{}_{}'.format(args.logdir, args.model_type, args.dataset, args.experiment_name,
                                      datetime.now().strftime('%d-%m_%H-%M-%S')))
             shutil.copyfile(self.args.config.name,
                             os.path.join(self.writer.log_dir, os.path.basename(self.args.config.name)))
@@ -132,7 +133,8 @@ class Trainer():
         return loss, predictions.detach(), targets.detach()
 
     def predict(self, data_loader: DataLoader, epoch: int = 0, optim: torch.optim.Optimizer = None,
-                return_predictions: bool = False) -> Dict:
+                return_predictions: bool = False) -> Union[
+        Dict, Tuple[float, Union[torch.Tensor, None], Union[torch.Tensor, None]]]:
         """
         get predictions for data in dataloader and do backpropagation if an optimizer is provided
         Args:
@@ -148,8 +150,10 @@ class Trainer():
         """
         args = self.args
         total_metrics = {k: 0 for k in self.evaluate_metrics(torch.ones((2, 2), device=self.device),
-                                                             torch.ones((2, 2), device=self.device)).keys()}
+                                                             torch.ones((2, 2), device=self.device), val=True).keys()}
         total_metrics[type(self.loss_func).__name__] = 0
+        epoch_targets = torch.tensor([]).to(self.device)
+        epoch_predictions = torch.tensor([]).to(self.device)
         epoch_loss = 0
         for i, batch in enumerate(data_loader):
             batch = [element.to(self.device) if element is not None else None for element in batch]
@@ -162,16 +166,24 @@ class Trainer():
                     self.tensorboard_log(metrics, data_split='train', step=self.optim_steps, epoch=epoch)
                     print('[Epoch %d; Iter %5d/%5d] %s: loss: %.7f' % (epoch,
                                                                        i + 1, len(data_loader), 'train', loss.item()))
-                if optim == None:  # during validation or testing when we want to average metrics over all the data in that dataloader
+                if optim == None and self.val_per_batch:  # during validation or testing when we want to average metrics over all the data in that dataloader
                     epoch_loss += loss.item()
-                    metrics_results = self.evaluate_metrics(predictions, targets, batch)
+                    metrics_results = self.evaluate_metrics(predictions, targets.float(), val=True)
                     metrics_results[type(self.loss_func).__name__] = loss.item()
                     self.run_tensorboard_functions(predictions, targets, step=self.optim_steps, data_split='val')
                     for key, value in metrics_results.items():
                         total_metrics[key] += value
+                if optim == None and not self.val_per_batch:
+                    epoch_targets = torch.cat((targets, epoch_targets), 0)
+                    epoch_predictions = torch.cat((predictions, epoch_predictions), 0)
 
         if optim == None:
-            return {k: v / len(data_loader) for k, v in total_metrics.items()}
+            if self.val_per_batch:
+                total_metrics = {k: v / len(data_loader) for k, v in total_metrics.items()}
+            else:
+                total_metrics = self.evaluate_metrics(epoch_predictions, epoch_targets.float(), val=True)
+                total_metrics[type(self.loss_func).__name__] = epoch_loss / len(data_loader)
+            return total_metrics
 
     def after_optim_step(self):
         if self.optim_steps % self.args.log_iterations == 0:

@@ -103,16 +103,17 @@ class QM9DenormalizedL2(nn.Module):
 
 
 class OGBEvaluator(nn.Module):
-    def __init__(self, d_name):
+    def __init__(self, d_name, metric='rocauc'):
         super().__init__()
         self.evaluator = Evaluator(name=d_name)
         self.val_only = True
+        self.metric = metric
 
     def forward(self, preds, targets):
         if preds.shape[1] > 1:
             return torch.tensor(float('NaN'))
         input_dict = {"y_true": targets, "y_pred": preds}
-        return torch.tensor(self.evaluator.eval(input_dict)['rocauc'])
+        return torch.tensor(self.evaluator.eval(input_dict)[self.metric])
 
 
 class Rsquared(nn.Module):

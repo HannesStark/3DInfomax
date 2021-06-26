@@ -132,7 +132,17 @@ def train(args):
     metrics_dict = {'rsquared': Rsquared(),
                     'mae': MAE(),
                     'pearsonr': PearsonR(),
-                    'ogb_molhiv': OGBEvaluator(d_name='ogbg-molhiv'),
+                    'ogbg-molhiv': OGBEvaluator(d_name='ogbg-molhiv', metric='rocauc'),
+                    'ogbg-molpcba': OGBEvaluator(d_name='ogbg-molpcba', metric='ap'),
+                    'ogbg-molbace': OGBEvaluator(d_name='ogbg-molbace', metric='rocauc'),
+                    'ogbg-molbbbp': OGBEvaluator(d_name='ogbg-molbbbp', metric='rocauc'),
+                    'ogbg-molclintox': OGBEvaluator(d_name='ogbg-molclintox', metric='rocauc'),
+                    'ogbg-moltoxcast': OGBEvaluator(d_name='ogbg-moltoxcast', metric='rocauc'),
+                    'ogbg-mollipo': OGBEvaluator(d_name='ogbg-mollipo', metric='rmse'),
+                    'ogbg-molmuv': OGBEvaluator(d_name='ogbg-molmuv', metric='ap'),
+                    'ogbg-molsider': OGBEvaluator(d_name='ogbg-molsider', metric='rocauc'),
+                    'ogbg-molfreesolv': OGBEvaluator(d_name='ogbg-molfreesolv', metric='rmse'),
+                    'ogbg-molesol': OGBEvaluator(d_name='ogbg-molesol', metric='rmse'),
                     'positive_similarity': PositiveSimilarity(),
                     'positive_similarity_multiple_positives_separate2d': PositiveSimilarityMultiplePositivesSeparate2d(),
                     'negative_similarity': NegativeSimilarity(),
@@ -153,12 +163,12 @@ def train(args):
         train_zinc(args, device, metrics_dict)
     elif args.dataset == 'drugs' or args.dataset == 'geom_qm9':
         train_geom(args, device, metrics_dict)
-    elif args.dataset == 'molhiv':
-        train_molhiv(args, device, metrics_dict)
+    elif 'ogbg' in args.dataset:
+        train_ogbg(args, device, metrics_dict)
 
 
-def train_molhiv(args, device, metrics_dict):
-    dataset = DglGraphPropPredDataset(name='ogbg-molhiv')
+def train_ogbg(args, device, metrics_dict):
+    dataset = DglGraphPropPredDataset(name=args.dataset)
     split_idx = dataset.get_idx_split()
     collate_function = globals()[args.collate_function] if args.collate_params == {} else globals()[
         args.collate_function](**args.collate_params)
@@ -172,9 +182,11 @@ def train_molhiv(args, device, metrics_dict):
 
     model, num_pretrain = load_model(args, data=dataset, device=device)
 
-
-
     metrics = {metric: metrics_dict[metric] for metric in args.metrics}
+    metrics[args.dataset] = metrics_dict[args.dataset]
+    args.main_metric = args.dataset
+    args.val_per_batch = False
+    args.main_metric_goal = 'min' if metrics[args.main_metric].metric == 'rmse' else 'max'
     trainer = get_trainer(args=args, model=model, data=dataset, device=device, metrics=metrics)
     trainer.train(train_loader, val_loader)
 
@@ -302,7 +314,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/contrastive_training.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/mpnn.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
@@ -337,6 +349,8 @@ def parse_arguments():
     p.add_argument('--metrics', default=[], help='tensorboard metrics [mae, mae_denormalized, qm9_properties ...]')
     p.add_argument('--main_metric', default='mae_denormalized', help='for early stopping etc.')
     p.add_argument('--main_metric_goal', type=str, default='min', help='controls early stopping. [max, min]')
+    p.add_argument('--val_per_batch', type=bool, default=True,
+                   help='run evaluation every batch and then average over the eval results. When running the molhiv benchmark for example, this needs to be Fale because we need to evaluate on all val data at once since the metric is rocauc')
     p.add_argument('--tensorboard_functions', default=[], help='choices of the TENSORBOARD_FUNCTIONS in utils')
     p.add_argument('--checkpoint', type=str, help='path to directory that contains a checkpoint to continue training')
     p.add_argument('--pretrain_checkpoint', type=str, help='Specify path to finetune from a pretrained checkpoint')

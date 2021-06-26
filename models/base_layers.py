@@ -121,7 +121,7 @@ class MLP(nn.Module):
         Simple multi-layer perceptron, built of a series of FCLayers
     """
 
-    def __init__(self, in_dim, hidden_size, out_dim, layers, mid_activation='relu', last_activation='none',
+    def __init__(self, in_dim, out_dim, layers, hidden_size=None, mid_activation='relu', last_activation='none',
                  dropout=0., mid_batch_norm=False, last_batch_norm=False, batch_norm_momentum=0.1, device='cpu'):
         super(MLP, self).__init__()
 

@@ -2,7 +2,7 @@ experiment_name: 'baseline'
 
 num_epochs: 1000
 batch_size: 128
-prefetch_graphs: True
+prefetch_graphs: False
 log_iterations: 30
 patience: 30
 num_train: 50000
@@ -37,6 +37,7 @@ lr_scheduler_params:
 model_type: 'MPNN'
 model_parameters:
   target_dim: 1
+  distance_net_dim: 40
   aggregation: 'sum'
   hidden_dim: 90
   last_layer_dim: 90

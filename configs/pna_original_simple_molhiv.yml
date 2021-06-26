@@ -7,7 +7,7 @@ log_iterations: 30
 patience: 30
 loss_func: BCEWithLogitsLoss
 metrics:
-  - ogb_molhiv
+  - ogbg-molhiv
   - rsquared
   - mean_predictor_loss
 main_metric: ogb_molhiv

@@ -222,8 +222,8 @@ class PNATower(nn.Module):
         else:
             z2 = torch.cat([edges.src['feat'], edges.dst['feat']], dim=1)
         if self.use_3d:
-            squared_distance = torch.sum((edges.src['x'] - edges.dst['x']) ** 2, dim=-1)[:, None]
-            z2 = torch.cat([z2, squared_distance], dim=1)
+            distances = torch.norm((edges.src['x'] - edges.dst['x']), dim=-1)[:, None]
+            z2 = torch.cat([z2, distances], dim=1)
         return {'e': self.pretrans(z2)}
 
     def message_func(self, edges):
