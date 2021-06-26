@@ -1,4 +1,4 @@
-experiment_name: 'tune_from_drugs_lre-5'
+experiment_name: 'tune_from_drugs'
 
 pretrain_checkpoint: runs/PNA_drugs_NTXent_ogb_21-06_09-27-02/best_checkpoint.pt
 transfer_layers:
