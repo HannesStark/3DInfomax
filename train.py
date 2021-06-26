@@ -138,6 +138,7 @@ def train(args):
                     'ogbg-molbbbp': OGBEvaluator(d_name='ogbg-molbbbp', metric='rocauc'),
                     'ogbg-molclintox': OGBEvaluator(d_name='ogbg-molclintox', metric='rocauc'),
                     'ogbg-moltoxcast': OGBEvaluator(d_name='ogbg-moltoxcast', metric='rocauc'),
+                    'ogbg-moltox21': OGBEvaluator(d_name='ogbg-moltox21', metric='rocauc'),
                     'ogbg-mollipo': OGBEvaluator(d_name='ogbg-mollipo', metric='rmse'),
                     'ogbg-molmuv': OGBEvaluator(d_name='ogbg-molmuv', metric='ap'),
                     'ogbg-molsider': OGBEvaluator(d_name='ogbg-molsider', metric='rocauc'),
