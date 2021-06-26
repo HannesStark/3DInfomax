@@ -1,11 +1,4 @@
-experiment_name: 'tune_NTXent_large_pna'
-
-pretrain_checkpoint: runs/PNA_drugs_NTXent_ogb_21-06_09-27-02/best_checkpoint.pt
-transfer_layers:
-  - gnn
-exclude_from_transfer:
-  - batch_norm
-
+experiment_name: 'baseline'
 
 dataset: 'ogbg-mollipo'
 num_epochs: 1000
@@ -17,9 +10,6 @@ metrics:
   - rsquared
   - mean_predictor_loss
   - pearsonr
-
-collate_function: graph_collate
-
 optimizer: Adam
 optimizer_params:
   lr: 1.0e-4
@@ -27,29 +17,27 @@ optimizer_params:
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [700,700,390]
+  warmup_steps: [1500]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
   factor: 0.5
   patience: 25
-  min_lr: 1.0e-6
-  mode: 'min'
+  min_lr: 5.0e-6
+  mode: 'max'
   verbose: True
-
-
 
 # Model parameters
 model_type: 'PNA'
 model_parameters:
   target_dim: 1
-  hidden_dim: 300
+  hidden_dim: 128
   mid_batch_norm: True
   last_batch_norm: True
   readout_batchnorm: True
   # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
   batch_norm_momentum: 0.96
-  readout_hidden_dim: 300
+  readout_hidden_dim: 128
   readout_layers: 2
   dropout: 0.0
   propagation_depth: 6
@@ -70,8 +58,6 @@ model_parameters:
   pretrans_layers: 2
   posttrans_layers: 1
   residual: True
-
-
 
 
 # continue training from checkpoint:

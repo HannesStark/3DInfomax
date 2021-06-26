@@ -237,7 +237,7 @@ def train_geom(args, device, metrics_dict):
     # val_idx = all_idx[len(model_idx) + len(test_idx): len(model_idx) + len(test_idx) + 3000]
 
     model, num_pretrain = load_model(args, data=all_data, device=device)
-    if args.pretrain_checkpoint:
+    if args.pretrain_checkpoint and not args.transfer_from_different_dataset:
         train_idx = model_idx[num_pretrain: num_pretrain + args.num_train]
     print('model trainable params: ', sum(p.numel() for p in model.parameters() if p.requires_grad))
 
@@ -282,7 +282,7 @@ def train_qm9(args, device, metrics_dict):
     # val_idx = all_idx[len(model_idx) + len(test_idx): len(model_idx) + len(test_idx) + 3000]
 
     model, num_pretrain = load_model(args, data=all_data, device=device)
-    if args.pretrain_checkpoint:
+    if args.pretrain_checkpoint and not args.transfer_from_different_dataset:
         train_idx = model_idx[num_pretrain: num_pretrain + args.num_train]
     print('model trainable params: ', sum(p.numel() for p in model.parameters() if p.requires_grad))
 
@@ -384,6 +384,7 @@ def parse_arguments():
     p.add_argument('--train_sampler', type=str, default=None, help='any of pytorchs samplers or a custom sampler')
 
     p.add_argument('--eval_on_test', type=bool, default=True, help='runs evaluation on test set if true')
+    p.add_argument('--transfer_from_different_dataset', type=bool, default=False, help='set to true when transferring from different dataset')
 
     args = p.parse_args()
 
