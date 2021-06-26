@@ -1,11 +1,11 @@
 experiment_name: 'baseline'
 
-dataset: 'ogbg-moltox21'
+dataset: 'ogbg-molbbbp'
 num_epochs: 1000
-batch_size: 128
+batch_size: 32
 log_iterations: 30
 patience: 30
-loss_func: MultiTargetBCEWithLogitsLoss
+loss_func: BCEWithLogitsLoss
 metrics:
   - rsquared
   - mean_predictor_loss
@@ -30,7 +30,7 @@ lr_scheduler_params:
 # Model parameters
 model_type: 'PNA'
 model_parameters:
-  target_dim: 12
+  target_dim: 1
   hidden_dim: 128
   mid_batch_norm: True
   last_batch_norm: True
