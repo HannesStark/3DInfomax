@@ -1,50 +1,31 @@
-experiment_name: 'tune_from_drugs_NTXent_ogb'
+experiment_name: 'baseline'
 
-pretrain_checkpoint: runs/PNA_drugs_NTXent_ogb_21-06_09-27-02/best_checkpoint.pt
-transfer_layers:
-  - gnn
-exclude_from_transfer:
-  - batch_norm
-
+dataset: 'ogbg-molhiv'
 num_epochs: 1000
 batch_size: 128
-prefetch_graphs: True
 log_iterations: 30
 patience: 30
-loss_func: L1Loss
-num_train: 50000
-transfer_from_different_dataset: True
-targets:
-  - homo
-
-required_data:
-  - mol_graph
-  - targets
+loss_func: BCEWithLogitsLoss
 metrics:
-  - mae_denormalized
-  - pearsonr
   - rsquared
-  - qm9_properties
-
+  - mean_predictor_loss
+  - pearsonr
 optimizer: Adam
 optimizer_params:
-  lr: 7.0e-5
-  weight_decay: 1.0e-11
+  lr: 1.0e-4
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [700,700,390]
+  warmup_steps: [1500]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
   factor: 0.5
   patience: 25
-  min_lr: 1.0e-6
-  mode: 'min'
+  min_lr: 5.0e-6
+  mode: 'max'
   verbose: True
-
-
 
 # Model parameters
 model_type: 'PNA'
@@ -77,8 +58,6 @@ model_parameters:
   pretrans_layers: 2
   posttrans_layers: 1
   residual: True
-
-
 
 
 # continue training from checkpoint:
