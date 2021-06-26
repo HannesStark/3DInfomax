@@ -1,6 +1,6 @@
-experiment_name: 'tune_NTXentExtraNegatives10_std02_later'
+experiment_name: 'tune_from_drugs_NTXent_ogb'
 
-pretrain_checkpoint: runs/PNA_NTXentExtraNegatives10_std02_08-06_07-43-34/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_drugs_NTXent_ogb_21-06_09-27-02/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
