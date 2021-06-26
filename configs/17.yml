@@ -1,4 +1,4 @@
-experiment_name: 'tune_from_drugs'
+experiment_name: 'tune_from_drugs_lre-5'
 
 pretrain_checkpoint: runs/PNA_drugs_NTXent_ogb_21-06_09-27-02/best_checkpoint.pt
 transfer_layers:
@@ -9,7 +9,7 @@ exclude_from_transfer:
 
 dataset: 'ogbg-molhiv'
 num_epochs: 1000
-batch_size: 128
+batch_size: 32
 log_iterations: 30
 patience: 30
 loss_func: BCEWithLogitsLoss
@@ -22,7 +22,8 @@ collate_function: graph_collate
 
 optimizer: Adam
 optimizer_params:
-  lr: 1.0e-4
+  lr: 1.0e-5
+  weight_decay: 1.0e-7
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper

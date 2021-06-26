@@ -61,8 +61,10 @@ class TransformerGNN(nn.Module):
     def __init__(self,
                  node_dim,
                  hidden_dim,
+
                  dim_feedforward,
                  nhead: int = 4,
+                 pos_enc_dim = 16,
                  activation: Union[Callable, str] = "relu",
                  propagation_depth: int = 5,
                  dropout: float = 0.0,

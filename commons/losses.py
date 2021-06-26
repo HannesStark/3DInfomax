@@ -4,9 +4,18 @@ import math
 import dgl
 import torch
 from torch import Tensor, nn
-from torch.nn.modules.loss import _Loss, L1Loss, MSELoss
+from torch.nn.modules.loss import _Loss, L1Loss, MSELoss, BCEWithLogitsLoss
 import numpy as np
 import torch.nn.functional as F
+
+
+class MultiTargetBCEWithLogitsLoss(_Loss):
+    def __init__(self) -> None:
+        super(MultiTargetBCEWithLogitsLoss, self).__init__()
+        self.bce_loss = BCEWithLogitsLoss()
+
+    def forward(self, preds, targets, **kwargs):
+        return self.bce_loss(preds.view(-1), targets.view(-1))
 
 
 class CriticLoss(_Loss):
@@ -223,9 +232,8 @@ class NTXentMultiplePositivesV2(_Loss):
             pos_sim = pos_sim / (z1_abs[:, None] * z2_abs)  # [batch_size, num_conformers]
             sim_matrix = sim_matrix / torch.einsum('i,j->ij', z1_abs, z2_abs[:, 0])
 
-
         sim_matrix = torch.exp(sim_matrix / self.tau)  # [batch_size, batch_size]
-        pos_sim = torch.exp(pos_sim / self.tau) # [batch_size, num_conformers]
+        pos_sim = torch.exp(pos_sim / self.tau)  # [batch_size, num_conformers]
         pos_sim = pos_sim.sum(dim=1)  # [batch_size]
         loss = pos_sim / (sim_matrix.sum(dim=1) - torch.diagonal(sim_matrix))
         loss = - torch.log(loss).mean()
@@ -283,6 +291,7 @@ class NTXentMultiplePositivesV3(_Loss):
         if self.uniformity_reg > 0:
             loss += self.uniformity_reg * uniformity_loss(z1, z2)
         return loss
+
 
 class NTXentMultiplePositivesSeparate2D(_Loss):
     '''

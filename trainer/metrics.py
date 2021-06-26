@@ -101,7 +101,6 @@ class QM9DenormalizedL2(nn.Module):
         targets = denormalize(targets, self.means, self.stds, self.eV2meV)
         return F.mse_loss(preds, targets)
 
-
 class OGBEvaluator(nn.Module):
     def __init__(self, d_name, metric='rocauc'):
         super().__init__()
@@ -110,7 +109,7 @@ class OGBEvaluator(nn.Module):
         self.metric = metric
 
     def forward(self, preds, targets):
-        if preds.shape[1] > 1:
+        if preds.shape[1] != self.evaluator.num_tasks:
             return torch.tensor(float('NaN'))
         input_dict = {"y_true": targets, "y_pred": preds}
         return torch.tensor(self.evaluator.eval(input_dict)[self.metric])
