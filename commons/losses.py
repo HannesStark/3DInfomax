@@ -174,7 +174,7 @@ class NTXentMultiplePositives(_Loss):
         :param z2: batchsize*num_conformers, metric dim
         '''
         batch_size, metric_dim = z1.size()
-        z2 = z2.view(batch_size, -1, metric_dim)  # [batch_size, num_conformers, metric_dim]
+        z2 = z2.view(-1, batch_size, metric_dim).permute(1, 0, 2)  # [batch_size, num_conformers, metric_dim]
 
         sim_matrix = torch.einsum('ik,juk->iju', z1, z2)  # [batch_size, batch_size, num_conformers]
 
@@ -218,11 +218,11 @@ class NTXentMultiplePositivesV2(_Loss):
 
     def forward(self, z1, z2, **kwargs) -> Tensor:
         '''
-        :param z1: batchsize, metric dim
-        :param z2: batchsize*num_conformers, metric dim
+        :param z1: batch_size, metric dim
+        :param z2: batch_size*num_conformers, metric dim
         '''
         batch_size, metric_dim = z1.size()
-        z2 = z2.view(batch_size, -1, metric_dim)  # [batch_size, num_conformers, metric_dim]
+        z2 = z2.view(-1, batch_size, metric_dim).permute(1, 0, 2)  # [batch_size, num_conformers, metric_dim]
 
         pos_sim = (z1[:, None, :] * z2).sum(dim=2)  # [batch_size, num_conformers]
         sim_matrix = torch.einsum('ik,jk->ij', z1, z2[:, 0, :])  # [batch_size, batch_size]
@@ -270,7 +270,7 @@ class NTXentMultiplePositivesV3(_Loss):
         :param z2: batchsize*num_conformers, metric dim
         '''
         batch_size, metric_dim = z1.size()
-        z2 = z2.view(batch_size, -1, metric_dim)  # [batch_size, num_conformers, metric_dim]
+        z2 = z2.view(-1, batch_size, metric_dim).permute(1, 0, 2) # [batch_size, num_conformers, metric_dim]
 
         sim_matrix = torch.einsum('ik,juk->iju', z1, z2)  # [batch_size, batch_size, num_conformers]
 
@@ -319,7 +319,7 @@ class NTXentMultiplePositivesSeparate2D(_Loss):
         _, metric_dim = z2.size()
         z1 = z1.view(batch_size, -1, metric_dim)  # [batch_size, num_conformers, metric_dim]
 
-        z2 = z2.view(batch_size, -1, metric_dim)  # [batch_size, num_conformers, metric_dim]
+        z2 = z2.view(-1, batch_size, metric_dim).permute(1, 0, 2) # [batch_size, num_conformers, metric_dim]
         sim_matrix = torch.einsum('ilk,juk->ijlu', z1, z2)  # [batch_size, batch_size, num_conformers]
 
         # only take the direct similarities such that one 2D representation is similar to one 3d conformer
