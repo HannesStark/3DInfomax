@@ -9,33 +9,14 @@ num_train: 50000
 loss_func: L1Loss
 targets:
   - homo
-features:
-  - 'implicit-valence'
-  - 'degree'
-  - 'hybridization'
-  - 'chirality'
-  - 'mass'
-  - 'electronegativity'
-  - 'aromatic-bond'
-  - 'formal-charge'
-  - 'radical-electron'
-  - 'in-ring'
-  - 'atomic-number'
-e_features:
-  - 'bond-type-onehot'
-  - 'stereo'
-  - 'conjugated'
-  - 'in-ring-edges'
 required_data:
   - san_graph
   - targets
 metrics:
   - mae_denormalized
-
   - rsquared
   - qm9_properties
   - mean_predictor_loss
-
 optimizer: Adam
 optimizer_params:
   lr: 1.0e-4

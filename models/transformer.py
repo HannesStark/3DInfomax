@@ -84,9 +84,12 @@ class TransformerGNN(nn.Module):
 
     def forward(self, h, pos_enc, mask):
         batch_size, max_num_atoms, _ = h.size()
+        ic(pos_enc.shape)
         h = self.atom_encoder(h.view(-1, h.shape[-1])) # [batch_size, max_num_atoms * (hidden_dim - pos_enc_dim)]
         h = h.view(batch_size, max_num_atoms, -1)  # [batch_size, max_num_atoms, hidden_dim - pos_enc_dim]
         pos_enc = self.pos_enc_mlp(pos_enc) # [batch_size, max_num_atoms, pos_enc_dim]
+        ic(h.shape)
+        ic(pos_enc.shape)
         h = torch.cat([h,pos_enc], dim = -1 ) # [batch_size, max_num_atoms, hidden_dim]
         h_in = h
 

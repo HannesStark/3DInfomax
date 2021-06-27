@@ -330,10 +330,8 @@ class SAN_NodeLPE(nn.Module):
 
         # remove masked sequences
         PosEnc[torch.transpose(empty_mask, 0, 1)[:, :, 0]] = float('nan')
-
         # Sum pooling
         PosEnc = torch.nansum(PosEnc, 0, keepdim=False)
-
         # Concatenate learned PE to input embedding
         h = torch.cat((h, PosEnc), 1)
 

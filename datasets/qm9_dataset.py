@@ -380,7 +380,7 @@ class QM9Dataset(Dataset):
             return g
         if return_type == 'san_graph':
             g = self.get_complete_graph(idx, n_atoms).to(self.device)
-            g.ndata['feat'] = self.features_tensor[start: start + n_atoms].to(self.device)
+            g.ndata['feat'] = self.features_tensor[start: start + n_atoms].to(self.device).float()
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
             eig_vals = self.eig_vals[idx].to(self.device)
             sign_flip = torch.rand(eig_vals.shape[0], device=self.device)
@@ -390,7 +390,7 @@ class QM9Dataset(Dataset):
             eig_vals = eig_vals.unsqueeze(0).repeat(n_atoms, 1)
             g.ndata['pos_enc'] = torch.stack([eig_vals, eig_vecs], dim=-1)
             if self.e_features_tensor != None:
-                e_features = self.e_features_tensor[e_start: e_end].to(self.device)
+                e_features = self.e_features_tensor[e_start: e_end].to(self.device).float()
                 g.edata['feat'] = torch.zeros(g.number_of_edges(), e_features.shape[1], dtype=torch.float32,
                                               device=self.device)
                 g.edata['real'] = torch.zeros(g.number_of_edges(), dtype=torch.long, device=self.device)
