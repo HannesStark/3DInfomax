@@ -1,6 +1,6 @@
-experiment_name: 'tune_NTXent_large_pna_2layer3D'
+experiment_name: 'tune_NTXent_large_deep_pna'
 
-pretrain_checkpoint: runs/PNA_NTXent_large_pna_2layer3D_26-06_07-03-46/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_NTXent_large_deep_pna_26-06_07-03-22/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
@@ -59,7 +59,7 @@ model_parameters:
   readout_hidden_dim: 200
   readout_layers: 2
   dropout: 0.0
-  propagation_depth: 7
+  propagation_depth: 8
   aggregators:
     - mean
     - max
@@ -77,6 +77,8 @@ model_parameters:
   pretrans_layers: 2
   posttrans_layers: 1
   residual: True
+
+
 
 
 
