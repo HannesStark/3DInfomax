@@ -30,7 +30,7 @@ collate_params:
 
 optimizer: Adam
 optimizer_params:
-  lr: 8.0e-6
+  lr: 1.0e-6
   weight_decay: 5.0e-9
 
 
