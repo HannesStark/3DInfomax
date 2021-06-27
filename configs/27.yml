@@ -7,12 +7,12 @@ exclude_from_transfer:
   - batch_norm
 
 
-dataset: 'ogbg-molbbbp'
+dataset: 'ogbg-molesol'
 num_epochs: 1000
 batch_size: 32
 log_iterations: 30
 patience: 30
-loss_func: BCEWithLogitsLoss
+loss_func: L1Loss
 metrics:
   - rsquared
   - mean_predictor_loss
