@@ -90,7 +90,9 @@ class GEOMDrugs(Dataset):
         self.bond_padding_indices = torch.tensor(get_bond_feature_dims(), dtype=torch.long, device=device)[None, :]
 
         self.meta_dict = {k: data_dict[k] for k in ('smiles', 'edge_slices', 'atom_slices', 'n_atoms')}
-
+        ic(len(data_dict['n_atoms']))
+        ic(len(data_dict['atom_features']) / len(data_dict['n_atoms']))
+        ic((len(data_dict['edge_features']) / 2) / len(data_dict['n_atoms']))
         if 'san_graph' in self.return_types:
             self.eig_vals = data_dict['eig_vals']
             self.eig_vecs = data_dict['eig_vecs']
@@ -256,11 +258,12 @@ class GEOMDrugs(Dataset):
 
             e_features = self.e_features_tensor[e_start: e_end].to(self.device)
             g.edata['feat'] = torch.zeros(g.number_of_edges(), e_features.shape[1], dtype=torch.float32,
-                                       device=self.device)
+                                          device=self.device)
             g.edata['real'] = torch.zeros(g.number_of_edges(), dtype=torch.long, device=self.device)
             edge_indices = self.edge_indices[:, e_start: e_end].to(self.device)
             g.edges[edge_indices[0], edge_indices[1]].data['feat'] = e_features
-            g.edges[edge_indices[0], edge_indices[1]].data['real'] = torch.ones(e_features.shape[0],dtype=torch.long,device=self.device)  # This indicates real edges
+            g.edges[edge_indices[0], edge_indices[1]].data['real'] = torch.ones(e_features.shape[0], dtype=torch.long,
+                                                                                device=self.device)  # This indicates real edges
             return g
         elif return_type == 'se3Transformer_graph' or return_type == 'se3Transformer_graph3d':
             g = self.get_graph(idx, e_start, e_end, n_atoms).to(self.device)
