@@ -156,7 +156,7 @@ class Trainer():
         epoch_predictions = torch.tensor([]).to(self.device)
         epoch_loss = 0
         for i, batch in enumerate(data_loader):
-            batch = [element.to(self.device) if isinstance(element, torch.Tensor) else element for element in batch]
+            batch = [element.to(self.device) if element is not None else element for element in batch]
             loss, predictions, targets = self.process_batch(batch, optim)
             with torch.no_grad():
                 if self.optim_steps % args.log_iterations == 0 and optim != None:  # log every log_iterations during train
@@ -251,7 +251,6 @@ class Trainer():
         param_groups.append({'params': new_params})
         if transferred_params != []:
             param_groups.append({'params': transferred_params, 'lr': transfer_lr})
-
         self.optim = optim(param_groups, **self.args.optimizer_params)
 
     def step_schedulers(self, metrics=None):
