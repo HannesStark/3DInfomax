@@ -1,4 +1,4 @@
-experiment_name: 'tune_from_drugs_multi_conformer'
+experiment_name: 'tune_from_drugs_NTXentMultiplePositives'
 
 pretrain_checkpoint: runs/PNA_drugs_drugs_NTXentMultiplePositives_27-06_10-45-46/best_checkpoint.pt
 transfer_layers:
