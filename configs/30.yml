@@ -1,18 +1,18 @@
-experiment_name: 'tune_from_drugs_property'
+experiment_name: 'tune_from_qm9_property'
 
-pretrain_checkpoint: runs/PNA_drugs_ogb_featurization_21-06_09-18-27/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_baseline_large_pna_26-06_07-12-10/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
   - batch_norm
 
 
-dataset: 'ogbg-molfreesolv'
+dataset: 'ogbg-molbace'
 num_epochs: 1000
-batch_size: 30
+batch_size: 32
 log_iterations: 30
 patience: 30
-loss_func: L1Loss
+loss_func: BCEWithLogitsLoss
 metrics:
   - rsquared
   - mean_predictor_loss
@@ -44,16 +44,16 @@ lr_scheduler_params:
 model_type: 'PNA'
 model_parameters:
   target_dim: 1
-  hidden_dim: 128
+  hidden_dim: 200
   mid_batch_norm: True
   last_batch_norm: True
   readout_batchnorm: True
   # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
   batch_norm_momentum: 0.96
-  readout_hidden_dim: 128
+  readout_hidden_dim: 200
   readout_layers: 2
   dropout: 0.0
-  propagation_depth: 6
+  propagation_depth: 7
   aggregators:
     - mean
     - max
