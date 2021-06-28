@@ -35,7 +35,7 @@ model_type: 'EGNNTorch'
 model_parameters:
   target_dim: 1
   hidden_dim: 128
-  propagation_depth: 7
+  propagation_depth: 4
   coords_weight: 1.0
   attention: False
   node_attr: True
