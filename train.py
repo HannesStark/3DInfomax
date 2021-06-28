@@ -100,7 +100,7 @@ def load_model(args, data, device):
             edge_dim = data[0][0].edges['bond'].data['feat'].shape[1] if args.use_e_features else 0
     else:
         node_dim = data[0][0].shape[1]
-        edge_dim = None
+        edge_dim = 0
     model = globals()[args.model_type](node_dim=node_dim,
                                        edge_dim=edge_dim,
                                        avg_d=data.avg_degree if hasattr(data, 'avg_degree') else 1,
@@ -315,7 +315,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/san.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/egnn_torch.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')

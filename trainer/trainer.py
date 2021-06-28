@@ -56,7 +56,7 @@ class Trainer():
             self.best_val_score = -np.inf if self.main_metric_goal == 'max' else np.inf  # running score to decide whether or not a new model should be saved
             self.writer = SummaryWriter(
                 '{}/{}_{}_{}_{}'.format(args.logdir, args.model_type, args.dataset, args.experiment_name,
-                                     datetime.now().strftime('%d-%m_%H-%M-%S')))
+                                        datetime.now().strftime('%d-%m_%H-%M-%S')))
             shutil.copyfile(self.args.config.name,
                             os.path.join(self.writer.log_dir, os.path.basename(self.args.config.name)))
         print('Log directory: ', self.writer.log_dir)
@@ -156,7 +156,7 @@ class Trainer():
         epoch_predictions = torch.tensor([]).to(self.device)
         epoch_loss = 0
         for i, batch in enumerate(data_loader):
-            batch = [element.to(self.device) if element is not None else None for element in batch]
+            batch = [element.to(self.device) if isinstance(element, torch.Tensor) else element for element in batch]
             loss, predictions, targets = self.process_batch(batch, optim)
             with torch.no_grad():
                 if self.optim_steps % args.log_iterations == 0 and optim != None:  # log every log_iterations during train
@@ -245,9 +245,14 @@ class Trainer():
 
         transfer_lr = self.args.optimizer_params['lr'] if self.args.transferred_lr == None else self.args.transferred_lr
         # the order of the params here determines in which order they will start being updated during warmup when using ordered warmup in the warmupwrapper
-        self.optim = optim([{'params': batch_norm_params, 'weight_decay': 0},
-                            {'params': new_params},
-                            {'params': transferred_params, 'lr': transfer_lr}], **self.args.optimizer_params)
+        param_groups = []
+        if batch_norm_params != []:
+            param_groups.append({'params': batch_norm_params, 'weight_decay': 0})
+        param_groups.append({'params': new_params})
+        if transferred_params != []:
+            param_groups.append({'params': transferred_params, 'lr': transfer_lr})
+
+        self.optim = optim(param_groups, **self.args.optimizer_params)
 
     def step_schedulers(self, metrics=None):
         try:

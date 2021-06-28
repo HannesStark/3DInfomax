@@ -1,0 +1,43 @@
+experiment_name: 'all_data'
+
+num_epochs: 1000
+batch_size: 96
+prefetch_graphs: False
+log_iterations: 30
+patience: 50
+num_train: 100000
+loss_func: L1Loss
+targets:
+  - homo
+required_data:
+  - raw_features
+  - coordinates
+  - targets
+metrics:
+  - mae_denormalized
+  - rsquared
+  - qm9_properties
+  - mean_predictor_loss
+collate_function: egnn_padded_collate
+
+optimizer: Adam
+optimizer_params:
+  lr: 1.0e-3
+  weight_decay: 1.0e-16
+
+lr_scheduler: CosineAnnealingLR
+step_per_batch: False
+lr_scheduler_params:
+  T_max: 1000
+
+# Model parameters
+model_type: 'EGNNTorch'
+model_parameters:
+  target_dim: 1
+  hidden_dim: 128
+  propagation_depth: 7
+  dropout: 0.0
+
+
+# continue training from checkpoint:
+#checkpoint: runs/EGNN_batchnorm_02-04_16-04-30/last_checkpoint.pt

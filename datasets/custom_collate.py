@@ -5,6 +5,8 @@ import dgl
 import torch
 from torch.nn.utils.rnn import pad_sequence
 
+from commons.utils import get_adj_matrix
+
 
 def graph_collate(batch: List[Tuple]):
     graphs, targets = map(list, zip(*batch))
@@ -98,6 +100,7 @@ class ConformerCollate(object):
             return batched_graph, batched_conformers
 
 
+
 class NoisedCoordinatesCollate(object):
     def __init__(self, std, num_noised):
         self.std = std
@@ -179,6 +182,42 @@ def padded_collate(batch):
     n_atoms = torch.tensor([len(item[0]) for item in batch])
     mask = torch.arange(features.shape[1])[None, :] >= n_atoms[:, None]  # [batch_size, n_atoms]
     return features, mask, targets
+
+def egnn_padded_collate(batch):
+    """
+    Takes list of tuples with molecule features of variable sizes (different n_atoms) and pads them with zeros for processing as a sequence
+    Args:
+        batch: list of tuples with embeddings and the corresponding label
+    """
+
+    features = pad_sequence([item[0] for item in batch], batch_first=True, padding_value=-1)
+    coordinates = pad_sequence([item[1] for item in batch], batch_first=True, padding_value=-1)
+    targets = torch.stack([item[2] for item in batch])
+    atom_mask = features > -1
+    atom_mask = atom_mask.sum(-1)
+    batch_size, n_nodes= atom_mask.size()
+
+
+
+    # Obtain edges
+    batch_size, n_nodes = atom_mask.size()
+    edge_mask = atom_mask.unsqueeze(1) * atom_mask.unsqueeze(2)
+    ic(edge_mask.shape)
+    # mask diagonal
+    diag_mask = ~torch.eye(edge_mask.size(1), dtype=torch.bool, device=features.device).unsqueeze(0)
+    edge_mask *= diag_mask
+    ic(edge_mask.shape)
+    edge_mask = edge_mask.view(batch_size * n_nodes * n_nodes, 1)
+
+    edges = get_adj_matrix(n_nodes, batch_size, device=features.device)
+    features = features.view(batch_size * n_nodes, -1)
+    coordinates = coordinates.view(batch_size * n_nodes, -1)
+    atom_mask = atom_mask.view(batch_size * n_nodes, -1)
+    ic(features.shape)
+    ic(coordinates.shape)
+    ic(atom_mask.shape)
+    ic(edge_mask.shape)
+    return features, coordinates, edges, None, atom_mask, edge_mask, n_nodes, targets
 
 def padded_collate_positional_encoding(batch):
     """

@@ -411,12 +411,24 @@ class QM9Dataset(Dataset):
             if self.e_features_tensor != None and return_type == 'se3Transformer_graph':
                 g.edata['feat'] = self.e_features_tensor[e_start: e_end].to(self.device)
             return g
+
+        elif return_type == 'padded_e_features':
+            bond_features = self.e_features_tensor[e_start: e_end].to(self.device)
+            e_features = self.bond_padding_indices.expand(n_atoms * n_atoms, -1)
+            edge_indices = self.edge_indices[:, e_start: e_end].to(self.device)
+            bond_indices = edge_indices[0] * n_atoms + edge_indices[1]
+            # overwrite the bond features
+            return e_features.scatter(dim=0, index=bond_indices[:, None].expand(-1, bond_features.shape[1]),
+                                            src=bond_features)
+        elif return_type == 'pairwise_indices':
+            src, dst = self.get_pairwise(n_atoms)
+            return torch.stack([src, dst], dim=0).to(self.device)
         elif return_type == 'raw_features':
-            return self.features_tensor[start: start + n_atoms]
+            return self.features_tensor[start: start + n_atoms].to(self.device)
         elif return_type == 'n_atoms':
             return self.meta_dict['n_atoms'][n_atoms]
         elif return_type == 'coordinates':
-            return self.coordinates[start: start + n_atoms]
+            return self.coordinates[start: start + n_atoms].to(self.device)
         elif return_type == 'positional_encoding':
             eig_vals = self.eig_vals[idx].to(self.device)
             sign_flip = torch.rand(eig_vals.shape[0], device=self.device)

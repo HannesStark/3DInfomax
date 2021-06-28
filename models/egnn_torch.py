@@ -1,89 +1,7 @@
-from typing import List
-
-import dgl
+from torch import nn
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import dgl.function as fn
 
-from commons.utils import fourier_encode_dist
-from models.base_layers import MLP
-
-
-class EGNN(nn.Module):
-    def __init__(self, node_dim, edge_dim, hidden_dim, target_dim, readout_aggregators: List[str], batch_norm=False,
-                 readout_batchnorm=True
-                 , batch_norm_momentum=0.1, reduce_func='sum',
-                 dropout=0.0, propagation_depth: int = 4, readout_layers: int = 2, readout_hidden_dim=None,
-                 fourier_encodings=0,
-                 mid_activation: str = 'SiLU', **kwargs):
-        super(EGNN, self).__init__()
-        self.fourier_encodings = fourier_encodings
-        self.input = MLP(
-            in_dim=node_dim,
-            hidden_size=hidden_dim,
-            out_dim=hidden_dim,
-            mid_batch_norm=batch_norm,
-            last_batch_norm=batch_norm,
-            batch_norm_momentum = batch_norm_momentum,
-            layers=1,
-            mid_activation=mid_activation,
-            dropout=dropout,
-            last_activation='None',
-        )
-
-        self.mp_layers = nn.ModuleList()
-        edge_in_dim = 1 if fourier_encodings == 0 else 2 * fourier_encodings + 1
-        for _ in range(propagation_depth):
-            self.mp_layers.append(
-                EGCLayer(node_dim, edge_dim=edge_in_dim, hidden_dim=hidden_dim, batch_norm=batch_norm, batch_norm_momentum = batch_norm_momentum, dropout=dropout,
-                         mid_activation=mid_activation, reduce_func=reduce_func))
-
-        self.node_wise_output_network = MLP(
-            in_dim=hidden_dim,
-            hidden_size=hidden_dim,
-            out_dim=hidden_dim,
-            mid_batch_norm=batch_norm,
-            last_batch_norm=batch_norm,
-            batch_norm_momentum=batch_norm_momentum,
-            layers=2,
-            mid_activation=mid_activation,
-            dropout=dropout,
-            last_activation='None',
-        )
-        if readout_hidden_dim == None:
-            readout_hidden_dim = hidden_dim
-        self.readout_aggregators = readout_aggregators
-        self.output = MLP(in_dim=hidden_dim * len(self.readout_aggregators),
-                          hidden_size=readout_hidden_dim,
-                          mid_batch_norm=readout_batchnorm,
-                          batch_norm_momentum = batch_norm_momentum,
-                          out_dim=target_dim,
-                          layers=readout_layers)
-
-    def forward(self, graph: dgl.DGLGraph):
-        graph.apply_nodes(self.input_node_func)
-        if self.fourier_encodings > 0:
-            graph.edata['d'] = fourier_encode_dist(graph.edata['d'], num_encodings=self.fourier_encodings).squeeze()
-
-        for mp_layer in self.mp_layers:
-            mp_layer(graph)
-
-        graph.apply_nodes(self.output_node_func)
-
-        readouts_to_cat = [dgl.readout_nodes(graph, 'feat', op=aggr) for aggr in self.readout_aggregators]
-        readout = torch.cat(readouts_to_cat, dim=-1)
-        return self.output(readout)
-
-    def output_node_func(self, nodes):
-        return {'feat': self.node_wise_output_network(nodes.data['feat'])}
-
-    def input_node_func(self, nodes):
-        return {'feat': F.silu(self.input(nodes.data['feat']))}
-
-    def input_edge_func(self, edges):
-        return {'d': F.silu(self.edge_input(edges.data['d']))}
-
+from commons.mol_encoder import AtomEncoder
 
 
 class E_GCL(nn.Module):
@@ -104,8 +22,6 @@ class E_GCL(nn.Module):
         self.norm_diff = norm_diff
         self.tanh = tanh
         edge_coords_nf = 1
-
-
         self.edge_mlp = nn.Sequential(
             nn.Linear(input_edge + edge_coords_nf + edges_in_d, hidden_nf),
             act_fn,
@@ -194,7 +110,6 @@ class E_GCL(nn.Module):
         # x = self.node_model(x, edge_index, x[col], u, batch)  # GCN
         return h, coord, edge_attr
 
-
 class E_GCL_mask(E_GCL):
     """Graph Neural Net with global state and fixed number of nodes per graph.
     Args:
@@ -235,34 +150,32 @@ class E_GCL_mask(E_GCL):
 
 
 class EGNNTorch(nn.Module):
-    def __init__(self, in_node_nf, in_edge_nf, hidden_nf, device='cpu', act_fn=nn.SiLU(), n_layers=4, coords_weight=1.0, attention=False, node_attr=1):
+    def __init__(self, node_dim, edge_dim, hidden_dim, device='cpu', act_fn=nn.SiLU(), propagation_depth=4, coords_weight=1.0, attention=False, node_attr=True, **kwargs):
         super(EGNNTorch, self).__init__()
-        self.hidden_nf = hidden_nf
+        self.hidden_dim = hidden_dim
         self.device = device
-        self.n_layers = n_layers
+        self.propagation_depth = propagation_depth
 
         ### Encoder
-        self.embedding = nn.Linear(in_node_nf, hidden_nf)
+        self.atom_encoder = AtomEncoder(emb_dim=hidden_dim, zero_padding=True)
+        self.embedding = nn.Linear(hidden_dim, hidden_dim)
         self.node_attr = node_attr
-        if node_attr:
-            n_node_attr = in_node_nf
-        else:
-            n_node_attr = 0
-        for i in range(0, n_layers):
-            self.add_module("gcl_%d" % i, E_GCL_mask(self.hidden_nf, self.hidden_nf, self.hidden_nf, edges_in_d=in_edge_nf, nodes_attr_dim=n_node_attr, act_fn=act_fn, recurrent=True, coords_weight=coords_weight, attention=attention))
+        for i in range(0, propagation_depth):
+            self.add_module("gcl_%d" % i, E_GCL_mask(self.hidden_dim, self.hidden_dim, self.hidden_dim, edges_in_d=edge_dim, nodes_attr_dim=hidden_dim, act_fn=act_fn, recurrent=True, coords_weight=coords_weight, attention=attention))
 
-        self.node_dec = nn.Sequential(nn.Linear(self.hidden_nf, self.hidden_nf),
+        self.node_dec = nn.Sequential(nn.Linear(self.hidden_dim, self.hidden_dim),
                                       act_fn,
-                                      nn.Linear(self.hidden_nf, self.hidden_nf))
+                                      nn.Linear(self.hidden_dim, self.hidden_dim))
 
-        self.graph_dec = nn.Sequential(nn.Linear(self.hidden_nf, self.hidden_nf),
+        self.graph_dec = nn.Sequential(nn.Linear(self.hidden_dim, self.hidden_dim),
                                        act_fn,
-                                       nn.Linear(self.hidden_nf, 1))
+                                       nn.Linear(self.hidden_dim, 1))
         self.to(self.device)
 
     def forward(self, h0, x, edges, edge_attr, node_mask, edge_mask, n_nodes):
+        h0 = self.atom_encoder(h0)
         h = self.embedding(h0)
-        for i in range(0, self.n_layers):
+        for i in range(0, self.propagation_depth):
             if self.node_attr:
                 h, _, _ = self._modules["gcl_%d" % i](h, edges, x, node_mask, edge_mask, edge_attr=edge_attr, node_attr=h0, n_nodes=n_nodes)
             else:
@@ -271,10 +184,10 @@ class EGNNTorch(nn.Module):
 
         h = self.node_dec(h)
         h = h * node_mask
-        h = h.view(-1, n_nodes, self.hidden_nf)
+        h = h.view(-1, n_nodes, self.hidden_dim)
         h = torch.sum(h, dim=1)
         pred = self.graph_dec(h)
-        return pred.squeeze(1)
+        return pred
 
 
 def unsorted_segment_sum(data, segment_ids, num_segments):
@@ -334,8 +247,8 @@ if __name__ == "__main__":
     x = torch.ones(batch_size * n_nodes, x_dim)
     edges, edge_attr = get_edges_batch(n_nodes, batch_size)
 
-    # Initialize EGNN
-    egnn = EGNN(in_node_nf=n_feat, hidden_nf=32, out_node_nf=1, in_edge_nf=1)
+    # Initialize EGNNTorch
+    egnn = EGNNTorch(node_dim=n_feat, hidden_dim=32, target_dim=1, edge_dim=1)
 
-    # Run EGNN
+    # Run EGNNTorch
     h, x = egnn(h, x, edges, edge_attr)
