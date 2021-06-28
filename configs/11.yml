@@ -1,4 +1,4 @@
-experiment_name: 'drugs_NTXentMultiplePositivesSeparate2D'
+experiment_name: 'drugs_NTXentMultiplePositivesV2'
 
 dataset: 'drugs'
 num_epochs: 1000
@@ -6,7 +6,7 @@ batch_size: 500
 prefetch_graphs: True
 log_iterations: 50
 patience: 35
-loss_func: NTXentMultiplePositivesSeparate2D
+loss_func: NTXentMultiplePositivesV2
 loss_params:
   tau: 0.1
 num_train: 120000
