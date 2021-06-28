@@ -189,34 +189,29 @@ def egnn_padded_collate(batch):
     Args:
         batch: list of tuples with embeddings and the corresponding label
     """
-
+    # pad features with -1 because that is used as padding index in the atom embedder in egnn
     features = pad_sequence([item[0] for item in batch], batch_first=True, padding_value=-1)
-    coordinates = pad_sequence([item[1] for item in batch], batch_first=True, padding_value=-1)
+    coordinates = pad_sequence([item[1] for item in batch], batch_first=True, padding_value=0)
     targets = torch.stack([item[2] for item in batch])
     atom_mask = features > -1
     atom_mask = atom_mask.sum(-1)
-    batch_size, n_nodes= atom_mask.size()
-
 
 
     # Obtain edges
     batch_size, n_nodes = atom_mask.size()
     edge_mask = atom_mask.unsqueeze(1) * atom_mask.unsqueeze(2)
-    ic(edge_mask.shape)
+
     # mask diagonal
     diag_mask = ~torch.eye(edge_mask.size(1), dtype=torch.bool, device=features.device).unsqueeze(0)
     edge_mask *= diag_mask
-    ic(edge_mask.shape)
+
     edge_mask = edge_mask.view(batch_size * n_nodes * n_nodes, 1)
 
     edges = get_adj_matrix(n_nodes, batch_size, device=features.device)
+
     features = features.view(batch_size * n_nodes, -1)
     coordinates = coordinates.view(batch_size * n_nodes, -1)
     atom_mask = atom_mask.view(batch_size * n_nodes, -1)
-    ic(features.shape)
-    ic(coordinates.shape)
-    ic(atom_mask.shape)
-    ic(edge_mask.shape)
     return features, coordinates, edges, None, atom_mask, edge_mask, n_nodes, targets
 
 def padded_collate_positional_encoding(batch):

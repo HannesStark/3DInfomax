@@ -28,7 +28,7 @@ optimizer_params:
 lr_scheduler: CosineAnnealingLR
 step_per_batch: False
 lr_scheduler_params:
-  T_max: 1000
+  T_max: 500
 
 # Model parameters
 model_type: 'EGNNTorch'
@@ -36,7 +36,9 @@ model_parameters:
   target_dim: 1
   hidden_dim: 128
   propagation_depth: 7
-  dropout: 0.0
+  coords_weight: 1.0
+  attention: False
+  node_attr: True
 
 
 # continue training from checkpoint:

@@ -150,14 +150,13 @@ class E_GCL_mask(E_GCL):
 
 
 class EGNNTorch(nn.Module):
-    def __init__(self, node_dim, edge_dim, hidden_dim, device='cpu', act_fn=nn.SiLU(), propagation_depth=4, coords_weight=1.0, attention=False, node_attr=True, **kwargs):
+    def __init__(self, node_dim, edge_dim, hidden_dim, act_fn=nn.SiLU(), propagation_depth=4, coords_weight=1.0, attention=False, node_attr=True, **kwargs):
         super(EGNNTorch, self).__init__()
         self.hidden_dim = hidden_dim
-        self.device = device
         self.propagation_depth = propagation_depth
 
         ### Encoder
-        self.atom_encoder = AtomEncoder(emb_dim=hidden_dim, zero_padding=True)
+        self.atom_encoder = AtomEncoder(emb_dim=hidden_dim, padding=True)
         self.embedding = nn.Linear(hidden_dim, hidden_dim)
         self.node_attr = node_attr
         for i in range(0, propagation_depth):
@@ -170,7 +169,6 @@ class EGNNTorch(nn.Module):
         self.graph_dec = nn.Sequential(nn.Linear(self.hidden_dim, self.hidden_dim),
                                        act_fn,
                                        nn.Linear(self.hidden_dim, 1))
-        self.to(self.device)
 
     def forward(self, h0, x, edges, edge_attr, node_mask, edge_mask, n_nodes):
         h0 = self.atom_encoder(h0)
