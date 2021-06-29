@@ -1,4 +1,4 @@
-experiment_name: 'drugs_NTXentMultiplePositives'
+experiment_name: 'NTXentMultiplePositives'
 
 dataset: 'drugs'
 num_epochs: 1000
@@ -8,7 +8,7 @@ log_iterations: 50
 patience: 35
 loss_func: NTXentMultiplePositives
 loss_params:
-  tau: 0.3
+  tau: 0.1
 num_train: 120000
 
 required_data:
