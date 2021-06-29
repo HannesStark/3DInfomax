@@ -19,7 +19,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from datetime import datetime
 
-from commons.utils import flatten_dict, tensorboard_gradient_magnitude
+from commons.utils import flatten_dict, tensorboard_gradient_magnitude, move_to_device
 
 
 class Trainer():
@@ -120,8 +120,8 @@ class Trainer():
 
     def forward_pass(self, batch):
         targets = batch[-1]  # the last entry of the batch tuple is always the targets
-        predictions = self.model(*tuple(batch[:-1]))  # foward the rest of the batch to the model
-        return self.loss_func(predictions, targets.float()), predictions, targets
+        predictions = self.model(*batch[0])  # foward the rest of the batch to the model
+        return self.loss_func(predictions, targets), predictions, targets
 
     def process_batch(self, batch, optim):
         loss, predictions, targets = self.forward_pass(batch)
@@ -157,11 +157,11 @@ class Trainer():
         epoch_predictions = torch.tensor([]).to(self.device)
         epoch_loss = 0
         for i, batch in enumerate(data_loader):
-            batch = [element.to(self.device) if isinstance(element,(torch.Tensor, dgl.DGLGraph)) else element for element in batch]
+            batch = move_to_device(list(batch), self.device)
             loss, predictions, targets = self.process_batch(batch, optim)
             with torch.no_grad():
                 if self.optim_steps % args.log_iterations == 0 and optim != None:  # log every log_iterations during train
-                    metrics = self.evaluate_metrics(predictions, targets.float())
+                    metrics = self.evaluate_metrics(predictions, targets)
                     metrics[type(self.loss_func).__name__] = loss.item()
                     self.run_tensorboard_functions(predictions, targets, step=self.optim_steps, data_split='train')
                     self.tensorboard_log(metrics, data_split='train', step=self.optim_steps, epoch=epoch)
@@ -169,7 +169,7 @@ class Trainer():
                                                                        i + 1, len(data_loader), 'train', loss.item()))
                 if optim == None and self.val_per_batch:  # during validation or testing when we want to average metrics over all the data in that dataloader
                     epoch_loss += loss.item()
-                    metrics_results = self.evaluate_metrics(predictions, targets.float(), val=True)
+                    metrics_results = self.evaluate_metrics(predictions, targets, val=True)
                     metrics_results[type(self.loss_func).__name__] = loss.item()
                     self.run_tensorboard_functions(predictions, targets, step=self.optim_steps, data_split='val')
                     for key, value in metrics_results.items():
@@ -182,7 +182,7 @@ class Trainer():
             if self.val_per_batch:
                 total_metrics = {k: v / len(data_loader) for k, v in total_metrics.items()}
             else:
-                total_metrics = self.evaluate_metrics(epoch_predictions, epoch_targets.float(), val=True)
+                total_metrics = self.evaluate_metrics(epoch_predictions, epoch_targets, val=True)
                 total_metrics[type(self.loss_func).__name__] = epoch_loss / len(data_loader)
             return total_metrics
 

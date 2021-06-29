@@ -135,3 +135,15 @@ def tensorboard_gradient_magnitude(optimizer: torch.optim.Optimizer, writer: Sum
 TENSORBOARD_FUNCTIONS = {
     'singular_values': tensorboard_singular_value_plot
 }
+
+def move_to_device(element, device):
+    '''
+    takes arbitrarily nested list and moves everything in it to device if it is a dgl graph or a torch tensor
+    :param element: arbitrarily nested list
+    :param device:
+    :return:
+    '''
+    if isinstance(element, list):
+        return [move_to_device(x, device) for x in element]
+    else:
+        return element.to(device) if isinstance(element,(torch.Tensor, dgl.DGLGraph)) else element

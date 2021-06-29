@@ -1,46 +1,49 @@
-experiment_name: 'tune_NTXent_large_pna_30fourier'
-
-pretrain_checkpoint: runs/PNA_NTXent_large_pna_30fourier_26-06_07-03-32/best_checkpoint.pt
-transfer_layers:
-  - gnn
-exclude_from_transfer:
-  - batch_norm
-
+experiment_name: 'NTXent_EGNNTorch_2depth'
 
 num_epochs: 1000
-batch_size: 128
+batch_size: 500
 prefetch_graphs: True
-log_iterations: 30
-patience: 30
-loss_func: L1Loss
+log_iterations: 50
+patience: 35
+loss_func: NTXent
+loss_params:
+  tau: 0.1
 num_train: 50000
-targets:
-  - homo
 
 required_data:
   - mol_graph
-  - targets
+  - constant_ones
+  - coordinates
 metrics:
-  - mae_denormalized
-  - pearsonr
-  - rsquared
-  - qm9_properties
+  - positive_similarity
+  - negative_similarity
+  - contrastive_accuracy
+  - true_negative_rate
+  - true_positive_rate
+  - uniformity
+  - alignment
+  - batch_variance
+  - dimension_covariance
+main_metric: loss
+collate_function: egnn_padded_collate3d
 
 optimizer: Adam
 optimizer_params:
-  lr: 7.0e-5
-  weight_decay: 1.0e-11
+  lr: 8.0e-5
+  weight_decay: 5.0e-7
+
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [700,700,390]
-  interpolation: 'linear'
+  warmup_steps: [700]
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
-  factor: 0.5
+  cooldown: 20
+  factor: 0.6
   patience: 25
   min_lr: 1.0e-6
+  threshold: 1.0e-4
   mode: 'min'
   verbose: True
 
@@ -49,7 +52,7 @@ lr_scheduler_params:
 # Model parameters
 model_type: 'PNA'
 model_parameters:
-  target_dim: 1
+  target_dim: 256
   hidden_dim: 200
   mid_batch_norm: True
   last_batch_norm: True
@@ -73,10 +76,19 @@ model_parameters:
     - min
     - max
     - mean
-    - sum
   pretrans_layers: 2
   posttrans_layers: 1
   residual: True
+
+# Model parameters
+model3d_type: 'EGNNTorch'
+model3d_parameters:
+  target_dim: 256
+  hidden_dim: 128
+  propagation_depth: 2
+  coords_weight: 1.0
+  attention: True
+  node_attr: False
 
 
 

@@ -11,7 +11,7 @@ from commons.utils import get_adj_matrix
 def graph_collate(batch: List[Tuple]):
     graphs, targets = map(list, zip(*batch))
     batched_graph = dgl.batch(graphs)
-    return batched_graph, torch.stack(targets)
+    return [batched_graph], torch.stack(targets).float()
 
 
 
@@ -21,14 +21,14 @@ def s_norm_graph_collate(batch: List[Tuple]):
     tab_snorm_n = [torch.FloatTensor(size, 1).fill_(1. / float(size)) for size in tab_sizes_n]
     snorm_n = torch.cat(tab_snorm_n).sqrt()
     batched_graph = dgl.batch(graphs)
-    return batched_graph, snorm_n, torch.stack(targets)
+    return [batched_graph], snorm_n, torch.stack(targets).float()
 
 
 def pairwise_distance_collate(batch: List[Tuple]):
     mol_graphs, pairwise_indices, distances = map(list, zip(*batch))
     batched_mol_graph = dgl.batch(mol_graphs)
 
-    return batched_mol_graph, torch.cat(pairwise_indices, dim=-1), torch.cat(distances)
+    return [batched_mol_graph], [torch.cat(pairwise_indices, dim=-1)], torch.cat(distances)
 
 
 def s_norm_contrastive_collate(batch: List[Tuple]):
@@ -40,7 +40,7 @@ def s_norm_contrastive_collate(batch: List[Tuple]):
     batched_graph = dgl.batch(graphs)
     batched_graph3d = dgl.batch(graphs3d)
 
-    return batched_graph, batched_graph3d, snorm_n
+    return [batched_graph], [batched_graph3d], snorm_n
 
 def contrastive_collate(batch: List[Tuple]):
     # optionally take targets
@@ -49,9 +49,9 @@ def contrastive_collate(batch: List[Tuple]):
     batched_graph3d = dgl.batch(graphs3d)
 
     if targets:
-        return batched_graph, batched_graph3d, torch.stack(*targets)
+        return [batched_graph], [batched_graph3d], torch.stack(*targets).float()
     else:
-        return batched_graph, batched_graph3d
+        return [batched_graph], [batched_graph3d]
 
 
 class NoisedDistancesCollate(object):
@@ -73,9 +73,9 @@ class NoisedDistancesCollate(object):
         batched_graph3d = dgl.batch(graphs3d_noised)
 
         if targets:
-            return batched_graph, batched_graph3d, torch.stack(*targets)
+            return [batched_graph], [batched_graph3d], torch.stack(*targets).float()
         else:
-            return batched_graph, batched_graph3d
+            return [batched_graph], [batched_graph3d]
 
 
 class ConformerCollate(object):
@@ -95,9 +95,9 @@ class ConformerCollate(object):
         batched_graph = dgl.batch(graphs)
 
         if targets:
-            return batched_graph, batched_conformers, torch.stack(*targets)
+            return [batched_graph], [batched_conformers], torch.stack(*targets).float()
         else:
-            return batched_graph, batched_conformers
+            return [batched_graph], [batched_conformers]
 
 
 
@@ -124,9 +124,9 @@ class NoisedCoordinatesCollate(object):
         batched_graph3d = dgl.batch(graphs3d_noised)
 
         if targets:
-            return batched_graph, batched_graph3d, torch.stack(*targets)
+            return [batched_graph], [batched_graph3d], torch.stack(*targets).float()
         else:
-            return batched_graph, batched_graph3d
+            return [batched_graph], [batched_graph3d]
 
 
 class NodeDrop3dCollate(object):
@@ -145,7 +145,7 @@ class NodeDrop3dCollate(object):
         batched_graph = dgl.batch(graphs)
         batched_graph3d = dgl.batch(graphs3d)
 
-        return batched_graph, batched_graph3d
+        return [batched_graph], [batched_graph3d]
 
 
 class NodeDrop2dCollate(object):
@@ -164,7 +164,7 @@ class NodeDrop2dCollate(object):
         batched_graph = dgl.batch(graphs)
         batched_graph3d = dgl.batch(graphs3d)
 
-        return batched_graph, batched_graph3d
+        return [batched_graph], [batched_graph3d]
 
 
 def padded_collate(batch):
@@ -181,21 +181,16 @@ def padded_collate(batch):
     # All values corresponding to padding are True and the rest is False.
     n_atoms = torch.tensor([len(item[0]) for item in batch])
     mask = torch.arange(features.shape[1])[None, :] >= n_atoms[:, None]  # [batch_size, n_atoms]
-    return features, mask, targets
+    return [features, mask], targets
 
-def egnn_padded_collate(batch):
-    """
-    Takes list of tuples with molecule features of variable sizes (different n_atoms) and pads them with zeros for processing as a sequence
-    Args:
-        batch: list of tuples with embeddings and the corresponding label
-    """
+def egnn_padded_collate3d(batch):
+    graphs, features, coordinates = map(list, zip(*batch))
+    batched_graph = dgl.batch(graphs)
+
     # pad features with -1 because that is used as padding index in the atom embedder in egnn
-    features = pad_sequence([item[0] for item in batch], batch_first=True, padding_value=-1)
-    coordinates = pad_sequence([item[1] for item in batch], batch_first=True, padding_value=0)
-    targets = torch.stack([item[2] for item in batch])
-    atom_mask = features > -1
-    atom_mask = atom_mask.sum(-1)
-
+    features = pad_sequence(features, batch_first=True, padding_value=-1)
+    coordinates = pad_sequence(coordinates, batch_first=True, padding_value=0)
+    atom_mask = features.sum(-1) > -1
 
     # Obtain edges
     batch_size, n_nodes = atom_mask.size()
@@ -205,14 +200,39 @@ def egnn_padded_collate(batch):
     diag_mask = ~torch.eye(edge_mask.size(1), dtype=torch.bool, device=features.device).unsqueeze(0)
     edge_mask *= diag_mask
 
-    edge_mask = edge_mask.view(batch_size * n_nodes * n_nodes, 1)
+    edge_mask = edge_mask.view(batch_size * n_nodes * n_nodes, 1).float()
 
     edges = get_adj_matrix(n_nodes, batch_size, device=features.device)
 
     features = features.view(batch_size * n_nodes, -1)
     coordinates = coordinates.view(batch_size * n_nodes, -1)
-    atom_mask = atom_mask.view(batch_size * n_nodes, -1)
-    return features, coordinates, edges, None, atom_mask, edge_mask, n_nodes, targets
+    atom_mask = atom_mask.view(batch_size * n_nodes, -1).float()
+    return [batched_graph], [features, coordinates, edges, None, atom_mask, edge_mask, n_nodes]
+
+def egnn_padded_collate(batch):
+    features, coordinates, targets = map(list, zip(*batch))
+
+    # pad features with -1 because that is used as padding index in the atom embedder in egnn
+    features = pad_sequence(features, batch_first=True, padding_value=-1)
+    coordinates = pad_sequence(coordinates, batch_first=True, padding_value=0)
+    atom_mask = features.sum(-1) > -1
+
+    # Obtain edges
+    batch_size, n_nodes = atom_mask.size()
+    edge_mask = atom_mask.unsqueeze(1) * atom_mask.unsqueeze(2)
+
+    # mask diagonal
+    diag_mask = ~torch.eye(edge_mask.size(1), dtype=torch.bool, device=features.device).unsqueeze(0)
+    edge_mask *= diag_mask
+
+    edge_mask = edge_mask.view(batch_size * n_nodes * n_nodes, 1).float()
+
+    edges = get_adj_matrix(n_nodes, batch_size, device=features.device)
+
+    features = features.view(batch_size * n_nodes, -1)
+    coordinates = coordinates.view(batch_size * n_nodes, -1)
+    atom_mask = atom_mask.view(batch_size * n_nodes, -1).float()
+    return [features, coordinates, edges, None, atom_mask, edge_mask, n_nodes], torch.stack(targets)
 
 def padded_collate_positional_encoding(batch):
     """
@@ -229,7 +249,7 @@ def padded_collate_positional_encoding(batch):
     # All values corresponding to padding are True and the rest is False.
     n_atoms = torch.tensor([len(item[0]) for item in batch])
     mask = torch.arange(features.shape[1])[None, :] >= n_atoms[:, None]  # [batch_size, n_atoms]
-    return features, pos_enc, mask, targets
+    return [features, pos_enc, mask], targets
 
 
 def molhiv_padded_collate(batch: List[Tuple]):
@@ -238,7 +258,7 @@ def molhiv_padded_collate(batch: List[Tuple]):
 
     n_atoms = torch.tensor([graph.number_of_nodes() for graph in graphs])
     mask = torch.arange(features.shape[1])[None, :] >= n_atoms[:, None]  # [batch_size, n_atoms]
-    return features, None, mask, torch.stack(targets)
+    return [features, None, mask], torch.stack(targets)
 
 def padded_distances_collate(batch):
     """

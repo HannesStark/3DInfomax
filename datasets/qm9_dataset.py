@@ -143,15 +143,11 @@ class QM9Dataset(Dataset):
                  normalize: bool = True, device='cuda:0', dist_embedding: bool = False, num_radial: int = 6,
                  prefetch_graphs=True, transform=None, **kwargs):
         self.return_type_options = ['mol_graph', 'complete_graph', 'mol_graph3d', 'complete_graph3d', 'san_graph',
-                                    'mol_complete_graph',
-                                    'se3Transformer_graph', 'se3Transformer_graph3d',
-                                    'pairwise_distances', 'pairwise_distances_squared',
-                                    'pairwise_indices',
-                                    'raw_features', 'coordinates',
-                                    'dist_embedding',
-                                    'mol_id', 'targets',
+                                    'mol_complete_graph', 'se3Transformer_graph', 'se3Transformer_graph3d',
+                                    'pairwise_distances', 'pairwise_distances_squared', 'pairwise_indices',
+                                    'raw_features', 'coordinates', 'dist_embedding', 'mol_id', 'targets',
                                     'one_hot_bond_types', 'edge_indices', 'smiles', 'atomic_number_long', 'n_atoms',
-                                    'positional_encoding']
+                                    'positional_encoding', 'constant_ones']
         self.qm9_directory = 'dataset/QM9'
         self.processed_file = 'qm9_processed.pt'
         self.distances_file = 'qm9_distances.pt'
@@ -419,12 +415,14 @@ class QM9Dataset(Dataset):
             bond_indices = edge_indices[0] * n_atoms + edge_indices[1]
             # overwrite the bond features
             return e_features.scatter(dim=0, index=bond_indices[:, None].expand(-1, bond_features.shape[1]),
-                                            src=bond_features)
+                                      src=bond_features)
         elif return_type == 'pairwise_indices':
             src, dst = self.get_pairwise(n_atoms)
             return torch.stack([src, dst], dim=0).to(self.device)
         elif return_type == 'raw_features':
             return self.features_tensor[start: start + n_atoms].to(self.device)
+        elif return_type == 'constant_ones':
+            return torch.ones_like(self.features_tensor[start: start + n_atoms], device=self.device)
         elif return_type == 'n_atoms':
             return self.meta_dict['n_atoms'][n_atoms]
         elif return_type == 'coordinates':
