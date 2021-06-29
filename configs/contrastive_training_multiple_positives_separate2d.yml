@@ -1,9 +1,9 @@
-experiment_name: 'geom_qm9_NTXentMultiplePositivesSeparate2D'
+experiment_name: 'NTXentMultiplePositivesSeparate2D'
 
 dataset: geom_qm9
 num_epochs: 1000
-batch_size: 4
-prefetch_graphs: False
+batch_size: 500
+prefetch_graphs: True
 log_iterations: 50
 patience: 35
 loss_func: NTXentMultiplePositivesSeparate2D
@@ -24,7 +24,7 @@ metrics:
 main_metric: loss
 collate_function: ConformerCollate
 collate_params:
-  num_conformers: 10
+  num_conformers: 5
 
 optimizer: Adam
 optimizer_params:
@@ -51,17 +51,17 @@ lr_scheduler_params:
 # Model parameters
 model_type: 'PNA'
 model_parameters:
-  target_dim: 2560
-  hidden_dim: 128
+  target_dim: 1280
+  hidden_dim: 200
   mid_batch_norm: True
   last_batch_norm: True
   readout_batchnorm: True
   # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
   batch_norm_momentum: 0.96
-  readout_hidden_dim: 128
+  readout_hidden_dim: 200
   readout_layers: 2
   dropout: 0.0
-  propagation_depth: 6
+  propagation_depth: 7
   aggregators:
     - mean
     - max

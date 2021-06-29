@@ -8,7 +8,7 @@ log_iterations: 50
 patience: 35
 loss_func: NTXentMultiplePositivesV3
 loss_params:
-  tau: 0.3
+  tau: 0.1
 num_train: 120000
 
 required_data:
@@ -32,8 +32,8 @@ collate_params:
 
 optimizer: Adam
 optimizer_params:
-  lr: 8.0e-6
-  weight_decay: 5.0e-9
+  lr: 8.0e-5
+  weight_decay: 5.0e-7
 
 
 scheduler_step_per_batch: False

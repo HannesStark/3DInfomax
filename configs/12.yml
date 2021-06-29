@@ -1,4 +1,4 @@
-experiment_name: 'geom_qm9_NTXentMultiplePositivesV3'
+experiment_name: 'NTXentMultiplePositivesSeparate2D'
 
 dataset: geom_qm9
 num_epochs: 1000
@@ -6,9 +6,9 @@ batch_size: 500
 prefetch_graphs: True
 log_iterations: 50
 patience: 35
-loss_func: NTXentMultiplePositivesV3
+loss_func: NTXentMultiplePositivesSeparate2D
 loss_params:
-  tau: 0.3
+  tau: 0.1
 num_train: 50000
 
 required_data:
@@ -16,13 +16,9 @@ required_data:
   - complete_graph3d
   - conformations
 metrics:
-  - positive_similarity
-  - negative_similarity
-  - contrastive_accuracy
-  - true_negative_rate
-  - true_positive_rate
+  - positive_similarity_multiple_positives_separate2d
+  - negative_similarity_multiple_positives_separate2d
   - uniformity
-  - alignment
   - batch_variance
   - dimension_covariance
 main_metric: loss
@@ -32,8 +28,8 @@ collate_params:
 
 optimizer: Adam
 optimizer_params:
-  lr: 8.0e-6
-  weight_decay: 5.0e-9
+  lr: 8.0e-5
+  weight_decay: 5.0e-7
 
 
 scheduler_step_per_batch: False
@@ -55,7 +51,7 @@ lr_scheduler_params:
 # Model parameters
 model_type: 'PNA'
 model_parameters:
-  target_dim: 256
+  target_dim: 1280
   hidden_dim: 200
   mid_batch_norm: True
   last_batch_norm: True

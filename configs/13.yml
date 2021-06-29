@@ -1,15 +1,15 @@
-experiment_name: 'geom_qm9_NTXentMultiplePositivesSeparate2D'
+experiment_name: 'drugs_NTXentMultiplePositives'
 
-dataset: geom_qm9
+dataset: 'drugs'
 num_epochs: 1000
 batch_size: 500
 prefetch_graphs: True
 log_iterations: 50
 patience: 35
-loss_func: NTXentMultiplePositivesSeparate2D
+loss_func: NTXentMultiplePositives
 loss_params:
-  tau: 0.1
-num_train: 50000
+  tau: 0.3
+num_train: 120000
 
 required_data:
   - mol_graph
@@ -21,6 +21,8 @@ metrics:
   - contrastive_accuracy
   - true_negative_rate
   - true_positive_rate
+  - uniformity
+  - alignment
   - batch_variance
   - dimension_covariance
 main_metric: loss
@@ -30,8 +32,8 @@ collate_params:
 
 optimizer: Adam
 optimizer_params:
-  lr: 8.0e-6
-  weight_decay: 5.0e-9
+  lr: 8.0e-5
+  weight_decay: 5.0e-7
 
 
 scheduler_step_per_batch: False
