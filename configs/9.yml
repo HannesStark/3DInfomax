@@ -1,19 +1,18 @@
-experiment_name: 'NTXent_EGNNTorch_2depth'
+experiment_name: 'NTXent_SMP_3d'
 
 num_epochs: 1000
 batch_size: 500
 prefetch_graphs: True
-log_iterations: 50
+log_iterations: 30
 patience: 35
 loss_func: NTXent
 loss_params:
   tau: 0.1
-num_train: 50000
+num_train: 500
 
 required_data:
   - mol_graph
-  - constant_ones
-  - coordinates
+  - pytorch_geometric_graph
 metrics:
   - positive_similarity
   - negative_similarity
@@ -25,7 +24,7 @@ metrics:
   - batch_variance
   - dimension_covariance
 main_metric: loss
-collate_function: egnn_padded_collate3d
+collate_function: pytorch_geometric_contrastive_collate
 
 optimizer: Adam
 optimizer_params:
@@ -80,15 +79,20 @@ model_parameters:
   posttrans_layers: 1
   residual: True
 
-# Model parameters
-model3d_type: 'EGNNTorch'
+model3d_type: 'SMP'
 model3d_parameters:
   target_dim: 256
   hidden_dim: 128
-  propagation_depth: 2
-  coords_weight: 1.0
-  attention: True
-  node_attr: False
+  energy_and_force: False
+  output_init: zeros # in DimeNet++, for QM9, 'zeros' for mu, homo, lumo, and zpve; 'GlorotOrthogonal' for alpha, R2, U0, U, H, G, and Cv
+  num_spherical: 7
+  num_radial: 6
+  out_emb_size: 256
+  basis_emb_size: 8
+  int_emb_size: 64
+  propagation_depth: 4
+  hidden_channels: 128
+  cutoff: 5.0
 
 
 
