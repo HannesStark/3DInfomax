@@ -1,3 +1,5 @@
+from math import sqrt
+
 import torch
 from ogb.utils.features import get_atom_feature_dims, get_bond_feature_dims
 
@@ -24,6 +26,10 @@ class AtomEncoder(torch.nn.Module):
                 emb = torch.nn.Embedding(dim, emb_dim)
             torch.nn.init.xavier_uniform_(emb.weight.data)
             self.atom_embedding_list.append(emb)
+
+    def reset_parameters(self):
+        for i, embedder in enumerate(self.atom_embedding_list):
+            embedder.weight.data.uniform_(-sqrt(3), sqrt(3))
 
     def forward(self, x):
         x_embedding = 0

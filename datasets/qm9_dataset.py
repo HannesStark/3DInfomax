@@ -2,6 +2,7 @@ import os
 
 import torch
 import dgl
+import torch_geometric
 from ogb.utils.features import atom_to_feature_vector, bond_to_feature_vector, get_atom_feature_dims, \
     get_bond_feature_dims
 from rdkit import Chem
@@ -147,7 +148,7 @@ class QM9Dataset(Dataset):
                                     'pairwise_distances', 'pairwise_distances_squared', 'pairwise_indices',
                                     'raw_features', 'coordinates', 'dist_embedding', 'mol_id', 'targets',
                                     'one_hot_bond_types', 'edge_indices', 'smiles', 'atomic_number_long', 'n_atoms',
-                                    'positional_encoding', 'constant_ones']
+                                    'positional_encoding', 'constant_ones', 'pytorch_geometric_graph']
         self.qm9_directory = 'dataset/QM9'
         self.processed_file = 'qm9_processed.pt'
         self.distances_file = 'qm9_distances.pt'
@@ -416,6 +417,10 @@ class QM9Dataset(Dataset):
             # overwrite the bond features
             return e_features.scatter(dim=0, index=bond_indices[:, None].expand(-1, bond_features.shape[1]),
                                       src=bond_features)
+        elif return_type == 'pytorch_geometric_graph':
+            R_i = self.coordinates[start: start + n_atoms].to(self.device)
+            z_i = self.features_tensor[start: start + n_atoms].to(self.device)
+            return torch_geometric.data.Data(pos=R_i, z=z_i)
         elif return_type == 'pairwise_indices':
             src, dst = self.get_pairwise(n_atoms)
             return torch.stack([src, dst], dim=0).to(self.device)

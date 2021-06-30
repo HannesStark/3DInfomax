@@ -6,6 +6,7 @@ from icecream import install
 from ogb.graphproppred import DglGraphPropPredDataset, collate_dgl
 from ogb.graphproppred.mol_encoder import AtomEncoder
 
+
 from commons.utils import seed_all, get_random_indices, TENSORBOARD_FUNCTIONS
 from datasets.ZINC_dataset import ZINCDataset
 from datasets.geom_drugs_dataset import GEOMDrugs
@@ -98,6 +99,8 @@ def load_model(args, data, device):
             edge_dim = data[0][0].edata['feat'].shape[1] if args.use_e_features else 0
         except:
             edge_dim = data[0][0].edges['bond'].data['feat'].shape[1] if args.use_e_features else 0
+    elif isinstance(data[0][0], torch_geometric.data.Data):
+        node_dim, edge_dim = 0, 0
     else:
         node_dim = data[0][0].shape[1]
         edge_dim = 0
@@ -315,7 +318,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/egnn_torch.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/sphere_net.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
@@ -385,7 +388,8 @@ def parse_arguments():
     p.add_argument('--train_sampler', type=str, default=None, help='any of pytorchs samplers or a custom sampler')
 
     p.add_argument('--eval_on_test', type=bool, default=True, help='runs evaluation on test set if true')
-    p.add_argument('--transfer_from_different_dataset', type=bool, default=False, help='set to true when transferring from different dataset')
+    p.add_argument('--transfer_from_different_dataset', type=bool, default=False,
+                   help='set to true when transferring from different dataset')
 
     args = p.parse_args()
 
