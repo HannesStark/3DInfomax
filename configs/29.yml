@@ -1,5 +1,6 @@
 experiment_name: 'baseline_200hidden'
 
+seed: 2
 dataset: 'ogbg-molbbbp'
 num_epochs: 1000
 batch_size: 32

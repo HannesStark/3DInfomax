@@ -36,7 +36,8 @@ class TransformerPlain(nn.Module):
         self.node_gnn = TransformerGNN(node_dim=node_dim, hidden_dim=hidden_dim, dim_feedforward=dim_feedforward,
                                        nhead=nhead, dropout=dropout, activation=activation)
 
-
+        self.readout_query = nn.Parameter(torch.empty((hidden_dim,)))
+        nn.init.normal_(self.readout_query)
         self.readout_attention = nn.MultiheadAttention(hidden_dim, num_heads=nhead, dropout=dropout, batch_first=True)
 
         if readout_hidden_dim == None:
@@ -87,7 +88,8 @@ class TransformerGNN(nn.Module):
         ic(pos_enc.shape)
         h = self.atom_encoder(h.view(-1, h.shape[-1])) # [batch_size, max_num_atoms * (hidden_dim - pos_enc_dim)]
         h = h.view(batch_size, max_num_atoms, -1)  # [batch_size, max_num_atoms, hidden_dim - pos_enc_dim]
-        pos_enc = self.pos_enc_mlp(pos_enc) # [batch_size, max_num_atoms, pos_enc_dim]
+        pos_enc = self.pos_enc_mlp(pos_enc) # [batch_size, max_num_atoms, num_eigvec, pos_enc_dim]
+        pos_enc = pos_enc.sum(dim=2) # [batch_size, max_num_atoms, pos_enc_dim]
         ic(h.shape)
         ic(pos_enc.shape)
         h = torch.cat([h,pos_enc], dim = -1 ) # [batch_size, max_num_atoms, hidden_dim]

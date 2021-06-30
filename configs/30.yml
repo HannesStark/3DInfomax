@@ -6,7 +6,7 @@ transfer_layers:
 exclude_from_transfer:
   - batch_norm
 
-
+seed: 2
 dataset: 'ogbg-molbace'
 num_epochs: 1000
 batch_size: 32
