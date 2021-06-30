@@ -156,7 +156,7 @@ class EGNNTorch(nn.Module):
         self.propagation_depth = propagation_depth
 
         ### Encoder
-        nodes_attr_dim = 15
+        nodes_attr_dim = hidden_dim
         self.atom_encoder = AtomEncoder(emb_dim=nodes_attr_dim, padding=True)
         self.embedding = nn.Linear(nodes_attr_dim, hidden_dim)
         self.node_attr = node_attr
