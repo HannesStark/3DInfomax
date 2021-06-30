@@ -1,4 +1,4 @@
-experiment_name: 'NTXent_SMP_3d'
+experiment_name: 'NTXent_tiny_20hidden'
 
 num_epochs: 1000
 batch_size: 500
