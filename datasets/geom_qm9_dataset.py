@@ -40,18 +40,12 @@ class GEOMqm9(Dataset):
 
     """
 
-    def __init__(self, return_types: list = None,
-                 target_tasks: list = None,
-                 normalize: bool = True, device='cuda:0', num_radial: int = 6,
-                 prefetch_graphs=True, transform=None, **kwargs):
+    def __init__(self, return_types: list = None, target_tasks: list = None, normalize: bool = True, device='cuda:0',
+                 num_radial: int = 6, prefetch_graphs=True, transform=None, **kwargs):
         self.return_type_options = ['mol_graph', 'complete_graph', 'mol_graph3d', 'complete_graph3d', 'san_graph',
-                                    'mol_complete_graph',
-                                    'se3Transformer_graph', 'se3Transformer_graph3d',
-                                    'pairwise_distances', 'pairwise_distances_squared',
-                                    'pairwise_indices',
-                                    'raw_features', 'coordinates',
-                                    'dist_embedding',
-                                    'mol_id', 'targets',
+                                    'mol_complete_graph', 'se3Transformer_graph', 'se3Transformer_graph3d',
+                                    'pairwise_distances', 'pairwise_distances_squared', 'pairwise_indices',
+                                    'raw_features', 'coordinates', 'dist_embedding', 'mol_id', 'targets',
                                     'one_hot_bond_types', 'edge_indices', 'smiles', 'atomic_number_long',
                                     'conformations']
         self.target_types = ['ensembleenergy', 'ensembleentropy', 'ensemblefreeenergy', 'lowestenergy', 'poplowestpct',
@@ -215,7 +209,8 @@ class GEOMqm9(Dataset):
             g = self.get_complete_graph(idx, n_atoms).to(self.device)
             g.ndata['feat'] = self.features_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
-            g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2, dim=-1).unsqueeze(-1)
+            g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2, dim=-1).unsqueeze(
+                -1)
 
             # set edge features with padding for virtual edges
             bond_features = self.e_features_tensor[e_start: e_end].to(self.device)
@@ -255,7 +250,7 @@ class GEOMqm9(Dataset):
             if self.e_features_tensor != None:
                 e_features = self.e_features_tensor[e_start: e_end].to(self.device)
                 g.edata['feat'] = torch.zeros(g.number_of_edges(), e_features.shape[1], dtype=torch.float32,
-                                           device=self.device)
+                                              device=self.device)
                 g.edata['real'] = torch.zeros(g.number_of_edges(), dtype=torch.long, device=self.device)
                 edge_indices = self.edge_indices[:, e_start: e_end].to(self.device)
                 g.edges[edge_indices[0], edge_indices[1]].data['feat'] = e_features
@@ -336,7 +331,7 @@ class GEOMqm9(Dataset):
                     L_sym = torch.eye(n_atoms) - N * L * N
                     try:
                         eig_vals, eig_vecs = torch.symeig(L_sym, eigenvectors=True)
-                    except Exception as e: # if we have disconnected components
+                    except Exception as e:  # if we have disconnected components
                         deg = adj.sum(dim=0)
                         deg[deg == 0] = 1
                         N = deg ** -0.5

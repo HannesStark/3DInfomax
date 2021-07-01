@@ -31,7 +31,6 @@ optimizer_params:
   lr: 8.0e-5
   weight_decay: 5.0e-7
 
-
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
@@ -45,8 +44,6 @@ lr_scheduler_params:
   threshold: 1.0e-4
   mode: 'min'
   verbose: True
-
-
 
 # Model parameters
 model_type: 'PNA'

@@ -268,7 +268,6 @@ class SMP(torch.nn.Module):
         e = self.init_e(z, emb, i, j)
         v = self.init_v(e, i, num_nodes=pos.size(0))
         u = self.init_u(torch.zeros_like(scatter(v, batch, dim=0)), v, batch)  # scatter(v, batch, dim=0)
-
         for update_e, update_v, update_u in zip(self.update_es, self.update_vs, self.update_us):
             e = update_e(e, emb, idx_kj, idx_ji)
             v = update_v(e, i)

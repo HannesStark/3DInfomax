@@ -135,7 +135,7 @@ class NTXent(_Loss):
         if self.norm:
             z1_abs = z1.norm(dim=1)
             z2_abs = z2.norm(dim=1)
-            sim_matrix = sim_matrix / torch.einsum('i,j->ij', z1_abs, z2_abs)
+            sim_matrix = sim_matrix / (torch.einsum('i,j->ij', z1_abs, z2_abs) + 1e-8)
 
         sim_matrix = torch.exp(sim_matrix / self.tau)
         pos_sim = torch.diagonal(sim_matrix)
