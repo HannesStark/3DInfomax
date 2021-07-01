@@ -1,12 +1,12 @@
-experiment_name: 'NTXentMultiplePositivesSeparate2D'
+experiment_name: 'NTXentMultiplePositives'
 
-dataset: drugs
+dataset: 'drugs'
 num_epochs: 1000
 batch_size: 500
 prefetch_graphs: True
 log_iterations: 50
 patience: 35
-loss_func: NTXentMultiplePositivesSeparate2D
+loss_func: NTXentMultiplePositives
 loss_params:
   tau: 0.1
 num_train: 120000
@@ -16,9 +16,13 @@ required_data:
   - complete_graph3d
   - conformations
 metrics:
-  - positive_similarity_multiple_positives_separate2d
-  - negative_similarity_multiple_positives_separate2d
+  - positive_similarity
+  - negative_similarity
+  - contrastive_accuracy
+  - true_negative_rate
+  - true_positive_rate
   - uniformity
+  - alignment
   - batch_variance
   - dimension_covariance
 main_metric: loss
@@ -51,7 +55,7 @@ lr_scheduler_params:
 # Model parameters
 model_type: 'PNA'
 model_parameters:
-  target_dim: 1280
+  target_dim: 256
   hidden_dim: 200
   mid_batch_norm: True
   last_batch_norm: True
