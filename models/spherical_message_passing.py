@@ -6,7 +6,6 @@ from torch_geometric.nn.inits import glorot_orthogonal
 from torch_geometric.nn import radius_graph
 from torch_scatter import scatter
 
-
 import sys
 
 from commons.mol_encoder import AtomEncoder
@@ -60,25 +59,35 @@ class ResidualLayer(torch.nn.Module):
 
 
 class init(torch.nn.Module):
-    def __init__(self, num_radial, hidden_channels, act=swish):
+    def __init__(self, num_radial, hidden_channels, act=swish, use_node_features=True):
         super(init, self).__init__()
         self.act = act
-        self.emb = AtomEncoder(emb_dim=hidden_channels)
-        self.emb.reset_parameters()
+        self.use_node_features = use_node_features
+        if self.use_node_features:
+            self.emb.reset_parameters()
+            self.emb = AtomEncoder(emb_dim=hidden_channels)
+        else:
+            self.node_embedding = nn.Parameter(torch.empty((hidden_channels,)))
+            nn.init.normal_(self.node_embedding)
+
         self.lin_rbf_0 = Linear(num_radial, hidden_channels)
         self.lin = Linear(3 * hidden_channels, hidden_channels)
         self.lin_rbf_1 = nn.Linear(num_radial, hidden_channels, bias=False)
         self.reset_parameters()
 
     def reset_parameters(self):
-        self.emb.reset_parameters()
+        if self.use_node_features:
+            self.emb.reset_parameters()
         self.lin_rbf_0.reset_parameters()
         self.lin.reset_parameters()
         glorot_orthogonal(self.lin_rbf_1.weight, scale=2.0)
 
     def forward(self, x, emb, i, j):
         rbf, _, _ = emb
-        x = self.emb(x)
+        if self.use_node_features:
+            x = self.emb(x)
+        else:
+            x = self.node_embedding[None, :].expand(x.shape[0], -1)
         rbf0 = self.act(self.lin_rbf_0(rbf))
         e1 = self.act(self.lin(torch.cat([x[i], x[j], rbf0], dim=-1)))
         e2 = self.lin_rbf_1(rbf) * e1
@@ -223,12 +232,13 @@ class update_u(torch.nn.Module):
 class SMP(torch.nn.Module):
     def __init__(self, energy_and_force, cutoff, propagation_depth, hidden_channels, target_dim, int_emb_size,
                  basis_emb_size, out_emb_size, num_spherical, num_radial, envelope_exponent=5, num_before_skip=1,
-                 num_after_skip=2, num_output_layers=3, act=swish, output_init='GlorotOrthogonal', **kwargs):
+                 num_after_skip=2, num_output_layers=3, act=swish, output_init='GlorotOrthogonal',
+                 use_node_features=True, **kwargs):
         super(SMP, self).__init__()
 
         self.cutoff = cutoff
         self.energy_and_force = energy_and_force
-        self.init_e = init(num_radial, hidden_channels, act)
+        self.init_e = init(num_radial, hidden_channels, act, use_node_features=use_node_features)
         self.init_v = update_v(hidden_channels, out_emb_size, target_dim, num_output_layers, act, output_init)
         self.init_u = update_u()
         self.emb = emb(num_spherical, num_radial, self.cutoff, envelope_exponent)
@@ -243,7 +253,6 @@ class SMP(torch.nn.Module):
         self.update_us = torch.nn.ModuleList([update_u() for _ in range(propagation_depth)])
 
         self.reset_parameters()
-
 
     def reset_parameters(self):
         self.init_e.reset_parameters()
