@@ -335,13 +335,13 @@ class GEOMDrugs(Dataset):
                     N = adj.sum(dim=0) ** -0.5
                     L_sym = torch.eye(n_atoms) - N * L * N
                     try:
-                        eig_vals, eig_vecs = torch.symeig(L_sym, eigenvectors=True)
+                        eig_vals, eig_vecs = torch.linalg.eigh(L_sym, eigenvectors=True)
                     except Exception as e:  # if we have disconnected components
                         deg = adj.sum(dim=0)
                         deg[deg == 0] = 1
                         N = deg ** -0.5
                         L_sym = torch.eye(n_atoms) - N * L * N
-                        eig_vals, eig_vecs = torch.symeig(L_sym, eigenvectors=True)
+                        eig_vals, eig_vecs = torch.linalg.eigh(L_sym, eigenvectors=True)
                     idx = eig_vals.argsort()[0: max_freqs]  # Keep up to the maximum desired number of frequencies
                     eig_vals, eig_vecs = eig_vals[idx], eig_vecs[:, idx]
 

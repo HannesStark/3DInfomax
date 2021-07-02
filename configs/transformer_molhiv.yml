@@ -1,19 +1,20 @@
 experiment_name: 'molhiv_graphormer_settings'
 
-dataset: 'molhiv'
+dataset: 'ogbg-molhiv'
 num_epochs: 1000
 batch_size: 128
 log_iterations: 30
 patience: 30
 loss_func: BCEWithLogitsLoss
+required_data:
+  - raw_features
+  - positional_encoding
+  - targets
 metrics:
-  - ogb_molhiv
-  - pearsonr
   - rsquared
   - mean_predictor_loss
-main_metric: ogb_molhiv
-main_metric_goal: max
-collate_function: molhiv_padded_collate
+  - pearsonr
+collate_function: padded_collate_positional_encoding
 
 optimizer: AdamW
 optimizer_params:

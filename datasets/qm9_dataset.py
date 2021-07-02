@@ -493,7 +493,7 @@ class QM9Dataset(Dataset):
             L = D - adj
             N = adj.sum(dim=0) ** -0.5
             L_sym = torch.eye(n_atoms) - N * L * N
-            eig_vals, eig_vecs = torch.symeig(L_sym, eigenvectors=True)
+            eig_vals, eig_vecs =torch.linalg.eigh(L_sym, eigenvectors=True)
             idx = eig_vals.argsort()[0: max_freqs]  # Keep up to the maximum desired number of frequencies
             eig_vals, eig_vecs = eig_vals[idx], eig_vecs[:, idx]
 
