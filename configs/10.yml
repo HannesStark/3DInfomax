@@ -1,2 +1,2 @@
 # continue training from checkpoint:
-checkpoint: runs/PNA_drugs_NTXentMultiplePositivesSeparate2D_29-06_07-22-46/last_checkpoint.pt
+checkpoint: runs/PNA_qm9_NTXent_SMP_3d_01-07_09-54-52/last_checkpoint.pt

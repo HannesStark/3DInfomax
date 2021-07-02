@@ -1,12 +1,12 @@
-experiment_name: 'tune_NTXent_EGNNTorch_features_2depth'
+experiment_name: 'tune_NTXentMultiplePositivesSeparate2D'
 
-pretrain_checkpoint: runs/PNA_qm9_NTXent_EGNNTorch_features_2depth_29-06_09-45-30/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_drugs_NTXentMultiplePositivesSeparate2D_29-06_07-22-46/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
   - batch_norm
 
-
+dataset: drugs
 num_epochs: 1000
 batch_size: 128
 prefetch_graphs: True
@@ -15,7 +15,7 @@ patience: 30
 loss_func: L1Loss
 num_train: 50000
 targets:
-  - homo
+  - ensemblefreeenergy
 
 required_data:
   - mol_graph
@@ -24,7 +24,6 @@ metrics:
   - mae_denormalized
   - pearsonr
   - rsquared
-  - qm9_properties
 
 optimizer: Adam
 optimizer_params:
