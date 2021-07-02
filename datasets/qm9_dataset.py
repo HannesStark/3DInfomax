@@ -339,6 +339,7 @@ class QM9Dataset(Dataset):
         elif return_type == 'mol_graph3d':
             g = self.get_graph(idx, e_start, e_end, n_atoms).to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
+            g.ndata['feat'] = self.features_tensor[start: start + n_atoms].to(self.device)
             return g
         elif return_type == 'complete_graph':  # complete graph without self loops
             g = self.get_complete_graph(idx, n_atoms).to(self.device)
@@ -362,6 +363,7 @@ class QM9Dataset(Dataset):
             return g
         elif return_type == 'complete_graph3d':
             g = self.get_complete_graph(idx, n_atoms).to(self.device)
+            g.ndata['feat'] = self.features_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
             g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2, dim=-1).unsqueeze(
                 -1)
