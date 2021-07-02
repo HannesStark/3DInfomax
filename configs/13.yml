@@ -1,4 +1,4 @@
-experiment_name: 'NTXent_no_node_features'
+experiment_name: 'SMP_NTXent_no_node_features'
 
 num_epochs: 1000
 batch_size: 500
