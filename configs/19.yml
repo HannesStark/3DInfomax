@@ -13,7 +13,7 @@ prefetch_graphs: True
 log_iterations: 30
 patience: 30
 loss_func: L1Loss
-num_train: 50000
+num_train: 120000
 targets:
   - ensemblefreeenergy
 
