@@ -52,6 +52,7 @@ class OGBGDatsetExtension(GraphPropPredDataset):
             sign_flip[sign_flip >= 0.5] = 1.0
             sign_flip[sign_flip < 0.5] = -1.0
             eig_vals = eig_vals.unsqueeze(0).repeat(eig_vecs.shape[0], 1)
+            ic(eig_vecs)
             return torch.stack([eig_vals, eig_vecs], dim=-1)
 
     def get_graph(self, idx):
@@ -72,6 +73,7 @@ class OGBGDatsetExtension(GraphPropPredDataset):
             sparse = torch.sparse_coo_tensor(edge_index, torch.ones(edge_index.shape[1]), device=self.device)
             A = sparse.to_dense()
             n_atoms = len(A)
+            A += torch.eye(n_atoms, device=self.device)
             D = torch.diag(A.sum(dim=0))
             L = D - A
             N = A.sum(dim=0) ** -0.5

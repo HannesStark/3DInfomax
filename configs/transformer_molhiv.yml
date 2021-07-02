@@ -1,5 +1,6 @@
 experiment_name: 'molhiv_graphormer_settings'
 
+device: cpu
 dataset: 'ogbg-molhiv'
 num_epochs: 1000
 batch_size: 128
