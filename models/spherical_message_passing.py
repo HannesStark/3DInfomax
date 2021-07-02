@@ -64,7 +64,6 @@ class init(torch.nn.Module):
         self.act = act
         self.use_node_features = use_node_features
         if self.use_node_features:
-            self.emb.reset_parameters()
             self.emb = AtomEncoder(emb_dim=hidden_channels)
         else:
             self.node_embedding = nn.Parameter(torch.empty((hidden_channels,)))
