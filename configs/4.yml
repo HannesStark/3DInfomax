@@ -1,4 +1,4 @@
-experiment_name: 'graphormer_settings'
+experiment_name: 'fast_warmup'
 
 dataset: 'ogbg-molhiv'
 num_epochs: 1000
@@ -23,7 +23,7 @@ optimizer_params:
 scheduler_step_per_batch: True
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [40000]
+  warmup_steps: [400]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: OneCycleLR

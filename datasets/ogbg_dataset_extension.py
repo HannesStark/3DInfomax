@@ -93,7 +93,7 @@ class OGBGDatsetExtension(GraphPropPredDataset):
             return self.dgl_graphs[idx]
         else:
             graph_info = self.graphs[idx]
-            g = dgl.graph((graph_info['edge_index'][0], graph_info['edge_index'][1]), graph_info['num_nodes'])
+            g = dgl.graph((graph_info['edge_index'][0], graph_info['edge_index'][1]), num_nodes=graph_info['num_nodes'])
             g.ndata['feat'] = torch.from_numpy(graph_info['node_feat'])
             g.edata['feat'] = torch.from_numpy(graph_info['edge_feat'])
             return g

@@ -1,4 +1,4 @@
-experiment_name: 'molhiv_graphormer_settings'
+experiment_name: 'baseline'
 
 dataset: 'ogbg-molhiv'
 num_epochs: 1000
@@ -7,6 +7,7 @@ log_iterations: 1
 patience: 30
 loss_func: BCEWithLogitsLoss
 required_data:
+  - dgl_graph
   - raw_features
   - positional_encoding
   - targets
@@ -14,7 +15,7 @@ metrics:
   - rsquared
   - mean_predictor_loss
   - pearsonr
-collate_function: padded_collate_positional_encoding
+collate_function: pna_transformer_collate
 
 optimizer: AdamW
 optimizer_params:
@@ -32,7 +33,7 @@ lr_scheduler_params:
   anneal_strategy: 'linear'
   max_lr: 2.0e-4
 
-model_type: 'TransformerPlain'
+model_type: 'PNATransformer'
 model_parameters:
   target_dim: 1
   hidden_dim: 512
@@ -40,7 +41,25 @@ model_parameters:
   dim_feedforward: 512
   dropout: 0.1
   propagation_depth: 6
+
+  readout_batchnorm: True
+  readout_hidden_dim: 128
   readout_layers: 2
+
+  mid_batch_norm: True
+  last_batch_norm: True
+  aggregators:
+    - mean
+    - max
+    - min
+    - std
+  scalers:
+    - identity
+    - amplification
+    - attenuation
+  pretrans_layers: 2
+  posttrans_layers: 1
+  residual: True
 
 
 # continue training from checkpoint:

@@ -178,12 +178,6 @@ class NodeDrop2dCollate(object):
 
 
 def padded_collate(batch):
-    """
-    Takes list of tuples with molecule features of variable sizes (different n_atoms) and pads them with zeros for processing as a sequence
-    Args:
-        batch: list of tuples with embeddings and the corresponding label
-    """
-
     features = pad_sequence([item[0] for item in batch], batch_first=True)
     targets = torch.stack([item[1] for item in batch])
 
@@ -245,21 +239,26 @@ def egnn_padded_collate(batch):
     return [features, coordinates, edges, None, atom_mask, edge_mask, n_nodes], torch.stack(targets).float()
 
 def padded_collate_positional_encoding(batch):
-    """
-    Takes list of tuples with molecule features of variable sizes (different n_atoms) and pads them with zeros for processing as a sequence
-    Args:
-        batch: list of tuples with embeddings and the corresponding label
-    """
-
-    features = pad_sequence([item[0] for item in batch], batch_first=True)
-    pos_enc = pad_sequence([item[1] for item in batch], batch_first=True)
-    targets = torch.stack([item[2] for item in batch])
+    features, pos_enc, targets = map(list, zip(*batch))
+    features = pad_sequence(features, batch_first=True)
+    pos_enc = pad_sequence(pos_enc, batch_first=True)
 
     # create mask corresponding to the zero padding used for the shorter sequences in the batch.
     # All values corresponding to padding are True and the rest is False.
     n_atoms = torch.tensor([len(item[0]) for item in batch])
     mask = torch.arange(features.shape[1])[None, :] >= n_atoms[:, None]  # [batch_size, n_atoms]
-    return [features, pos_enc, mask], targets.float()
+    return [features, pos_enc, mask], torch.stack(targets).float()
+
+def pna_transformer_collate(batch):
+    graphs, features, pos_enc, targets = map(list, zip(*batch))
+    features = pad_sequence(features, batch_first=True)
+    pos_enc = pad_sequence(pos_enc, batch_first=True)
+
+    # create mask corresponding to the zero padding used for the shorter sequences in the batch.
+    # All values corresponding to padding are True and the rest is False.
+    n_atoms = torch.tensor([len(item[0]) for item in batch])
+    mask = torch.arange(features.shape[1])[None, :] >= n_atoms[:, None]  # [batch_size, n_atoms]
+    return [graphs, features, pos_enc, mask], torch.stack(targets).float()
 
 
 def molhiv_padded_collate(batch: List[Tuple]):
@@ -271,11 +270,6 @@ def molhiv_padded_collate(batch: List[Tuple]):
     return [features, None, mask], torch.stack(targets).float()
 
 def padded_distances_collate(batch):
-    """
-    Takes list of tuples with molecule features of variable sizes (different n_atoms) and pads them with zeros for processing as a sequence
-    Args:
-        batch: list of tuples with embeddings and the corresponding label
-    """
     graphs, distances = map(list, zip(*batch))
     padded = pad_sequence(distances, batch_first=True)
 
