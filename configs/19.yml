@@ -1,21 +1,21 @@
-experiment_name: 'tune_NTXentMultiplePositives'
+experiment_name: 'tune_SMP_NTXent_Snapshot'
 
-pretrain_checkpoint: runs/PNA_drugs_NTXentMultiplePositives_01-07_07-57-48/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_qm9_SMP_NTXent_02-07_18-56-07/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
   - batch_norm
 
-dataset: drugs
+
 num_epochs: 1000
 batch_size: 128
 prefetch_graphs: True
 log_iterations: 30
 patience: 30
 loss_func: L1Loss
-num_train: 120000
+num_train: 50000
 targets:
-  - ensemblefreeenergy
+  - homo
 
 required_data:
   - mol_graph
@@ -24,6 +24,7 @@ metrics:
   - mae_denormalized
   - pearsonr
   - rsquared
+  - qm9_properties
 
 optimizer: Adam
 optimizer_params:

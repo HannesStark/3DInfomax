@@ -116,6 +116,9 @@ runs2
 
 dataset/QM9/processed/
 dataset/ZINC/
+dataset/ogbg*/
+dataset/COLL/
+
 
 .idea/
 

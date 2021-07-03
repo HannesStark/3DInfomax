@@ -1,12 +1,12 @@
-experiment_name: 'tune_NTXentMultiplePositives'
+experiment_name: 'tune_NTXent_use_node_feat_3d_snapshot'
 
-pretrain_checkpoint: runs/PNA_geom_qm9_geom_qm9_NTXentMultiplePositives_27-06_16-50-23/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_qm9_NTXent_use_node_feat_3d_02-07_07-49-27/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
   - batch_norm
 
-dataset: geom_qm9
+
 num_epochs: 1000
 batch_size: 128
 prefetch_graphs: True
@@ -15,7 +15,7 @@ patience: 30
 loss_func: L1Loss
 num_train: 50000
 targets:
-  - ensemblefreeenergy
+  - homo
 
 required_data:
   - mol_graph
@@ -24,6 +24,7 @@ metrics:
   - mae_denormalized
   - pearsonr
   - rsquared
+  - qm9_properties
 
 optimizer: Adam
 optimizer_params:

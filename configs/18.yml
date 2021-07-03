@@ -1,6 +1,6 @@
-experiment_name: 'tune_NTXent_EGNNTorch'
+experiment_name: 'tune_SMP_NTXent_Snapshot'
 
-pretrain_checkpoint: runs/PNA_qm9_NTXent_EGNNTorch_29-06_09-45-31/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_qm9_SMP_NTXent_02-07_18-56-07/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
