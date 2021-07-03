@@ -1,2 +1,46 @@
+experiment_name: 'fast_warmup'
+
+dataset: 'ogbg-molhiv'
+num_epochs: 1000
+batch_size: 128
+log_iterations: 50
+patience: 30
+loss_func: BCEWithLogitsLoss
+required_data:
+  - raw_features
+  - positional_encoding
+  - targets
+metrics:
+  - rsquared
+  - mean_predictor_loss
+  - pearsonr
+collate_function: padded_collate_positional_encoding
+
+optimizer: AdamW
+optimizer_params:
+  lr: 2.0e-4
+
+scheduler_step_per_batch: True
+lr_scheduler: WarmUpWrapper
+lr_scheduler_params:
+  warmup_steps: [400]
+  interpolation: 'linear'
+  # parameters of scheduler to run after warmup
+  wrapped_scheduler: OneCycleLR
+  epochs: 200
+  steps_per_epoch: 258
+  anneal_strategy: 'linear'
+  max_lr: 2.0e-4
+
+model_type: 'TransformerPlain'
+model_parameters:
+  target_dim: 1
+  hidden_dim: 512
+  nhead: 32
+  dim_feedforward: 512
+  dropout: 0.1
+  propagation_depth: 6
+
+
 # continue training from checkpoint:
-checkpoint: runs/PNA_drugs_NTXent_sample_conformer_03-07_11-53-34/last_checkpoint.pt
+#checkpoint: runs/PNAReadout_2_layer_03-04_15-29-07/last_checkpoint.pt
