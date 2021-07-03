@@ -191,7 +191,7 @@ def padded_collate(batch):
     # All values corresponding to padding are True and the rest is False.
     n_atoms = torch.tensor([len(item[0]) for item in batch])
     mask = torch.arange(features.shape[1])[None, :] >= n_atoms[:, None]  # [batch_size, n_atoms]
-    return [features, mask], targets
+    return [features, mask], targets.float()
 
 def egnn_padded_collate3d(batch):
     graphs, features, coordinates = map(list, zip(*batch))
@@ -242,7 +242,7 @@ def egnn_padded_collate(batch):
     features = features.view(batch_size * n_nodes, -1)
     coordinates = coordinates.view(batch_size * n_nodes, -1)
     atom_mask = atom_mask.view(batch_size * n_nodes, -1).float()
-    return [features, coordinates, edges, None, atom_mask, edge_mask, n_nodes], torch.stack(targets)
+    return [features, coordinates, edges, None, atom_mask, edge_mask, n_nodes], torch.stack(targets).float()
 
 def padded_collate_positional_encoding(batch):
     """
@@ -259,7 +259,7 @@ def padded_collate_positional_encoding(batch):
     # All values corresponding to padding are True and the rest is False.
     n_atoms = torch.tensor([len(item[0]) for item in batch])
     mask = torch.arange(features.shape[1])[None, :] >= n_atoms[:, None]  # [batch_size, n_atoms]
-    return [features, pos_enc, mask], targets
+    return [features, pos_enc, mask], targets.float()
 
 
 def molhiv_padded_collate(batch: List[Tuple]):
@@ -268,7 +268,7 @@ def molhiv_padded_collate(batch: List[Tuple]):
 
     n_atoms = torch.tensor([graph.number_of_nodes() for graph in graphs])
     mask = torch.arange(features.shape[1])[None, :] >= n_atoms[:, None]  # [batch_size, n_atoms]
-    return [features, None, mask], torch.stack(targets)
+    return [features, None, mask], torch.stack(targets).float()
 
 def padded_distances_collate(batch):
     """

@@ -19,26 +19,13 @@ class TransformerPlain(nn.Module):
     Message Passing Neural Network that does not use 3D information
     """
 
-    def __init__(self,
-                 node_dim,
-                 hidden_dim,
-                 target_dim,
-                 dropout,
-                 nhead,
-                 dim_feedforward,
-                 readout_batchnorm: bool = True,
-                 readout_hidden_dim=None,
-                 activation: str = 'relu',
-                 readout_layers: int = 2,
-                 batch_norm_momentum=0.1,
-                 **kwargs):
+    def __init__(self, node_dim, hidden_dim, target_dim, dropout, nhead, dim_feedforward,
+                 readout_batchnorm: bool = True, readout_hidden_dim=None, activation: str = 'relu',
+                 readout_layers: int = 2, batch_norm_momentum=0.1, **kwargs):
         super(TransformerPlain, self).__init__()
         self.node_gnn = TransformerGNN(node_dim=node_dim, hidden_dim=hidden_dim, dim_feedforward=dim_feedforward,
                                        nhead=nhead, dropout=dropout, activation=activation)
 
-        self.readout_query = nn.Parameter(torch.empty((hidden_dim,)))
-        nn.init.normal_(self.readout_query)
-        self.readout_attention = nn.MultiheadAttention(hidden_dim, num_heads=nhead, dropout=dropout, batch_first=True)
 
         if readout_hidden_dim == None:
             readout_hidden_dim = hidden_dim
@@ -48,31 +35,21 @@ class TransformerPlain(nn.Module):
 
     def forward(self, h, pos_enc, mask):
         batch_size, max_num_atoms, _ = h.size()
-        h = self.node_gnn(h, pos_enc,mask)
 
-        readout_query = self.readout_query[None, None, :].expand((batch_size, -1, -1))
-        # pooled: [batch_size, 1, hidden_dim]
-        pooled, attention_weights = self.readout_attention(readout_query, h, h, key_padding_mask=mask)
-        pooled = pooled.squeeze() # pooled: [batch_size, hidden_dim]
-        return self.output(pooled)
+        # node gnn adds a virtual node for readout
+        h = self.node_gnn(h, pos_enc, mask) # [batch_size, max_num_atoms + 1, hidden_dim]
+
+        # the first node is the one that was added for readout
+        return self.output(h[:,0,:])
 
 
 class TransformerGNN(nn.Module):
-    def __init__(self,
-                 node_dim,
-                 hidden_dim,
-
-                 dim_feedforward,
-                 nhead: int = 4,
-                 pos_enc_dim = 16,
-                 activation: Union[Callable, str] = "relu",
-                 propagation_depth: int = 5,
-                 dropout: float = 0.0,
-                 **kwargs):
+    def __init__(self, node_dim, hidden_dim, dim_feedforward, nhead: int = 4, pos_enc_dim=16,
+                 activation: Union[Callable, str] = "relu", propagation_depth: int = 5, dropout: float = 0.0, **kwargs):
         super(TransformerGNN, self).__init__()
 
         self.mp_layers = nn.ModuleList()
-        self.pos_enc_mlp  = nn.Linear(2, pos_enc_dim)
+        self.pos_enc_mlp = nn.Linear(2, pos_enc_dim)
         self.v_node = nn.Parameter(torch.empty((hidden_dim,)))
         nn.init.normal_(self.v_node)
 
@@ -80,19 +57,23 @@ class TransformerGNN(nn.Module):
             self.mp_layers.append(
                 TransformerEncoderLayer(d_model=hidden_dim, dim_feedforward=dim_feedforward, nhead=nhead,
                                         batch_first=True, dropout=dropout, activation=activation))
-        self.atom_encoder = AtomEncoder(emb_dim=hidden_dim- pos_enc_dim)
+        self.atom_encoder = AtomEncoder(emb_dim=hidden_dim - pos_enc_dim)
         self.bond_encoder = BondEncoder(emb_dim=hidden_dim)
 
     def forward(self, h, pos_enc, mask):
         batch_size, max_num_atoms, _ = h.size()
-        ic(pos_enc.shape)
-        h = self.atom_encoder(h.view(-1, h.shape[-1])) # [batch_size, max_num_atoms * (hidden_dim - pos_enc_dim)]
+
+        h = self.atom_encoder(h.view(-1, h.shape[-1]))  # [batch_size, max_num_atoms * (hidden_dim - pos_enc_dim)]
         h = h.view(batch_size, max_num_atoms, -1)  # [batch_size, max_num_atoms, hidden_dim - pos_enc_dim]
-        pos_enc = self.pos_enc_mlp(pos_enc) # [batch_size, max_num_atoms, num_eigvec, pos_enc_dim]
-        pos_enc = pos_enc.sum(dim=2) # [batch_size, max_num_atoms, pos_enc_dim]
-        ic(h.shape)
-        ic(pos_enc.shape)
-        h = torch.cat([h,pos_enc], dim = -1 ) # [batch_size, max_num_atoms, hidden_dim]
+        pos_enc = self.pos_enc_mlp(pos_enc)  # [batch_size, max_num_atoms, num_eigvec, pos_enc_dim]
+        pos_enc = pos_enc.nansum(dim=2)  # [batch_size, max_num_atoms, pos_enc_dim]
+        h = torch.cat([h, pos_enc], dim=-1)  # [batch_size, max_num_atoms, hidden_dim]
+
+        # add virtual node for readout
+        h = torch.cat([self.v_node[None, None, :].expand(batch_size, -1, -1), h], dim=1)# [batch_size, max_num_atoms + 1, hidden_dim]
+
+        mask = torch.cat([torch.tensor(False, device=h.device).unsqueeze(0).expand(batch_size, -1), mask], dim=1)# [batch_size, max_num_atoms + 1]
+
         h_in = h
 
         for mp_layer in self.mp_layers:

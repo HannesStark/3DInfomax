@@ -1,4 +1,4 @@
-experiment_name: 'baseline'
+experiment_name: 'baseline_few_features'
 
 dataset: 'ogbg-molhiv'
 num_epochs: 1000

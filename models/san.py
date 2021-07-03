@@ -6,6 +6,7 @@ import dgl
 import dgl.function as fn
 import numpy as np
 
+from commons.mol_encoder import AtomEncoder, BondEncoder
 from models.base_layers import MLP
 
 """
@@ -287,18 +288,10 @@ class SAN_NodeLPE(nn.Module):
 
         self.in_feat_dropout = nn.Dropout(in_feat_dropout)
 
-        self.embedding_h = MLP(in_dim=node_dim,
-                               hidden_size=node_dim,
-                               layers=1,
-                               out_dim=GT_hidden_dim - LPE_dim)
-        self.embedding_e_real = MLP(in_dim=edge_dim,
-                                    hidden_size=edge_dim,
-                                    layers=1,
-                                    out_dim=GT_hidden_dim)
-        self.embedding_e_fake = MLP(in_dim=edge_dim,
-                                    hidden_size=edge_dim,
-                                    layers=1,
-                                    out_dim=GT_hidden_dim)
+
+        self.embedding_h = AtomEncoder(emb_dim=GT_hidden_dim - LPE_dim)
+        self.embedding_e_real = BondEncoder(emb_dim=GT_hidden_dim)
+        self.embedding_e_fake = BondEncoder(emb_dim=GT_hidden_dim)
 
         self.linear_A = nn.Linear(2, LPE_dim)
 
@@ -324,17 +317,13 @@ class SAN_NodeLPE(nn.Module):
         PosEnc[empty_mask] = 0  # (Num nodes) x (Num Eigenvectors) x 2
         PosEnc = torch.transpose(PosEnc, 0, 1).float()  # (Num Eigenvectors) x (Num nodes) x 2
         PosEnc = self.linear_A(PosEnc)  # (Num Eigenvectors) x (Num nodes) x PE_dim
-        ic(PosEnc.shape)
         # 1st Transformer: Learned PE
         PosEnc = self.PE_Transformer(src=PosEnc, src_key_padding_mask=empty_mask[:, :, 0])
-        ic(PosEnc.shape)
         # remove masked sequences
         PosEnc[torch.transpose(empty_mask, 0, 1)[:, :, 0]] = float('nan')
         # Sum pooling
         PosEnc = torch.nansum(PosEnc, 0, keepdim=False)
-        ic(PosEnc.shape)
         # Concatenate learned PE to input embedding
-        ic(h.shape)
         h = torch.cat((h, PosEnc), 1)
 
         h = self.in_feat_dropout(h)

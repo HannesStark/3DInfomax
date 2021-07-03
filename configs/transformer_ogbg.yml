@@ -1,10 +1,9 @@
 experiment_name: 'molhiv_graphormer_settings'
 
-device: cpu
 dataset: 'ogbg-molhiv'
 num_epochs: 1000
 batch_size: 128
-log_iterations: 30
+log_iterations: 1
 patience: 30
 loss_func: BCEWithLogitsLoss
 required_data:
