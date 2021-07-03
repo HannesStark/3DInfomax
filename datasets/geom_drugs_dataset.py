@@ -111,7 +111,7 @@ class GEOMDrugs(Dataset):
                 self.mol_graphs.append(dgl.graph((edge_indices[0], edge_indices[1]), num_nodes=n_atoms))
         self.pairwise = {}  # for memoization
         if self.prefetch_graphs and (
-                'complete_graph' in self.return_types or 'complete_graph3d' in self.return_types or 'san_graph' in self.return_types):
+                'complete_graph' in self.return_types or 'complete_graph3d' in self.return_types or 'san_graph' in self.return_types or 'complete_graph_random_conformer' in self.return_types):
             print(
                 'Load complete graphs into memory (set prefetch_graphs to False to load them on the fly => slower training)')
             self.complete_graphs = []
