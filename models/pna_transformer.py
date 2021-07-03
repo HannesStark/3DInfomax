@@ -76,10 +76,13 @@ class PNATransformerGNN(nn.Module):
             )
 
         self.atom_encoder = AtomEncoder(emb_dim=hidden_dim - pos_enc_dim)
+        self.graph_atom_encoder = AtomEncoder(emb_dim=hidden_dim)
         self.bond_encoder = BondEncoder(emb_dim=hidden_dim)
 
     def forward(self, graph, h, pos_enc, mask):
         batch_size, max_num_atoms, _ = h.size()
+        graph.ndata['feat'] = self.graph_atom_encoder(graph.ndata['feat'])
+        graph.edata['feat'] = self.bond_encoder(graph.edata['feat'])
 
         h = self.atom_encoder(h.view(-1, h.shape[-1]))  # [batch_size, max_num_atoms * (hidden_dim - pos_enc_dim)]
         h = h.view(batch_size, max_num_atoms, -1)  # [batch_size, max_num_atoms, hidden_dim - pos_enc_dim]

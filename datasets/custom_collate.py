@@ -258,7 +258,7 @@ def pna_transformer_collate(batch):
     # All values corresponding to padding are True and the rest is False.
     n_atoms = torch.tensor([len(item[0]) for item in batch])
     mask = torch.arange(features.shape[1])[None, :] >= n_atoms[:, None]  # [batch_size, n_atoms]
-    return [graphs, features, pos_enc, mask], torch.stack(targets).float()
+    return [dgl.batch(graphs), features, pos_enc, mask], torch.stack(targets).float()
 
 
 def molhiv_padded_collate(batch: List[Tuple]):

@@ -42,7 +42,7 @@ class GEOMDrugs(Dataset):
     def __init__(self, return_types: list = None,
                  target_tasks: list = None,
                  normalize: bool = True, device='cuda:0',
-                 prefetch_graphs=True, transform=None, **kwargs):
+                 prefetch_graphs=True, transform=None, num_conformers=1, **kwargs):
         self.return_type_options = ['mol_graph', 'complete_graph', 'mol_graph3d', 'complete_graph3d', 'san_graph',
                                     'mol_complete_graph',
                                     'se3Transformer_graph', 'se3Transformer_graph3d',
@@ -52,7 +52,7 @@ class GEOMDrugs(Dataset):
                                     'dist_embedding',
                                     'mol_id', 'targets',
                                     'one_hot_bond_types', 'edge_indices', 'smiles', 'atomic_number_long',
-                                    'conformations']
+                                    'conformations', 'complete_graph_random_conformer']
         self.target_types = ['ensembleenergy', 'ensembleentropy', 'ensemblefreeenergy', 'lowestenergy', 'poplowestpct',
                              'temperature', 'uniqueconfs']
         self.directory = 'dataset/GEOM'
@@ -64,6 +64,7 @@ class GEOMDrugs(Dataset):
         self.normalize = normalize
         self.device = device
         self.transform = transform
+        self.conformer_categorical = torch.distributions.Categorical(logits=torch.ones(num_conformers))
 
         if return_types == None:  # set default
             self.return_types: list = ['mol_graph', 'targets']
@@ -83,7 +84,7 @@ class GEOMDrugs(Dataset):
         self.e_features_tensor = data_dict['edge_features']
 
         self.coordinates = data_dict['coordinates'][:, :3]
-        self.conformations = data_dict['coordinates'] if 'conformations' in self.return_types else None
+        self.conformations = data_dict['coordinates'] if 'conformations' in self.return_types or 'complete_graph_random_conformer' in self.return_types else None
         self.edge_indices = data_dict['edge_indices']
 
         self.atom_padding_indices = torch.tensor(get_atom_feature_dims(), dtype=torch.long, device=device)[None, :]
@@ -234,6 +235,13 @@ class GEOMDrugs(Dataset):
         elif return_type == 'complete_graph3d':
             g = self.get_complete_graph(idx, n_atoms).to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
+            g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2, dim=-1).unsqueeze(
+                -1)
+            return g
+        elif return_type == 'complete_graph_random_conformer':
+            g = self.get_complete_graph(idx, n_atoms).to(self.device)
+            m = self.conformer_categorical.sample()
+            g.ndata['x'] = self.conformations[start: start + n_atoms, m * 3:(m + 1) * 3].to(self.device)
             g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2, dim=-1).unsqueeze(
                 -1)
             return g
