@@ -47,6 +47,7 @@ model_parameters:
   aggregators:
     - mean
     - max
+    - min
     - sum
   scalers:
     - identity

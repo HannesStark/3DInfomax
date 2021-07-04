@@ -43,13 +43,12 @@ model_parameters:
   readout_hidden_dim: 200
   readout_layers: 2
   dropout: 0.0
-  propagation_depth: 5
+  propagation_depth: 7
   aggregators:
     - mean
     - max
     - min
     - std
-    - sum
   scalers:
     - identity
     - amplification
@@ -62,6 +61,7 @@ model_parameters:
   pretrans_layers: 2
   posttrans_layers: 1
   residual: True
+
 
 
 # continue training from checkpoint:
