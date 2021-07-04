@@ -9,9 +9,6 @@ loss_func: BCEWithLogitsLoss
 required_data:
   - dgl_graph
   - targets
-required_data:
-  - dgl_graph
-  - targets
 metrics:
   - rsquared
   - mean_predictor_loss

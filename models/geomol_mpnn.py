@@ -1,0 +1,189 @@
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+from torch.nn import Sequential as Seq, Linear as Lin, ReLU, TransformerEncoderLayer
+from torch_scatter import scatter_sum
+
+
+class GeomolMLP(nn.Module):
+    """
+    Creates a NN using nn.ModuleList to automatically adjust the number of layers.
+    For each hidden layer, the number of inputs and outputs is constant.
+
+    Inputs:
+        in_dim (int):               number of features contained in the input layer.
+        out_dim (int):              number of features input and output from each hidden layer,
+                                    including the output layer.
+        num_layers (int):           number of layers in the network
+        activation (torch function): activation function to be used during the hidden layers
+    """
+
+    def __init__(self, in_dim, out_dim, num_layers, activation=torch.nn.ReLU(), layer_norm=False, batch_norm=False):
+        super(GeomolMLP, self).__init__()
+        self.layers = nn.ModuleList()
+
+        h_dim = in_dim if out_dim < 10 else out_dim
+
+        # create the input layer
+        for layer in range(num_layers):
+            if layer == 0:
+                self.layers.append(nn.Linear(in_dim, h_dim))
+            else:
+                self.layers.append(nn.Linear(h_dim, h_dim))
+            if layer_norm: self.layers.append(nn.LayerNorm(h_dim))
+            if batch_norm: self.layers.append(nn.BatchNorm1d(h_dim))
+            self.layers.append(activation)
+        self.layers.append(nn.Linear(h_dim, out_dim))
+
+    def forward(self, x):
+        for i in range(len(self.layers)):
+            x = self.layers[i](x)
+        return x
+
+
+class GeomolMetaLayer(torch.nn.Module):
+    r"""A meta layer for building any kind of graph network, inspired by the
+    `"Relational Inductive Biases, Deep Learning, and Graph Networks"
+    <https://arxiv.org/abs/1806.01261>`_ paper.
+    """
+
+    def __init__(self, edge_model=None, node_model=None):
+        super(GeomolMetaLayer, self).__init__()
+        self.edge_model = edge_model
+        self.node_model = node_model
+
+        self.edge_eps = nn.Parameter(torch.Tensor([0]))
+        self.node_eps = nn.Parameter(torch.Tensor([0]))
+
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        for item in [self.node_model, self.edge_model]:
+            if hasattr(item, 'reset_parameters'):
+                item.reset_parameters()
+
+    def forward(self, x, edge_index, edge_attr=None, batch=None):
+        """"""
+        if self.edge_model is not None:
+            edge_attr = (1 + self.edge_eps) * edge_attr + self.edge_model(x, edge_attr, edge_index)
+        if self.node_model is not None:
+            x = (1 + self.node_eps) * x + self.node_model(x, edge_index, edge_attr, batch)
+
+        return x, edge_attr
+
+
+class EdgeModel(nn.Module):
+    def __init__(self, hidden_dim, n_layers):
+        super(EdgeModel, self).__init__()
+        self.edge = Lin(hidden_dim, hidden_dim)
+        self.node_in = Lin(hidden_dim, hidden_dim, bias=False)
+        self.node_out = Lin(hidden_dim, hidden_dim, bias=False)
+        self.mlp = GeomolMLP(hidden_dim, hidden_dim, n_layers)
+
+    def forward(self, x, edge_attr, edge_index):
+        # source, target: [2, E], where E is the number of edges.
+        # edge_attr: [E, F_e]
+        # u: [B, F_u], where B is the number of graphs (we don't have any of these yet)
+        # batch: [E] with max entry B - 1.
+
+        f_ij = self.edge(edge_attr)
+        f_i = self.node_in(x)
+        f_j = self.node_out(x)
+        row, col = edge_index
+
+        out = F.relu(f_ij + f_i[row] + f_j[col])
+        return self.mlp(out)
+
+
+class GeomolNodeModel(nn.Module):
+    def __init__(self, hidden_dim, n_layers):
+        super(GeomolNodeModel, self).__init__()
+        self.node_mlp_1 = GeomolMLP(hidden_dim, hidden_dim, n_layers)
+        self.node_mlp_2 = GeomolMLP(hidden_dim, hidden_dim, n_layers)
+
+    def forward(self, x, edge_index, edge_attr, batch):
+        # x: [N, h], where N is the number of nodes.
+        # edge_index: [2, E] with max entry N - 1.
+        # edge_attr: [E, F_e]
+        # u: [B, F_u] (N/A)
+        # batch: [N] with max entry B - 1.
+        # source, target = edge_index
+        _, col = edge_index
+        out = self.node_mlp_1(edge_attr)
+        out = scatter_sum(out, col, dim=0, dim_size=x.size(0))
+        return self.node_mlp_2(out)
+
+
+class GeomolGNN(nn.Module):
+    def __init__(self, node_dim, edge_dim, hidden_dim=300, depth=3, n_layers=2):
+        super(GeomolGNN, self).__init__()
+        self.depth = depth
+        self.node_init = GeomolMLP(node_dim, hidden_dim, n_layers)
+        self.edge_init = GeomolMLP(edge_dim, hidden_dim, n_layers)
+        self.update = GeomolMetaLayer(EdgeModel(hidden_dim, n_layers), GeomolNodeModel(hidden_dim, n_layers))
+
+    def forward(self, x, edge_index, edge_attr):
+        x = self.node_init(x)
+        edge_attr = self.edge_init(edge_attr)
+        for _ in range(self.depth):
+            x, edge_attr = self.update(x, edge_index, edge_attr)
+        return x, edge_attr
+
+
+
+
+class GeoMol(nn.Module):
+    def __init__(self, hyperparams, num_node_features, num_edge_features):
+        super(GeoMol, self).__init__()
+
+        self.model_dim = hyperparams['model_dim']
+        self.random_vec_dim = hyperparams['random_vec_dim']
+        self.random_vec_std = hyperparams['random_vec_std']
+        self.global_transformer = hyperparams['global_transformer']
+        self.loss_type = hyperparams['loss_type']
+        self.teacher_force = hyperparams['teacher_force']
+        self.random_alpha = hyperparams['random_alpha']
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+        self.gnn = GeomolGNN(node_dim=num_node_features + self.random_vec_dim,
+                       edge_dim=num_edge_features + self.random_vec_dim,
+                       hidden_dim=self.model_dim, depth=hyperparams['gnn1']['depth'],
+                       n_layers=hyperparams['gnn1']['n_layers'])
+        self.gnn2 = GeomolGNN(node_dim=num_node_features + self.random_vec_dim,
+                        edge_dim=num_edge_features + self.random_vec_dim,
+                        hidden_dim=self.model_dim, depth=hyperparams['gnn2']['depth'],
+                        n_layers=hyperparams['gnn2']['n_layers'])
+        if hyperparams['global_transformer']:
+            self.global_embed = TransformerEncoderLayer(d_model=self.model_dim, nhead=1,
+                                                        dim_feedforward=self.model_dim * 2,
+                                                        dropout=0.0, activation='relu')
+        self.encoder = TransformerEncoderLayer(d_model=self.model_dim * 2,
+                                               nhead=hyperparams['encoder']['n_head'],
+                                               dim_feedforward=self.model_dim * 3,
+                                               dropout=0.0, activation='relu')
+
+        self.coord_pred = GeomolMLP(in_dim=self.model_dim * 2, out_dim=3, num_layers=hyperparams['coord_pred']['n_layers'])
+        self.d_mlp = GeomolMLP(in_dim=self.model_dim * 2, out_dim=1, num_layers=hyperparams['d_mlp']['n_layers'])
+
+        self.h_mol_mlp = GeomolMLP(in_dim=self.model_dim, out_dim=self.model_dim, num_layers=hyperparams['h_mol_mlp']['n_layers'])
+        if self.random_alpha:
+            self.alpha_mlp = GeomolMLP(in_dim=self.model_dim * 3 + self.random_vec_dim, out_dim=1, num_layers=hyperparams['alpha_mlp']['n_layers'])
+        else:
+            self.alpha_mlp = GeomolMLP(in_dim=self.model_dim * 3, out_dim=1, num_layers=hyperparams['alpha_mlp']['n_layers'])
+        self.c_mlp =GeomolMLP(in_dim=self.model_dim * 4, out_dim=1, num_layers=hyperparams['c_mlp']['n_layers'])
+
+        self.loss = torch.nn.MSELoss(reduction='none')
+        self.n_true_confs = hyperparams['n_true_confs']
+        self.n_model_confs = hyperparams['n_model_confs']
+
+        self.one_hop_loss = []
+        self.two_hop_loss = []
+        self.angle_loss = []
+        self.dihedral_loss = []
+        self.three_hop_loss = []
+        self.one_hop_loss_write = 0
+        self.two_hop_loss_write = 0
+        self.angle_loss_write = 0
+        self.three_hop_loss_write = 0
+        self.dihedral_loss_write = 0
