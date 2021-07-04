@@ -82,7 +82,7 @@ model_parameters:
 model3d_type: 'SMP'
 model3d_parameters:
   target_dim: 256
-  hidden_dim: 128
+  hidden_dim: 20
   use_node_features: False
   energy_and_force: False
   output_init: zeros # in DimeNet++, for QM9, 'zeros' for mu, homo, lumo, and zpve; 'GlorotOrthogonal' for alpha, R2, U0, U, H, G, and Cv
@@ -90,9 +90,9 @@ model3d_parameters:
   num_radial: 6
   out_emb_size: 256
   basis_emb_size: 8
-  int_emb_size: 64
-  propagation_depth: 4
-  hidden_channels: 128
+  int_emb_size: 30
+  propagation_depth: 1
+  hidden_channels: 20
   cutoff: 5.0
 
 
