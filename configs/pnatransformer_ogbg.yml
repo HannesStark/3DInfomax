@@ -8,6 +8,9 @@ patience: 30
 loss_func: BCEWithLogitsLoss
 required_data:
   - dgl_graph
+  - targets
+required_data:
+  - dgl_graph
   - raw_features
   - positional_encoding
   - targets

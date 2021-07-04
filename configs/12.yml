@@ -6,7 +6,6 @@ batch_size: 128
 log_iterations: 50
 patience: 30
 loss_func: BCEWithLogitsLoss
-required_data:
   - raw_features
   - positional_encoding
   - targets
