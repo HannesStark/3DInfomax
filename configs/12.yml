@@ -1,10 +1,10 @@
-experiment_name: 'fast_warmup'
+experiment_name: 'lowerlr'
 
 dataset: 'ogbg-molhiv'
 num_epochs: 1000
 batch_size: 128
 log_iterations: 50
-patience: 30
+patience: 100
 loss_func: BCEWithLogitsLoss
   - raw_features
   - positional_encoding
@@ -17,7 +17,7 @@ collate_function: padded_collate_positional_encoding
 
 optimizer: AdamW
 optimizer_params:
-  lr: 2.0e-4
+  lr: 1.0e-4
 
 scheduler_step_per_batch: True
 lr_scheduler: WarmUpWrapper
@@ -38,7 +38,7 @@ model_parameters:
   nhead: 32
   dim_feedforward: 512
   dropout: 0.1
-  propagation_depth: 6
+  propagation_depth: 8
 
 
 # continue training from checkpoint:
