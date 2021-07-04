@@ -48,6 +48,7 @@ model_parameters:
     - mean
     - max
     - min
+    - std
     - sum
   scalers:
     - identity
