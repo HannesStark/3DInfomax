@@ -13,6 +13,9 @@ batch_size: 32
 log_iterations: 30
 patience: 30
 loss_func: L1Loss
+required_data:
+  - dgl_graph
+  - targets
 metrics:
   - rsquared
   - mean_predictor_loss
