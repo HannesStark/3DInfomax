@@ -1,4 +1,4 @@
-experiment_name: 'baseline'
+experiment_name: 'mu_features'
 
 num_epochs: 1000
 batch_size: 32
