@@ -118,6 +118,7 @@ dataset/QM9/processed/
 dataset/ZINC/
 dataset/ogbg*/
 dataset/COLL/
+dataset/QM9Geomol/
 
 
 .idea/

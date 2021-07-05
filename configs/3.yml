@@ -1,4 +1,4 @@
-experiment_name: 'SMP_NTXent_no_node_features_2prop'
+experiment_name: 'SMP_NTXent_small'
 
 num_epochs: 1000
 batch_size: 500
@@ -93,6 +93,10 @@ model3d_parameters:
   int_emb_size: 32
   propagation_depth: 2
   cutoff: 5.0
+  envelope_exponent: 5
+  num_before_skip: 1
+  num_after_skip: 1
+  num_output_layers: 1
 
 
 

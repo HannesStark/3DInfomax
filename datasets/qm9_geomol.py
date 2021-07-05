@@ -49,42 +49,41 @@ def one_k_encoding(value, choices):
 
     return encoding
 
-class BACEGeomol(InMemoryDataset):
-    def __init__(self, split='train', root='dataset/bace', transform=None, pre_transform=None):
-        super(BACEGeomol, self).__init__(root, transform, pre_transform)
-        split_idx = ['train', 'val', 'test'].index(split)
 
-        self.data, self.slices = torch.load(self.processed_paths[split_idx])
-
+class QM9Geomol(InMemoryDataset):
+    def __init__(self, split='train', root='dataset/QM9Geomol', transform=None, pre_transform=None):
+        super(QM9Geomol, self).__init__(root, transform, pre_transform)
+        self.data, self.slices = torch.load(self.processed_paths[0])
 
     @property
     def raw_file_names(self):
-        return ['bace.csv']
+        return ['qm9.csv', 'qm9_eV.npz']
 
     @property
     def processed_file_names(self):
-        return ['processed_train.pt', 'processed_val.pt', 'processed_test.pt']
+        return ['processed.pt']
 
     def process(self):
+        data_qm9 = dict(np.load(os.path.join(self.root, self.raw_file_names[1]), allow_pickle=True))
+        # Read the QM9 data with SMILES information
+        molecules_df = pd.read_csv(os.path.join(self.root, self.raw_file_names[0]))
 
-        csv_file = pd.read_csv(os.path.join(self.root, self.raw_file_names[0]))
-        for i, split in enumerate(['Train', 'Valid', 'Test']):
-            data_list = []
-            for entry, smiles in enumerate(csv_file['mol']):
-                if csv_file['Model'][entry] == split:
-                    pyg_graph = featurize_mol_from_smiles(smiles)
-                    data_list.append(pyg_graph)
-            data, slices = self.collate(data_list)
-            torch.save((data, slices), self.processed_paths[i])
+        data_list = []
+        for mol_idx, n_atoms in tqdm(enumerate(data_qm9['N'])):
+            # get the molecule using the smiles representation from the csv file
+            smiles = molecules_df['smiles'][data_qm9['id'][mol_idx]]
 
-
+            pyg_graph = featurize_mol_from_smiles(smiles)
+            data_list.append(pyg_graph)
+        data, slices = self.collate(data_list)
+        torch.save((data, slices), self.processed_paths[0])
 
 
 bonds = {BT.SINGLE: 0, BT.DOUBLE: 1, BT.TRIPLE: 2, BT.AROMATIC: 3}
 types = {'H': 0, 'Li': 1, 'B': 2, 'C': 3, 'N': 4, 'O': 5, 'F': 6, 'Na': 7, 'Mg': 8, 'Al': 9, 'Si': 10,
-               'P': 11, 'S': 12, 'Cl': 13, 'K': 14, 'Ca': 15, 'V': 16, 'Cr': 17, 'Mn': 18, 'Cu': 19, 'Zn': 20,
-               'Ga': 21, 'Ge': 22, 'As': 23, 'Se': 24, 'Br': 25, 'Ag': 26, 'In': 27, 'Sb': 28, 'I': 29, 'Gd': 30,
-               'Pt': 31, 'Au': 32, 'Hg': 33, 'Bi': 34}
+         'P': 11, 'S': 12, 'Cl': 13, 'K': 14, 'Ca': 15, 'V': 16, 'Cr': 17, 'Mn': 18, 'Cu': 19, 'Zn': 20,
+         'Ga': 21, 'Ge': 22, 'As': 23, 'Se': 24, 'Br': 25, 'Ag': 26, 'In': 27, 'Sb': 28, 'I': 29, 'Gd': 30,
+         'Pt': 31, 'Au': 32, 'Hg': 33, 'Bi': 34}
 
 
 def featurize_mol_from_smiles(smiles):

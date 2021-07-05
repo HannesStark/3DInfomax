@@ -168,8 +168,35 @@ def train(args):
         train_zinc(args, device, metrics_dict)
     elif args.dataset == 'drugs' or args.dataset == 'geom_qm9':
         train_geom(args, device, metrics_dict)
+    elif args.dataset == 'qm9_geomol':
+        train_geomol(args, device, metrics_dict)
     elif 'ogbg' in args.dataset:
         train_ogbg(args, device, metrics_dict)
+
+def train_geomol(args, device, metrics_dict):
+    all_data = QM9Geomol()
+
+    all_idx = get_random_indices(len(all_data), args.seed_data)
+    model_idx = all_idx[:100000]
+    test_idx = all_idx[len(model_idx): len(model_idx) + int(0.1 * len(all_data))]
+    val_idx = all_idx[len(model_idx) + len(test_idx):]
+    train_idx = model_idx[:args.num_train]
+    # for debugging purposes:
+    # test_idx = all_idx[len(model_idx): len(model_idx) + 200]
+    # val_idx = all_idx[len(model_idx) + len(test_idx): len(model_idx) + len(test_idx) + 3000]
+
+
+    model = globals()[args.model_type](node_dim=all_data[0].x.shape[1],
+                                       edge_dim=all_data[0].edge_attr.shape[1],
+                                       **args.model_parameters)
+    if args.pretrain_checkpoint:
+        checkpoint = torch.load(args.pretrain_checkpoint, map_location=device)
+        pretrained_gnn_dict = {k.replace('student.', ''): v for k, v in checkpoint['model_state_dict'].items() if any(
+            transfer_layer in k for transfer_layer in args.transfer_layers) and 'teacher' not in k and not any(
+            to_exclude in k for to_exclude in args.exclude_from_transfer)}
+        model_state_dict = model.state_dict()
+        model_state_dict.update(pretrained_gnn_dict)  # update the gnn layers with the pretrained weights
+        model.load_state_dict(model_state_dict)
 
 
 def train_ogbg(args, device, metrics_dict):
