@@ -1,44 +1,76 @@
-experiment_name: 'fast_warmup'
+experiment_name: 'tune_drugs_NTXent_sample_conformer_Snapshot'
 
-dataset: 'ogbg-molhiv'
+pretrain_checkpoint: runs/PNA_drugs_NTXent_sample_conformer_03-07_11-53-34/best_checkpoint.pt
+transfer_layers:
+  - gnn
+exclude_from_transfer:
+  - batch_norm
+
+dataset: drugs
 num_epochs: 1000
 batch_size: 128
-log_iterations: 50
+prefetch_graphs: True
+log_iterations: 30
 patience: 30
+loss_func: L1Loss
+num_train: 120000
+targets:
+  - ensemblefreeenergy
+
 required_data:
-  - raw_features
-  - positional_encoding
+  - mol_graph
   - targets
 metrics:
-  - rsquared
-  - mean_predictor_loss
+  - mae_denormalized
   - pearsonr
-collate_function: padded_collate_positional_encoding
+  - rsquared
 
-optimizer: AdamW
+optimizer: Adam
 optimizer_params:
-  lr: 2.0e-4
+  lr: 7.0e-5
+  weight_decay: 1.0e-11
 
-scheduler_step_per_batch: True
+scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [400]
+  warmup_steps: [700,700,390]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
-  wrapped_scheduler: OneCycleLR
-  epochs: 200
-  steps_per_epoch: 258
-  anneal_strategy: 'linear'
-  max_lr: 2.0e-4
+  wrapped_scheduler: ReduceLROnPlateau
+  factor: 0.5
+  patience: 25
+  min_lr: 1.0e-6
+  mode: 'min'
+  verbose: True
 
-model_type: 'TransformerPlain'
+
+
+# Model parameters
+model_type: 'PNA'
 model_parameters:
   target_dim: 1
-  hidden_dim: 512
-  nhead: 32
-  dim_feedforward: 512
-  dropout: 0.1
+  hidden_dim: 90
+  mid_batch_norm: True
+  last_batch_norm: True
+  dropout: 0.0
   propagation_depth: 6
+  aggregators:
+    - mean
+    - max
+    - min
+    - std
+  scalers:
+    - identity
+    - amplification
+    - attenuation
+  readout_aggregators:
+    - min
+    - max
+    - mean
+    - sum
+  pretrans_layers: 2
+  posttrans_layers: 1
+  residual: True
 
 
 # continue training from checkpoint:
