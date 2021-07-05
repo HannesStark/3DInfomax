@@ -6,12 +6,14 @@ from icecream import install
 from ogb.graphproppred import DglGraphPropPredDataset, collate_dgl
 from ogb.graphproppred.mol_encoder import AtomEncoder
 
-
 from commons.utils import seed_all, get_random_indices, TENSORBOARD_FUNCTIONS
 from datasets.ZINC_dataset import ZINCDataset
 from datasets.geom_drugs_dataset import GEOMDrugs
 from datasets.geom_qm9_dataset import GEOMqm9
 from datasets.ogbg_dataset_extension import OGBGDatsetExtension
+
+from datasets.qm9_geomol_featurization import QM9GeomolFeaturization
+from models.geomol_mpnn import GeomolGNNWrapper
 from trainer.byol_trainer import BYOLTrainer
 from trainer.byol_wrapper import BYOLwrapper
 
@@ -67,28 +69,16 @@ def get_trainer(args, model, data, device, metrics):
         elif args.ssl_mode == 'philosophy':
             ssl_trainer = PhilosophyTrainer
             critic = globals()[args.critic_type](**args.critic_parameters)
-        return ssl_trainer(model=model,
-                           model3d=model3d,
-                           critic=critic,
-                           args=args,
-                           metrics=metrics,
-                           main_metric=args.main_metric,
-                           main_metric_goal=args.main_metric_goal,
-                           optim=globals()[args.optimizer],
-                           loss_func=globals()[args.loss_func](**args.loss_params),
-                           critic_loss=globals()[args.critic_loss](**args.critic_loss_params),
-                           device=device,
+        return ssl_trainer(model=model, model3d=model3d, critic=critic, args=args, metrics=metrics,
+                           main_metric=args.main_metric, main_metric_goal=args.main_metric_goal,
+                           optim=globals()[args.optimizer], loss_func=globals()[args.loss_func](**args.loss_params),
+                           critic_loss=globals()[args.critic_loss](**args.critic_loss_params), device=device,
                            tensorboard_functions=tensorboard_functions,
                            scheduler_step_per_batch=args.scheduler_step_per_batch)
     else:
-        return Trainer(model=model,
-                       args=args,
-                       metrics=metrics,
-                       main_metric=args.main_metric,
-                       main_metric_goal=args.main_metric_goal,
-                       optim=globals()[args.optimizer],
-                       loss_func=globals()[args.loss_func](**args.loss_params),
-                       device=device,
+        return Trainer(model=model, args=args, metrics=metrics, main_metric=args.main_metric,
+                       main_metric_goal=args.main_metric_goal, optim=globals()[args.optimizer],
+                       loss_func=globals()[args.loss_func](**args.loss_params), device=device,
                        tensorboard_functions=tensorboard_functions,
                        scheduler_step_per_batch=args.scheduler_step_per_batch)
 
@@ -105,10 +95,8 @@ def load_model(args, data, device):
     else:
         node_dim = data[0][0].shape[1]
         edge_dim = 0
-    model = globals()[args.model_type](node_dim=node_dim,
-                                       edge_dim=edge_dim,
-                                       avg_d=data.avg_degree if hasattr(data, 'avg_degree') else 1,
-                                       device=device,
+    model = globals()[args.model_type](node_dim=node_dim, edge_dim=edge_dim,
+                                       avg_d=data.avg_degree if hasattr(data, 'avg_degree') else 1, device=device,
                                        **args.model_parameters)
     if args.pretrain_checkpoint:
         # get arguments used during pretraining
@@ -173,8 +161,11 @@ def train(args):
     elif 'ogbg' in args.dataset:
         train_ogbg(args, device, metrics_dict)
 
+
 def train_geomol(args, device, metrics_dict):
-    all_data = QM9Geomol()
+    all_data = QM9GeomolFeaturization(return_types=args.required_data, target_tasks=args.targets, device=device,
+                                      dist_embedding=args.dist_embedding, num_radial=args.num_radial,
+                                      prefetch_graphs=args.prefetch_graphs)
 
     all_idx = get_random_indices(len(all_data), args.seed_data)
     model_idx = all_idx[:100000]
@@ -185,18 +176,39 @@ def train_geomol(args, device, metrics_dict):
     # test_idx = all_idx[len(model_idx): len(model_idx) + 200]
     # val_idx = all_idx[len(model_idx) + len(test_idx): len(model_idx) + len(test_idx) + 3000]
 
-
-    model = globals()[args.model_type](node_dim=all_data[0].x.shape[1],
-                                       edge_dim=all_data[0].edge_attr.shape[1],
+    model = globals()[args.model_type](node_dim=all_data[0][0].z.shape[1], edge_dim=all_data[0][0].edge_attr.shape[1],
                                        **args.model_parameters)
+
     if args.pretrain_checkpoint:
         checkpoint = torch.load(args.pretrain_checkpoint, map_location=device)
-        pretrained_gnn_dict = {k.replace('student.', ''): v for k, v in checkpoint['model_state_dict'].items() if any(
+        pretrained_gnn_dict = {k.replace('student.', ''): v for k, v in checkpoint.items() if any(
             transfer_layer in k for transfer_layer in args.transfer_layers) and 'teacher' not in k and not any(
             to_exclude in k for to_exclude in args.exclude_from_transfer)}
         model_state_dict = model.state_dict()
         model_state_dict.update(pretrained_gnn_dict)  # update the gnn layers with the pretrained weights
         model.load_state_dict(model_state_dict)
+
+    print('model trainable params: ', sum(p.numel() for p in model.parameters() if p.requires_grad))
+    print(f'Training on {len(train_idx)} samples from the model sequences')
+    collate_function = globals()[args.collate_function] if args.collate_params == {} else globals()[
+        args.collate_function](**args.collate_params)
+
+    train_loader = DataLoader(Subset(all_data, train_idx), batch_size=args.batch_size, shuffle=True,
+                              collate_fn=collate_function)
+    val_loader = DataLoader(Subset(all_data, val_idx), batch_size=args.batch_size, collate_fn=collate_function)
+    test_loader = DataLoader(Subset(all_data, test_idx), batch_size=args.batch_size, collate_fn=collate_function)
+
+    metrics_dict.update({'mae_denormalized': QM9DenormalizedL1(dataset=all_data),
+                         'mse_denormalized': QM9DenormalizedL2(dataset=all_data)})
+    metrics = {metric: metrics_dict[metric] for metric in args.metrics if metric != 'qm9_properties'}
+    if 'qm9_properties' in args.metrics:
+        metrics.update(
+            {task: QM9SingleTargetDenormalizedL1(dataset=all_data, task=task) for task in all_data.target_tasks})
+
+    trainer = get_trainer(args=args, model=model, data=all_data, device=device, metrics=metrics)
+    trainer.train(train_loader, val_loader)
+    if args.eval_on_test:
+        trainer.evaluation(test_loader, data_split='test')
 
 
 def train_ogbg(args, device, metrics_dict):
@@ -254,9 +266,7 @@ def train_zinc(args, device, metrics_dict):
 
 def train_geom(args, device, metrics_dict):
     dataset = GEOMDrugs if args.dataset == 'drugs' else GEOMqm9
-    all_data = dataset(return_types=args.required_data,
-                       target_tasks=args.targets,
-                       device=device,
+    all_data = dataset(return_types=args.required_data, target_tasks=args.targets, device=device,
                        prefetch_graphs=args.prefetch_graphs)
 
     all_idx = get_random_indices(len(all_data), args.seed_data)
@@ -298,9 +308,7 @@ def train_geom(args, device, metrics_dict):
 
 
 def train_qm9(args, device, metrics_dict):
-    all_data = QM9Dataset(return_types=args.required_data,
-                          target_tasks=args.targets,
-                          device=device,
+    all_data = QM9Dataset(return_types=args.required_data, target_tasks=args.targets, device=device,
                           dist_embedding=args.dist_embedding, num_radial=args.num_radial,
                           prefetch_graphs=args.prefetch_graphs)
 
@@ -346,7 +354,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/1.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/16.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')

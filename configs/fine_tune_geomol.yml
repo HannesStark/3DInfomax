@@ -1,10 +1,15 @@
-experiment_name: 'baseline'
+experiment_name: 'tune'
 
+pretrain_checkpoint: runs2/geomol_drugs/best_model.pt
+transfer_layers:
+  - gnn.
+exclude_from_transfer:
+  - batch_norm
 
 dataset: qm9_geomol
 num_epochs: 1000
 batch_size: 128
-prefetch_graphs: True
+prefetch_graphs: False
 log_iterations: 30
 patience: 30
 loss_func: L1Loss
@@ -30,7 +35,7 @@ optimizer_params:
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [700]
+  warmup_steps: [700,700,390]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau

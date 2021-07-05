@@ -3,7 +3,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from torch.nn import Sequential as Seq, Linear as Lin, ReLU, TransformerEncoderLayer
+from torch_geometric.nn import global_mean_pool
 from torch_scatter import scatter_sum
+
+from models.base_layers import MLP
 
 
 class GeomolMLP(nn.Module):
@@ -119,6 +122,7 @@ class GeomolGNN(nn.Module):
     def __init__(self, node_dim, edge_dim, hidden_dim=300, depth=3, n_layers=2):
         super(GeomolGNN, self).__init__()
         self.depth = depth
+        self.hidden_dim = hidden_dim
         self.node_init = GeomolMLP(node_dim, hidden_dim, n_layers)
         self.edge_init = GeomolMLP(edge_dim, hidden_dim, n_layers)
         self.update = GeomolMetaLayer(EdgeModel(hidden_dim, n_layers), GeomolNodeModel(hidden_dim, n_layers))
@@ -131,6 +135,33 @@ class GeomolGNN(nn.Module):
         return x, edge_attr
 
 
+class GeomolGNNWrapper(nn.Module):
+    def __init__(self, hidden_dim, node_dim, edge_dim, readout_layers=2, readout_batchnorm=True, **kwargs):
+        super(GeomolGNNWrapper, self).__init__()
+
+        self.random_vec_dim = 10
+        self.random_vec_std = 1.0
+
+        self.gnn = GeomolGNN(hidden_dim=hidden_dim, node_dim=node_dim +10, edge_dim=edge_dim + 10, **kwargs)
+        self.output = MLP(in_dim=hidden_dim, hidden_size=hidden_dim,
+                          mid_batch_norm=readout_batchnorm, out_dim=1,
+                          layers=readout_layers, batch_norm_momentum=0.1)
+
+    def forward(self, data):
+        x, edge_index, edge_attr, batch = data.z, data.edge_index, data.edge_attr, data.batch
+
+        rand_dist = torch.distributions.normal.Normal(loc=0, scale=self.random_vec_std)
+        # rand_dist = torch.distributions.uniform.Uniform(torch.tensor([0.0]), torch.tensor([1.0]))
+        rand_x = rand_dist.sample([x.size(0), self.random_vec_dim]).squeeze(-1).to(
+            x.device)  # added squeeze
+        rand_edge = rand_dist.sample([edge_attr.size(0), self.random_vec_dim]).squeeze(-1).to(
+            x.device)  # added squeeze
+        x = torch.cat([x, rand_x], dim=-1)
+        edge_attr = torch.cat([edge_attr, rand_edge], dim=-1)
+
+        x, edge_attr = self.gnn(x, edge_index, edge_attr)
+        pooled = global_mean_pool(x, batch)
+        return self.output(pooled)
 
 
 class GeoMol(nn.Module):
@@ -147,13 +178,13 @@ class GeoMol(nn.Module):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         self.gnn = GeomolGNN(node_dim=num_node_features + self.random_vec_dim,
-                       edge_dim=num_edge_features + self.random_vec_dim,
-                       hidden_dim=self.model_dim, depth=hyperparams['gnn1']['depth'],
-                       n_layers=hyperparams['gnn1']['n_layers'])
+                             edge_dim=num_edge_features + self.random_vec_dim,
+                             hidden_dim=self.model_dim, depth=hyperparams['gnn1']['depth'],
+                             n_layers=hyperparams['gnn1']['n_layers'])
         self.gnn2 = GeomolGNN(node_dim=num_node_features + self.random_vec_dim,
-                        edge_dim=num_edge_features + self.random_vec_dim,
-                        hidden_dim=self.model_dim, depth=hyperparams['gnn2']['depth'],
-                        n_layers=hyperparams['gnn2']['n_layers'])
+                              edge_dim=num_edge_features + self.random_vec_dim,
+                              hidden_dim=self.model_dim, depth=hyperparams['gnn2']['depth'],
+                              n_layers=hyperparams['gnn2']['n_layers'])
         if hyperparams['global_transformer']:
             self.global_embed = TransformerEncoderLayer(d_model=self.model_dim, nhead=1,
                                                         dim_feedforward=self.model_dim * 2,
@@ -163,15 +194,19 @@ class GeoMol(nn.Module):
                                                dim_feedforward=self.model_dim * 3,
                                                dropout=0.0, activation='relu')
 
-        self.coord_pred = GeomolMLP(in_dim=self.model_dim * 2, out_dim=3, num_layers=hyperparams['coord_pred']['n_layers'])
+        self.coord_pred = GeomolMLP(in_dim=self.model_dim * 2, out_dim=3,
+                                    num_layers=hyperparams['coord_pred']['n_layers'])
         self.d_mlp = GeomolMLP(in_dim=self.model_dim * 2, out_dim=1, num_layers=hyperparams['d_mlp']['n_layers'])
 
-        self.h_mol_mlp = GeomolMLP(in_dim=self.model_dim, out_dim=self.model_dim, num_layers=hyperparams['h_mol_mlp']['n_layers'])
+        self.h_mol_mlp = GeomolMLP(in_dim=self.model_dim, out_dim=self.model_dim,
+                                   num_layers=hyperparams['h_mol_mlp']['n_layers'])
         if self.random_alpha:
-            self.alpha_mlp = GeomolMLP(in_dim=self.model_dim * 3 + self.random_vec_dim, out_dim=1, num_layers=hyperparams['alpha_mlp']['n_layers'])
+            self.alpha_mlp = GeomolMLP(in_dim=self.model_dim * 3 + self.random_vec_dim, out_dim=1,
+                                       num_layers=hyperparams['alpha_mlp']['n_layers'])
         else:
-            self.alpha_mlp = GeomolMLP(in_dim=self.model_dim * 3, out_dim=1, num_layers=hyperparams['alpha_mlp']['n_layers'])
-        self.c_mlp =GeomolMLP(in_dim=self.model_dim * 4, out_dim=1, num_layers=hyperparams['c_mlp']['n_layers'])
+            self.alpha_mlp = GeomolMLP(in_dim=self.model_dim * 3, out_dim=1,
+                                       num_layers=hyperparams['alpha_mlp']['n_layers'])
+        self.c_mlp = GeomolMLP(in_dim=self.model_dim * 4, out_dim=1, num_layers=hyperparams['c_mlp']['n_layers'])
 
         self.loss = torch.nn.MSELoss(reduction='none')
         self.n_true_confs = hyperparams['n_true_confs']
