@@ -1,4 +1,4 @@
-experiment_name: 'mu_features'
+experiment_name: 'correct_scheduler_features'
 
 num_epochs: 1000
 batch_size: 32
@@ -8,7 +8,7 @@ patience: 30
 num_train: 100000
 loss_func: L1Loss
 targets:
-  - mu
+  - homo
 required_data:
   - pytorch_geometric_graph
   - targets
@@ -24,17 +24,11 @@ optimizer: Adam
 optimizer_params:
   lr: 0.0005
 
-scheduler_step_per_batch: True
-lr_scheduler: WarmUpWrapper
+scheduler_step_per_batch: False
+lr_scheduler: StepLR
 lr_scheduler_params:
-  warmup_steps: [400]
-  interpolation: 'linear'
-  # parameters of scheduler to run after warmup
-  wrapped_scheduler: OneCycleLR
-  epochs: 200
-  steps_per_epoch: 391
-  anneal_strategy: 'linear'
-  max_lr: 0.0005
+  step_size: 15
+  gamma: 0.5
 
 model_type: 'SMP'
 model_parameters:
