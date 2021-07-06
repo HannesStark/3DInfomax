@@ -1,21 +1,21 @@
-experiment_name: 'tune_SMP_NTXent_no_node_features_1prop_Snapshot'
+experiment_name: 'tune_drugs_NTXent_sample_conformer_Snapshot'
 
-pretrain_checkpoint: runs/PNA_qm9_SMP_NTXent_no_node_features_1prop_04-07_15-56-35/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_drugs_NTXent_sample_conformer_03-07_11-53-34/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
   - batch_norm
 
-
+dataset: drugs
 num_epochs: 1000
 batch_size: 128
 prefetch_graphs: True
 log_iterations: 30
 patience: 30
 loss_func: L1Loss
-num_train: 50000
+num_train: 120000
 targets:
-  - homo
+  - ensemblefreeenergy
 
 required_data:
   - mol_graph
@@ -24,7 +24,6 @@ metrics:
   - mae_denormalized
   - pearsonr
   - rsquared
-  - qm9_properties
 
 optimizer: Adam
 optimizer_params:
@@ -77,8 +76,6 @@ model_parameters:
   pretrans_layers: 2
   posttrans_layers: 1
   residual: True
-
-
 
 # continue training from checkpoint:
 #checkpoint: runs/PNAReadout_2_layer_03-04_15-29-07/last_checkpoint.pt
