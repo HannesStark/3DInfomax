@@ -1,34 +1,30 @@
-experiment_name: 'geom_qm9_NTXent'
+experiment_name: 'NTXentLikelihoodLoss'
 
-dataset: geom_qm9
+dataset: drugs
 num_epochs: 1000
 batch_size: 4
 prefetch_graphs: False
 log_iterations: 50
 patience: 35
-loss_func: NTXentMultiplePositives
+loss_func: NTXentLikelihoodLoss
 loss_params:
   tau: 0.1
-num_train: 50000
+  conformer_variance_reg: 0.05
+num_train: 120000
 
 required_data:
   - mol_graph
   - complete_graph3d
   - conformations
 metrics:
-  - positive_similarity
-  - negative_similarity
-  - contrastive_accuracy
-  - true_negative_rate
-  - true_positive_rate
-  - uniformity
-  - alignment
+  - positive_prob
+  - negative_prob
   - batch_variance
   - dimension_covariance
 main_metric: loss
 collate_function: ConformerCollate
 collate_params:
-  num_conformers: 10
+  num_conformers: 5
 
 optimizer: Adam
 optimizer_params:
@@ -56,16 +52,16 @@ lr_scheduler_params:
 model_type: 'PNA'
 model_parameters:
   target_dim: 512
-  hidden_dim: 128
+  hidden_dim: 200
   mid_batch_norm: True
   last_batch_norm: True
   readout_batchnorm: True
   # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
-  batch_norm_momentum: 0.96
-  readout_hidden_dim: 128
+  batch_norm_momentum: 0.93
+  readout_hidden_dim: 256
   readout_layers: 2
   dropout: 0.0
-  propagation_depth: 6
+  propagation_depth: 7
   aggregators:
     - mean
     - max
@@ -99,7 +95,7 @@ model3d_parameters:
   batch_norm: True
   readout_batchnorm: True
   # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
-  batch_norm_momentum: 0.96
+  batch_norm_momentum: 0.93
   readout_hidden_dim: 20
   readout_layers: 1
   readout_aggregators:

@@ -285,6 +285,67 @@ class PositiveSimilarity(nn.Module):
         pos_sim = (pos_sim + 1) / 2
         return pos_sim.mean(dim=0)
 
+class PositiveProb(nn.Module):
+    def __init__(self) -> None:
+        super(PositiveProb, self).__init__()
+
+    def forward(self, z1: Tensor, z2: Tensor, pos_mask: Tensor = None) -> Tensor:
+        batch_size, _ = z1.size()
+        _, metric_dim = z2.size()
+
+        if batch_size == metric_dim == 2: # for the dictionary init in the beginning in the trainer
+            return torch.tensor(float('Nan'))
+
+        z1 = z1.view(batch_size, 2, metric_dim)
+        z1_means = z1[:, 0, :]  # [batch_size, metric_dim]
+        z1_stds = torch.exp(z1[:, 1, :] / 2)  # [batch_size, metric_dim]
+        z2 = z2.view(-1, batch_size, metric_dim).permute(1, 0, 2)  # [batch_size, num_conformers, metric_dim]
+
+        likelihood_kernel = []
+        for i, z1_mean in enumerate(z1_means):
+            z1_std = z1_stds[i]  # [metric_dim]
+            p = torch.distributions.Normal(z1_mean, z1_std)
+            for j, z2_elem in enumerate(z2):
+                z2_elem = z2_elem  # [num_conformers, metric_dim]
+
+                prob = torch.exp(p.log_prob(z2_elem))
+                likelihood_kernel.append(prob.mean())
+        likelihood_kernel = torch.stack(likelihood_kernel)
+        likelihood_kernel = likelihood_kernel.view(batch_size, batch_size)
+        pos_sim = torch.diagonal(likelihood_kernel)
+        return pos_sim.mean(dim=0)
+
+class NegativeProb(nn.Module):
+    def __init__(self) -> None:
+        super(NegativeProb, self).__init__()
+
+    def forward(self, z1: Tensor, z2: Tensor, pos_mask: Tensor = None) -> Tensor:
+        batch_size, _ = z1.size()
+        _, metric_dim = z2.size()
+
+        if batch_size == metric_dim == 2: # for the dictionary init in the beginning in the trainer
+            return torch.tensor(float('Nan'))
+
+        z1 = z1.view(batch_size, 2, metric_dim)
+        z1_means = z1[:, 0, :]  # [batch_size, metric_dim]
+        z1_stds = torch.exp(z1[:, 1, :] / 2)  # [batch_size, metric_dim]
+        z2 = z2.view(-1, batch_size, metric_dim).permute(1, 0, 2)  # [batch_size, num_conformers, metric_dim]
+
+        likelihood_kernel = []
+        for i, z1_mean in enumerate(z1_means):
+            z1_std = z1_stds[i]  # [metric_dim]
+            p = torch.distributions.Normal(z1_mean, z1_std)
+            for j, z2_elem in enumerate(z2):
+                z2_elem = z2_elem  # [num_conformers, metric_dim]
+
+                prob = torch.exp(p.log_prob(z2_elem))
+                likelihood_kernel.append(prob.mean())
+        likelihood_kernel = torch.stack(likelihood_kernel)
+        likelihood_kernel = likelihood_kernel.view(batch_size, batch_size)
+        neg_sim = (likelihood_kernel.sum(dim=1) - torch.diagonal(likelihood_kernel))
+        return neg_sim.mean(dim=0)
+
+
 
 class PositiveSimilarityMultiplePositivesSeparate2d(nn.Module):
     """
