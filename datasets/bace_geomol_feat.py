@@ -85,6 +85,7 @@ class BACEGeomol(InMemoryDataset):
             for i, smiles in enumerate(csv_file['mol']):
                 if i in splits[split_idx]:
                     pyg_graph = featurize_mol_from_smiles(smiles)
+                    pyg_graph.y = csv_file['Class'][i]
                     data_list.append(pyg_graph)
             data, slices = self.collate(data_list)
             torch.save((data, slices), self.processed_paths[split_idx])
