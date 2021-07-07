@@ -25,8 +25,12 @@ optimizer_params:
   lr: 0.0005
 
 scheduler_step_per_batch: True
-lr_scheduler: OneCycleLR
+lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
+  warmup_steps: [700]
+  interpolation: 'linear'
+  # parameters of scheduler to run after warmup
+  wrapped_scheduler: OneCycleLR
   total_steps: 450000
   anneal_strategy: 'linear'
   max_lr: 2.0e-4
@@ -37,7 +41,7 @@ model_parameters:
   hidden_dim: 128
   energy_and_force: False
   use_node_features: True
-  output_init: zeros # in DimeNet++, for QM9, 'zeros' for mu, homo, lumo, and zpve; 'GlorotOrthogonal' for alpha, R2, U0, U, H, G, and Cv
+  output_init: GlorotOrthogonal # in DimeNet++, for QM9, 'zeros' for mu, homo, lumo, and zpve; 'GlorotOrthogonal' for alpha, R2, U0, U, H, G, and Cv
   num_spherical: 7
   num_radial: 6
   out_emb_size: 256
