@@ -1,4 +1,4 @@
-experiment_name: 'all_data_cosineLR'
+experiment_name: 'all_data_cosineLR_no_features'
 
 num_epochs: 1000
 batch_size: 128

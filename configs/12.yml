@@ -53,13 +53,13 @@ lr_scheduler_params:
 model_type: 'PNA'
 model_parameters:
   target_dim: 256
-  hidden_dim: 60
+  hidden_dim: 100
   mid_batch_norm: True
   last_batch_norm: True
   readout_batchnorm: True
   # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
   batch_norm_momentum: 0.93
-  readout_hidden_dim: 60
+  readout_hidden_dim: 100
   readout_layers: 2
   dropout: 0.0
   propagation_depth: 5
@@ -67,6 +67,7 @@ model_parameters:
     - mean
     - max
     - min
+    - std
     - sum
   scalers:
     - identity
@@ -80,6 +81,7 @@ model_parameters:
   pretrans_layers: 1
   posttrans_layers: 1
   residual: True
+
 
 # Model parameters
 model3d_type: 'Net3D'
