@@ -1,6 +1,6 @@
-experiment_name: 'tune_SMP_NTXent_no_node_features_2prop'
+experiment_name: 'tune_NTXent_no_weightdecay'
 
-pretrain_checkpoint: runs/PNA_qm9_SMP_NTXent_no_node_features_2prop_04-07_15-56-48/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_qm9_NTXent_no_weightdecay_06-07_10-57-35/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
