@@ -1,30 +1,15 @@
-experiment_name: 'tune'
+experiment_name: 'baseline'
 
-pretrain_checkpoint: runs2/geomol_drugs/best_model.pt
-transfer_layers:
-  - gnn.
-exclude_from_transfer:
-  - batch_norm
-
-dataset: qm9_geomol
+dataset: bace_geomol
 num_epochs: 1000
-batch_size: 128
-prefetch_graphs: True
+batch_size: 32
 log_iterations: 30
 patience: 30
-loss_func: L1Loss
-num_train: 50000
-targets:
-  - homo
-
-required_data:
-  - pytorch_geometric_graph
-  - targets
+loss_func: BCEWithLogitsLoss
 metrics:
-  - mae_denormalized
-  - pearsonr
   - rsquared
-  - qm9_properties
+  - mean_predictor_loss
+  - pearsonr
 collate_function: pytorch_geometric_collate
 
 optimizer: Adam
@@ -35,7 +20,7 @@ optimizer_params:
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [700,700,390]
+  warmup_steps: [700]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau

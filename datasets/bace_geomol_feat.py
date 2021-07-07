@@ -59,23 +59,35 @@ class BACEGeomol(InMemoryDataset):
 
     @property
     def raw_file_names(self):
-        return ['bace.csv']
+        return ['bace.csv', 'bace_cscaffold123.pkl']
 
     @property
     def processed_file_names(self):
         return ['processed_train.pt', 'processed_val.pt', 'processed_test.pt']
 
+
+
     def process(self):
+        file = open(os.path.join(self.root, self.raw_file_names[1]), 'r')
+        lines = file.readlines()
+        split_idx = -2
+        splits = [[], [], []]
+        for index, line in enumerate(lines[:-1]):
+            content = line.strip()
+            if 'lp' in content:
+                split_idx += 1
+            else:
+                splits[split_idx].append(int(content.strip('a').strip('I')))
 
         csv_file = pd.read_csv(os.path.join(self.root, self.raw_file_names[0]))
-        for i, split in enumerate(['Train', 'Valid', 'Test']):
+        for split_idx in [0,1,2]:
             data_list = []
-            for entry, smiles in enumerate(csv_file['mol']):
-                if csv_file['Model'][entry] == split:
+            for i, smiles in enumerate(csv_file['mol']):
+                if i in splits[split_idx]:
                     pyg_graph = featurize_mol_from_smiles(smiles)
                     data_list.append(pyg_graph)
             data, slices = self.collate(data_list)
-            torch.save((data, slices), self.processed_paths[i])
+            torch.save((data, slices), self.processed_paths[split_idx])
 
 
 

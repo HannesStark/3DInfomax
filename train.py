@@ -8,6 +8,7 @@ from ogb.graphproppred.mol_encoder import AtomEncoder
 
 from commons.utils import seed_all, get_random_indices, TENSORBOARD_FUNCTIONS
 from datasets.ZINC_dataset import ZINCDataset
+from datasets.bace_geomol_feat import BACEGeomol
 from datasets.geom_drugs_dataset import GEOMDrugs
 from datasets.geom_qm9_dataset import GEOMqm9
 from datasets.ogbg_dataset_extension import OGBGDatsetExtension
@@ -159,12 +160,49 @@ def train(args):
     elif args.dataset == 'drugs' or args.dataset == 'geom_qm9':
         train_geom(args, device, metrics_dict)
     elif args.dataset == 'qm9_geomol':
-        train_geomol(args, device, metrics_dict)
+        train_geomol_qm9(args, device, metrics_dict)
+    elif args.dataset == 'bace_geomol':
+        train_bace_geomol(args,device, metrics_dict)
     elif 'ogbg' in args.dataset:
         train_ogbg(args, device, metrics_dict)
 
+def train_bace_geomol(args, device, metrics_dict):
+    train = BACEGeomol()
+    val = BACEGeomol(split='val')
+    test = BACEGeomol(split='test')
 
-def train_geomol(args, device, metrics_dict):
+    model = globals()[args.model_type](node_dim=train[0][0].x.shape[1], edge_dim=train[0][0].edge_attr.shape[1],
+                                       **args.model_parameters)
+
+    if args.pretrain_checkpoint:
+        checkpoint = torch.load(args.pretrain_checkpoint, map_location=device)
+        pretrained_gnn_dict = {k.replace('student.', ''): v for k, v in checkpoint.items() if any(
+            transfer_layer in k for transfer_layer in args.transfer_layers) and 'teacher' not in k and not any(
+            to_exclude in k for to_exclude in args.exclude_from_transfer)}
+        model_state_dict = model.state_dict()
+        model_state_dict.update(pretrained_gnn_dict)  # update the gnn layers with the pretrained weights
+        model.load_state_dict(model_state_dict)
+
+    print('model trainable params: ', sum(p.numel() for p in model.parameters() if p.requires_grad))
+    collate_function = globals()[args.collate_function] if args.collate_params == {} else globals()[
+        args.collate_function](**args.collate_params)
+
+    train_loader = DataLoader(train, batch_size=args.batch_size, shuffle=True,
+                              collate_fn=collate_function)
+    val_loader = DataLoader(val, batch_size=args.batch_size, collate_fn=collate_function)
+    test_loader = DataLoader(test, batch_size=args.batch_size, collate_fn=collate_function)
+
+    metrics = {metric: metrics_dict[metric] for metric in args.metrics}
+    metrics['ogbg-molbace'] = metrics_dict['ogbg-molbace']
+    args.main_metric = 'ogbg-molbace'
+    args.val_per_batch = False
+    args.main_metric_goal = 'min' if metrics['ogbg-molbace'].metric == 'rmse' else 'max'
+    trainer = get_trainer(args=args, model=model, data=train, device=device, metrics=metrics)
+    trainer.train(train_loader, val_loader)
+    if args.eval_on_test:
+        trainer.evaluation(test_loader, data_split='test')
+
+def train_geomol_qm9(args, device, metrics_dict):
     all_data = QM9GeomolFeaturization(return_types=args.required_data, target_tasks=args.targets, device=device,
                                       dist_embedding=args.dist_embedding, num_radial=args.num_radial,
                                       prefetch_graphs=args.prefetch_graphs)
@@ -356,7 +394,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/1.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/15.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
