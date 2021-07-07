@@ -1,2 +1,2 @@
 # continue training from checkpoint:
-checkpoint: runs/PNA_qm9_SMP_NTXent_no_node_features_02-07_08-31-16/last_checkpoint.pt
+checkpoint: runs/PNA_drugs_NTXent_pretrain_for_bace_correct_all_data_07-07_09-00-48/last_checkpoint.pt
