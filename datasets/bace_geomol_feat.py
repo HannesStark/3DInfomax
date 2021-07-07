@@ -50,10 +50,10 @@ def one_k_encoding(value, choices):
     return encoding
 
 class BACEGeomol(InMemoryDataset):
-    def __init__(self, split='train', root='dataset/bace', transform=None, pre_transform=None):
+    def __init__(self, split='train', root='dataset/bace', transform=None, pre_transform=None, device='cuda:0'):
         super(BACEGeomol, self).__init__(root, transform, pre_transform)
         split_idx = ['train', 'val', 'test'].index(split)
-
+        self.device = device
         self.data, self.slices = torch.load(self.processed_paths[split_idx])
 
 
@@ -65,6 +65,10 @@ class BACEGeomol(InMemoryDataset):
     def processed_file_names(self):
         return ['processed_train.pt', 'processed_val.pt', 'processed_test.pt']
 
+    def __getitem__(self,idx):
+        data = self.get(self.indices()[idx])
+        data = data if self.transform is None else self.transform(data)
+        return data.to(self.device), torch.tensor([data.y]).to(self.device)
 
 
     def process(self):
@@ -178,6 +182,6 @@ def featurize_mol_from_smiles(smiles):
     x2 = torch.tensor(atom_features).view(N, -1)
     x = torch.cat([x1.to(torch.float), x2], dim=-1)
 
-    data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, neighbors=neighbor_dict, chiral_tag=chiral_tag,
-                name=smiles)
+    data = Data(z=x, edge_index=edge_index, edge_attr=edge_attr, neighbors=neighbor_dict, chiral_tag=chiral_tag,
+                name=smiles, num_nodes=N)
     return data

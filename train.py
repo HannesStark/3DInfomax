@@ -167,11 +167,11 @@ def train(args):
         train_ogbg(args, device, metrics_dict)
 
 def train_bace_geomol(args, device, metrics_dict):
-    train = BACEGeomol()
-    val = BACEGeomol(split='val')
-    test = BACEGeomol(split='test')
+    train = BACEGeomol(split='train', device=device)
+    val = BACEGeomol(split='val', device=device)
+    test = BACEGeomol(split='test', device=device)
 
-    model = globals()[args.model_type](node_dim=train[0][0].x.shape[1], edge_dim=train[0][0].edge_attr.shape[1],
+    model = globals()[args.model_type](node_dim=train[0][0].z.shape[1], edge_dim=train[0][0].edge_attr.shape[1],
                                        **args.model_parameters)
 
     if args.pretrain_checkpoint:
@@ -394,7 +394,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/15.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/16.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
