@@ -9,7 +9,7 @@ patience: 35
 loss_func: NTXent
 loss_params:
   tau: 0.1
-num_train: 120000
+num_train: 280000
 
 required_data:
   - mol_graph
