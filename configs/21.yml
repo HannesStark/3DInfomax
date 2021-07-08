@@ -24,14 +24,14 @@ optimizer: Adam
 optimizer_params:
   lr: 0.0005
 
-scheduler_step_per_batch: True
+scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
   warmup_steps: [700]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ExponentialLR
-  gamma: 0.9
+  gamma: 0.99
 
 model_type: 'SMP'
 model_parameters:
