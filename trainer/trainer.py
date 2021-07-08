@@ -108,7 +108,7 @@ class Trainer():
                     epochs_no_improve += 1
                 self.save_checkpoint(epoch, checkpoint_name='last_checkpoint.pt')
 
-                if epochs_no_improve >= args.patience:  # stopping criterion
+                if epochs_no_improve >= args.patience and epoch >= args.minimum_epochs:  # stopping criterion
                     print(
                         f'Early stopping criterion based on -{self.main_metric}- that should be {self.main_metric_goal} reached after {epoch} epochs. Best model checkpoint was in epoch {epoch - epochs_no_improve}.')
                     break

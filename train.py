@@ -394,7 +394,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/12.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/15.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
@@ -402,6 +402,7 @@ def parse_arguments():
     p.add_argument('--prefetch_graphs', type=bool, default=True,
                    help='load graphs into memory (needs RAM and upfront computation) for faster data loading during training')
     p.add_argument('--patience', type=int, default=20, help='stop training after no improvement in this many epochs')
+    p.add_argument('--minimum_epochs', type=int, default=0, help='minimum numer of epochs to run')
     p.add_argument('--dataset', type=str, default='qm9', help='[qm9, zinc, drugs, geom_qm9, molhiv]')
     p.add_argument('--num_train', type=int, default=100000, help='n samples of the model samples to use for train')
     p.add_argument('--seed', type=int, default=123, help='seed for reproducibility')
