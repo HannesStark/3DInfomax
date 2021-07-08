@@ -1,6 +1,6 @@
-experiment_name: 'tune_from_drugs_ssl_snapshot'
+experiment_name: 'tune_from_qm9_ssl_snapshot'
 
-pretrain_checkpoint: runs/PNA_drugs_NTXent_pretrain_for_bace_correct_all_data_07-07_09-00-48/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_qm9_tune_SMP_NTXent_small_07-07_07-47-21/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
