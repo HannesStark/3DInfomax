@@ -5,7 +5,7 @@ batch_size: 128
 prefetch_graphs: True
 log_iterations: 50
 patience: 30
-num_train: 50000
+num_train: 110000
 loss_func: L1Loss
 targets:
   - homo
