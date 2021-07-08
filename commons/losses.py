@@ -241,20 +241,18 @@ class KLDivergenceMultiplePositives(_Loss):
             for j, z2_mean in enumerate(z2_means):
                 z1_var = z1_stds[i] ** 2  # [metric_dim]
                 z2_var = z2_stds[j] ** 2  # [metric_dim]
-                ic(z2_var)
-                ic((z2_var + 1e-5).prod())
-                ic((z1_var + 1e-5).prod() / (z2_var + 1e-5).prod())
+
                 log_det_diff = torch.log((z1_var + 1e-5).prod() / (z2_var + 1e-5).prod())
-                ic(log_det_diff)
+
                 trace_inv = ((1 / (z2_var + 1e-5)) * z1_var).sum()
-                ic(trace_inv)
+
                 mean_sigma_mean = ((z2_mean - z1_mean) ** 2 * (1 / (z2_var + 1e-5))).sum()
-                ic(mean_sigma_mean)
+
                 kl_divergence = 0.5 * (log_det_diff - metric_dim + trace_inv + mean_sigma_mean)
                 kl_div_kernel.append(kl_divergence)
         kl_div_kernel = torch.stack(kl_div_kernel)
         kl_div_kernel = kl_div_kernel.view(batch_size, batch_size)
-        ic(kl_div_kernel)
+
 
         sim_matrix = kl_div_kernel
         pos_sim = torch.diagonal(sim_matrix)

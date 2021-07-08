@@ -1,5 +1,6 @@
 experiment_name: 'tune'
 
+seed: 2
 pretrain_checkpoint: runs2/geomol_drugs/best_model.pt
 transfer_layers:
   - gnn.
