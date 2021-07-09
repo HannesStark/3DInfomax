@@ -1,4 +1,4 @@
-experiment_name: 'all_data_ExopnentialLR_no_features'
+experiment_name: 'all_data_OnPlateau_no_features'
 
 num_epochs: 1000
 batch_size: 128
@@ -27,11 +27,15 @@ optimizer_params:
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [700]
+  warmup_steps: [1500]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
-  wrapped_scheduler: ExponentialLR
-  gamma: 0.99
+  wrapped_scheduler: ReduceLROnPlateau
+  factor: 0.5
+  patience: 25
+  min_lr: 5.0e-6
+  mode: 'min'
+  verbose: True
 
 model_type: 'SMP'
 model_parameters:
