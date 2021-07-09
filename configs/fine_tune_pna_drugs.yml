@@ -1,6 +1,6 @@
 experiment_name: 'tune_drugs_NTXent_tiny_net_snapshot_energy'
 
-pretrain_checkpoint: runs/PNA_drugs_NTXent_tiny_net_18-06_09-29-08/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_drugs_NTXentMultiplePositives_conformer_variance_reg01_07-07_08-52-33/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
