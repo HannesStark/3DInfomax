@@ -1,6 +1,6 @@
 experiment_name: 'baseline'
 
-seed: 5
+seed: 6
 dataset: bace_geomol
 num_epochs: 1000
 batch_size: 32
