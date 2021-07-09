@@ -1,4 +1,4 @@
-experiment_name: 'tune_from_qm9_ssl_snapshot'
+experiment_name: 'tune_from_qm9_ssl_snapshot_lower_lr'
 
 pretrain_checkpoint: runs/PNA_qm9_tune_SMP_NTXent_small_07-07_07-47-21/best_checkpoint.pt
 transfer_layers:
@@ -24,8 +24,7 @@ collate_function: graph_collate
 
 optimizer: Adam
 optimizer_params:
-  lr: 1.0e-5
-  weight_decay: 1.0e-7
+  lr: 1.0e-3
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
