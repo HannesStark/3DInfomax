@@ -29,7 +29,6 @@ collate_function: contrastive_collate
 optimizer: Adam
 optimizer_params:
   lr: 8.0e-5
-  weight_decay: 5.0e-7
 
 
 scheduler_step_per_batch: False

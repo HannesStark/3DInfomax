@@ -53,6 +53,7 @@ model_parameters:
     - max
     - min
     - std
+    -
   scalers:
     - identity
     - amplification
