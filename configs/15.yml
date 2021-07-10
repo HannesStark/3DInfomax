@@ -16,8 +16,7 @@ collate_function: pytorch_geometric_collate
 
 optimizer: Adam
 optimizer_params:
-  lr: 7.0e-5
-  weight_decay: 1.0e-11
+  lr: 1.0e-3
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper

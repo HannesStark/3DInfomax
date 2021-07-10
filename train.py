@@ -161,15 +161,19 @@ def train(args):
         train_geom(args, device, metrics_dict)
     elif args.dataset == 'qm9_geomol':
         train_geomol_qm9(args, device, metrics_dict)
-    elif args.dataset == 'bace_geomol':
-        train_bace_geomol(args,device, metrics_dict)
+    elif 'geomol' in:
+        train_bace_geomol(args, device, metrics_dict)
     elif 'ogbg' in args.dataset:
         train_ogbg(args, device, metrics_dict)
 
 def train_bace_geomol(args, device, metrics_dict):
-    train = BACEGeomol(split='train', device=device)
-    val = BACEGeomol(split='val', device=device)
-    test = BACEGeomol(split='test', device=device)
+    if args.dataset == 'bace_geomol':
+        dataset = BACEGeomol
+    elif args.dataset == 'bbbp_geomol':
+        dataset = BBBPGeomol
+    train = dataset(split='train', device=device)
+    val = dataset(split='val', device=device)
+    test = dataset(split='test', device=device)
 
     model = globals()[args.model_type](node_dim=train[0][0].z.shape[1], edge_dim=train[0][0].edge_attr.shape[1],
                                        **args.model_parameters)
@@ -193,10 +197,11 @@ def train_bace_geomol(args, device, metrics_dict):
     test_loader = DataLoader(test, batch_size=args.batch_size, collate_fn=collate_function)
 
     metrics = {metric: metrics_dict[metric] for metric in args.metrics}
-    metrics['ogbg-molbace'] = metrics_dict['ogbg-molbace']
-    args.main_metric = 'ogbg-molbace'
+    metric_name = [key for key in metrics_dict.keys() if args.dataset.split('_')[0] in key.lower()]
+    metrics[metric_name] = metrics_dict[metric_name]
+    args.main_metric = metric_name
     args.val_per_batch = False
-    args.main_metric_goal = 'min' if metrics['ogbg-molbace'].metric == 'rmse' else 'max'
+    args.main_metric_goal = 'min' if metrics[metric_name].metric == 'rmse' else 'max'
     trainer = get_trainer(args=args, model=model, data=train, device=device, metrics=metrics)
     trainer.train(train_loader, val_loader)
     if args.eval_on_test:
