@@ -161,10 +161,11 @@ def train(args):
         train_geom(args, device, metrics_dict)
     elif args.dataset == 'qm9_geomol':
         train_geomol_qm9(args, device, metrics_dict)
-    elif 'geomol' in:
+    elif 'geomol' in args.dataset:
         train_bace_geomol(args, device, metrics_dict)
     elif 'ogbg' in args.dataset:
         train_ogbg(args, device, metrics_dict)
+
 
 def train_bace_geomol(args, device, metrics_dict):
     if args.dataset == 'bace_geomol':
@@ -197,7 +198,7 @@ def train_bace_geomol(args, device, metrics_dict):
     test_loader = DataLoader(test, batch_size=args.batch_size, collate_fn=collate_function)
 
     metrics = {metric: metrics_dict[metric] for metric in args.metrics}
-    metric_name = [key for key in metrics_dict.keys() if args.dataset.split('_')[0] in key.lower()]
+    metric_name = [key for key in metrics_dict.keys() if 'ogbg-mol' + args.dataset.split('_')[0] == key.lower()][0]
     metrics[metric_name] = metrics_dict[metric_name]
     args.main_metric = metric_name
     args.val_per_batch = False
@@ -206,6 +207,7 @@ def train_bace_geomol(args, device, metrics_dict):
     trainer.train(train_loader, val_loader)
     if args.eval_on_test:
         trainer.evaluation(test_loader, data_split='test')
+
 
 def train_geomol_qm9(args, device, metrics_dict):
     all_data = QM9GeomolFeaturization(return_types=args.required_data, target_tasks=args.targets, device=device,
@@ -399,7 +401,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/contrastive_training_multiple_positives_mmd_loss.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/15.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
