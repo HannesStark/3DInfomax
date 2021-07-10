@@ -1,4 +1,4 @@
-experiment_name: 'NTXent_small_PNA_sum_aggregation'
+experiment_name: 'NTXent_pretrain_for_bace_50hidden_noscalers'
 
 num_epochs: 1000
 batch_size: 500
@@ -8,7 +8,7 @@ patience: 35
 loss_func: NTXent
 loss_params:
   tau: 0.1
-num_train: 50000
+num_train: 110000
 
 required_data:
   - mol_graph
@@ -30,7 +30,6 @@ optimizer: Adam
 optimizer_params:
   lr: 8.0e-5
 
-
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
@@ -46,21 +45,20 @@ lr_scheduler_params:
   verbose: True
 
 
-
 # Model parameters
 model_type: 'PNA'
 model_parameters:
   target_dim: 256
-  hidden_dim: 100
+  hidden_dim: 50
   mid_batch_norm: True
   last_batch_norm: True
   readout_batchnorm: True
   # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
   batch_norm_momentum: 0.93
-  readout_hidden_dim: 100
+  readout_hidden_dim: 50
   readout_layers: 2
   dropout: 0.0
-  propagation_depth: 5
+  propagation_depth: 4
   aggregators:
     - mean
     - max
@@ -69,13 +67,10 @@ model_parameters:
     - sum
   scalers:
     - identity
-    - amplification
-    - attenuation
   readout_aggregators:
     - min
     - max
     - mean
-    - sum
   pretrans_layers: 1
   posttrans_layers: 1
   residual: True
