@@ -1,9 +1,9 @@
-experiment_name: 'baseline'
+experiment_name: 'baseline_mean_max_sum'
 
 seed: 123
 dataset: 'ogbg-molbace'
 num_epochs: 1000
-batch_size: 48
+batch_size: 32
 log_iterations: 30
 patience: 30
 loss_func: BCEWithLogitsLoss
@@ -48,8 +48,6 @@ model_parameters:
   aggregators:
     - mean
     - max
-    - min
-    - std
     - sum
   scalers:
     - identity
