@@ -1,35 +1,28 @@
-experiment_name: 'tune_NTXent_no_weightdecay'
+experiment_name: 'tune'
 
-pretrain_checkpoint: runs/PNA_qm9_NTXent_no_weightdecay_06-07_10-57-35/best_checkpoint.pt
+seed: 9
+pretrain_checkpoint: runs2/geomol_drugs/best_model.pt
 transfer_layers:
-  - gnn
+  - gnn.
 exclude_from_transfer:
   - batch_norm
 
-
+dataset: esol_geomol
 num_epochs: 1000
-batch_size: 128
-prefetch_graphs: True
+batch_size: 32
 log_iterations: 30
-patience: 30
+patience: 50
+minimum_epochs: 100
 loss_func: L1Loss
-num_train: 50000
-targets:
-  - homo
-
-required_data:
-  - mol_graph
-  - targets
 metrics:
-  - mae_denormalized
-  - pearsonr
   - rsquared
-  - qm9_properties
+  - mean_predictor_loss
+  - pearsonr
+collate_function: pytorch_geometric_collate
 
 optimizer: Adam
 optimizer_params:
-  lr: 7.0e-5
-  weight_decay: 1.0e-11
+  lr: 1.0e-3
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
@@ -47,36 +40,13 @@ lr_scheduler_params:
 
 
 # Model parameters
-model_type: 'PNA'
+model_type: 'GeomolGNNWrapper'
 model_parameters:
-  target_dim: 1
-  hidden_dim: 200
-  mid_batch_norm: True
-  last_batch_norm: True
-  readout_batchnorm: True
-  # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
-  batch_norm_momentum: 0.1
-  readout_hidden_dim: 200
+  hidden_dim: 50
   readout_layers: 2
-  dropout: 0.0
-  propagation_depth: 7
-  aggregators:
-    - mean
-    - max
-    - min
-    - std
-  scalers:
-    - identity
-    - amplification
-    - attenuation
-  readout_aggregators:
-    - min
-    - max
-    - mean
-    - sum
-  pretrans_layers: 2
-  posttrans_layers: 1
-  residual: True
+  readout_batchnorm: True
+  depth: 3
+  n_layers: 2
 
 
 

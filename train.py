@@ -10,8 +10,10 @@ from commons.utils import seed_all, get_random_indices, TENSORBOARD_FUNCTIONS
 from datasets.ZINC_dataset import ZINCDataset
 from datasets.bace_geomol_feat import BACEGeomol
 from datasets.bbbp_geomol_feat import BBBPGeomol
+from datasets.esol_geomol_feat import ESOLGeomol
 from datasets.geom_drugs_dataset import GEOMDrugs
 from datasets.geom_qm9_dataset import GEOMqm9
+from datasets.lipo_geomol_feat import LIPOGeomol
 from datasets.ogbg_dataset_extension import OGBGDatsetExtension
 
 from datasets.qm9_geomol_featurization import QM9GeomolFeaturization
@@ -173,6 +175,10 @@ def train_bace_geomol(args, device, metrics_dict):
         dataset = BACEGeomol
     elif args.dataset == 'bbbp_geomol':
         dataset = BBBPGeomol
+    elif args.dataset == 'esol_geomol':
+        dataset = ESOLGeomol
+    elif args.dataset == 'lipo_geomol':
+        dataset = LIPOGeomol
     train = dataset(split='train', device=device)
     val = dataset(split='val', device=device)
     test = dataset(split='test', device=device)
@@ -402,7 +408,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/15.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/17.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')

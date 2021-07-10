@@ -28,7 +28,7 @@ def seed_all(seed):
     # torch.backends.cudnn.benchmark = False
 
 
-def get_random_indices(length, seed):
+def get_random_indices(length, seed=123):
     st0 = np.random.get_state()
     np.random.seed(seed)
     random_indices = np.random.permutation(length)
