@@ -1,6 +1,6 @@
 experiment_name: 'tune_from_qm9_property'
 
-pretrain_checkpoint: runs/PNA_drugs_ogb_featurization_21-06_09-18-27/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_qm9_property_pretraining_bace_model_08-07_19-20-30/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
