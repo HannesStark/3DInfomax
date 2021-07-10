@@ -1,4 +1,4 @@
-experiment_name: 'baseline_mean_max_sum'
+experiment_name: 'baseline_batchsize32'
 
 seed: 123
 dataset: 'ogbg-molbace'
@@ -48,6 +48,8 @@ model_parameters:
   aggregators:
     - mean
     - max
+    - min
+    - std
     - sum
   scalers:
     - identity
