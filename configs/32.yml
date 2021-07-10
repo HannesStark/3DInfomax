@@ -3,7 +3,7 @@ experiment_name: 'baseline'
 seed: 123
 dataset: 'ogbg-molbace'
 num_epochs: 1000
-batch_size: 32
+batch_size: 48
 log_iterations: 30
 patience: 30
 loss_func: BCEWithLogitsLoss
@@ -17,6 +17,7 @@ metrics:
 optimizer: Adam
 optimizer_params:
   lr: 1.0e-3
+  weight_decay: 1.0e-7
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
@@ -35,16 +36,16 @@ lr_scheduler_params:
 model_type: 'PNA'
 model_parameters:
   target_dim: 1
-  hidden_dim: 30
+  hidden_dim: 60
   mid_batch_norm: True
   last_batch_norm: True
   readout_batchnorm: True
   # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
   batch_norm_momentum: 0.1
-  readout_hidden_dim: 100
+  readout_hidden_dim: 60
   readout_layers: 2
   dropout: 0.0
-  propagation_depth: 4
+  propagation_depth: 5
   aggregators:
     - mean
     - max
