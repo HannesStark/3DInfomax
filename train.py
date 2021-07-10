@@ -9,6 +9,7 @@ from ogb.graphproppred.mol_encoder import AtomEncoder
 from commons.utils import seed_all, get_random_indices, TENSORBOARD_FUNCTIONS
 from datasets.ZINC_dataset import ZINCDataset
 from datasets.bace_geomol_feat import BACEGeomol
+from datasets.bbbp_geomol_feat import BBBPGeomol
 from datasets.geom_drugs_dataset import GEOMDrugs
 from datasets.geom_qm9_dataset import GEOMqm9
 from datasets.ogbg_dataset_extension import OGBGDatsetExtension
