@@ -1,6 +1,6 @@
 experiment_name: 'baseline'
 
-seed: 2
+seed: 4
 dataset: esol_geomol
 num_epochs: 1000
 batch_size: 32
