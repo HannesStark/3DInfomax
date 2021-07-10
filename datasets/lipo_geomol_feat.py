@@ -104,10 +104,6 @@ types = {'H': 0, 'Li': 1, 'B': 2, 'C': 3, 'N': 4, 'O': 5, 'F': 6, 'Na': 7, 'Mg':
 
 
 def featurize_mol_from_smiles(smiles):
-    # filter fragments
-    if '.' in smiles:
-        raise Exception
-        return None
 
     # filter mols rdkit can't intrinsically handle
     mol = Chem.MolFromSmiles(smiles)
