@@ -1,11 +1,11 @@
 experiment_name: 'baseline'
 
-dataset: 'ogbg-molbace'
+dataset: 'ogbg-molesol'
 num_epochs: 1000
-batch_size: 64
+batch_size: 32
 log_iterations: 30
 patience: 30
-loss_func: BCEWithLogitsLoss
+loss_func: L1Loss
 required_data:
   - dgl_graph
   - targets
@@ -41,9 +41,9 @@ model_parameters:
   # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
   batch_norm_momentum: 0.1
   readout_hidden_dim: 100
-  readout_layers: 1
+  readout_layers: 2
   dropout: 0.0
-  propagation_depth: 3
+  propagation_depth: 5
   aggregators:
     - mean
     - max
