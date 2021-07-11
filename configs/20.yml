@@ -1,6 +1,6 @@
 experiment_name: 'baseline'
 
-dataset: 'ogbg-molesol'
+dataset: 'ogbg-mollipo'
 num_epochs: 1000
 batch_size: 32
 log_iterations: 30

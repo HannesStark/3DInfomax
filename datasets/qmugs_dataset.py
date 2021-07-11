@@ -336,27 +336,29 @@ class QMugsDatset(Dataset):
                                                                        os.path.join(self.root, 'processed')))
         chembl_ids = os.listdir(os.path.join(self.root, 'structures'))
 
+        targets = {'DFT:ATOMIC_ENERGY': [], 'DFT:TOTAL_ENERGY': [], 'DFT:HOMO_ENERGY': []}
         atom_slices = [0]
         edge_slices = [0]
-        total_eigvecs = []
-        total_eigvals = []
         all_atom_features = []
         all_edge_features = []
         edge_indices = []  # edges of each molecule in coo format
-        targets = []  # the 19 properties that should be predicted for the QM9 dataset
         total_atoms = 0
         total_edges = 0
+        n_atoms_list = []
         avg_degree = 0  # average degree in the dataset
-        # go through all molecules in the npz file
         for mol_idx, chembl_id in tqdm(enumerate(chembl_ids)):
             mol_path = os.path.join(self.root, 'structures', chembl_id)
             sdf_names = os.listdir(mol_path)
+            conformers = []
             for conf_idx, sdf_name in enumerate(sdf_names):
                 sdf_path = os.path.join(mol_path, sdf_name)
                 suppl = Chem.SDMolSupplier(sdf_path)
                 mol = next(iter(suppl))
-                if conf_idx ==0:
-
+                c = next(iter(mol.GetConformers()))
+                conformers.append(c.GetPositions())
+                if conf_idx == 0:
+                    n_atoms = len(mol.GetAtoms())
+                    n_atoms_list.append(n_atoms)
                     atom_features_list = []
                     for atom in mol.GetAtoms():
                         atom_features_list.append(atom_to_feature_vector(atom))
@@ -380,33 +382,31 @@ class QMugsDatset(Dataset):
 
                     avg_degree += (len(edges_list) / 2) / n_atoms
 
-            # get all 19 attributes that should be predicted, so we drop the first two entries (name and smiles)
-            target = torch.tensor(molecules_df.iloc[data_qm9['id'][mol_idx]][2:], dtype=torch.float)
-            targets.append(target)
-            edge_indices.append(edge_index)
-            all_edge_features.append(edge_features)
+                    # get all 19 attributes that should be predicted, so we drop the first two entries (name and smiles)
+                    targets['DFT:HOMO_ENERGY'].append(mol.GetProp('DFT:HOMO_ENERGY'))
+                    targets['DFT:TOTAL_ENERGY'].append(mol.GetProp('DFT:TOTAL_ENERGY'))
+                    targets['DFT:ATOMIC_ENERGY'].append(mol.GetProp('DFT:ATOMIC_ENERGY'))
+                    edge_indices.append(edge_index)
+                    all_edge_features.append(edge_features)
 
-            total_edges += len(edges_list)
-            total_atoms += n_atoms
-            edge_slices.append(total_edges)
-            atom_slices.append(total_atoms)
+                    total_edges += len(edges_list)
+                    total_atoms += n_atoms
+                    edge_slices.append(total_edges)
+                    atom_slices.append(total_atoms)
 
-        # convert targets to eV units
-        targets = torch.stack(targets) * torch.tensor(list(self.unit_conversion.values()))[None, :]
-        data_dict = {'mol_id': data_qm9['id'],
-                     'n_atoms': torch.tensor(data_qm9['N'], dtype=torch.long),
+        data_dict = {'n_atoms': torch.tensor(n_atoms_list, dtype=torch.long),
                      'atom_slices': torch.tensor(atom_slices, dtype=torch.long),
                      'edge_slices': torch.tensor(edge_slices, dtype=torch.long),
-                     'eig_vecs': torch.cat(total_eigvecs).float(),
-                     'eig_vals': torch.cat(total_eigvals).float(),
                      'edge_indices': torch.cat(edge_indices, dim=1),
                      'atom_features': torch.cat(all_atom_features, dim=0),
                      'edge_features': torch.cat(all_edge_features, dim=0),
-                     'atomic_number_long': torch.tensor(data_qm9['Z'], dtype=torch.long)[:, None],
                      'coordinates': coordinates,
                      'targets': targets,
-                     'avg_degree': avg_degree / len(data_qm9['id'])
+                     'avg_degree': avg_degree / len(chembl_ids)
                      }
+        for key, value in targets.items():
+            targets[key] = torch.tensor(value)[:, None]
+        data_dict.update(targets)
 
         if not os.path.exists(os.path.join(self.root, 'processed')):
             os.mkdir(os.path.join(self.root, 'processed'))
