@@ -2,7 +2,7 @@ experiment_name: 'baseline'
 
 dataset: 'ogbg-molbace'
 num_epochs: 1000
-batch_size: 32
+batch_size: 64
 log_iterations: 30
 patience: 30
 loss_func: BCEWithLogitsLoss
@@ -51,6 +51,8 @@ model_parameters:
     - std
   scalers:
     - identity
+    - amplification
+    - attenuation
   readout_aggregators:
     - min
     - max
@@ -59,7 +61,6 @@ model_parameters:
   pretrans_layers: 2
   posttrans_layers: 2
   residual: True
-
 
 
 # continue training from checkpoint:

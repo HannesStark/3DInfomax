@@ -1,6 +1,6 @@
 experiment_name: 'baseline'
 
-dataset: 'ogbg-molbace'
+dataset: 'ogbg-molbbbp'
 num_epochs: 1000
 batch_size: 32
 log_iterations: 30
@@ -58,10 +58,9 @@ model_parameters:
     - max
     - mean
     - sum
-  pretrans_layers: 3
-  posttrans_layers: 3
+  pretrans_layers: 1
+  posttrans_layers: 1
   residual: True
-
 
 
 # continue training from checkpoint:

@@ -1,6 +1,6 @@
 experiment_name: 'baseline'
 
-dataset: 'ogbg-molbace'
+dataset: 'ogbg-molbbbp'
 num_epochs: 1000
 batch_size: 32
 log_iterations: 30
@@ -34,7 +34,7 @@ lr_scheduler_params:
 model_type: 'PNA'
 model_parameters:
   target_dim: 1
-  hidden_dim: 50
+  hidden_dim: 200
   mid_batch_norm: True
   last_batch_norm: True
   readout_batchnorm: True
@@ -43,7 +43,7 @@ model_parameters:
   readout_hidden_dim: 200
   readout_layers: 1
   dropout: 0.0
-  propagation_depth: 3
+  propagation_depth: 5
   aggregators:
     - mean
     - max
@@ -59,9 +59,8 @@ model_parameters:
     - mean
     - sum
   pretrans_layers: 2
-  posttrans_layers: 2
+  posttrans_layers: 1
   residual: True
-
 
 
 # continue training from checkpoint:
