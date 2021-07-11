@@ -1,5 +1,6 @@
 experiment_name: 'baseline'
 
+seed: 2
 dataset: 'ogbg-mollipo'
 num_epochs: 1000
 batch_size: 32
@@ -15,7 +16,7 @@ metrics:
   - pearsonr
 optimizer: Adam
 optimizer_params:
-  lr: 1.0e-4
+  lr: 1.0e-3
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper

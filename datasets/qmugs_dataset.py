@@ -19,7 +19,7 @@ from commons.spherical_encoding import dist_emb
 hartree2eV = physical_constants['hartree-electron volt relationship'][0]
 
 
-class QMugsDatset(Dataset):
+class QMugsDataset(Dataset):
 
     def __init__(self, return_types: list = None,
                  target_tasks: list = None,
@@ -31,7 +31,7 @@ class QMugsDatset(Dataset):
                                     'raw_features', 'coordinates', 'dist_embedding', 'mol_id', 'targets',
                                     'one_hot_bond_types', 'edge_indices', 'smiles', 'atomic_number_long', 'n_atoms',
                                     'positional_encoding', 'constant_ones', 'pytorch_geometric_graph']
-        self.root = '../QMugs'
+        self.root = '../../QMugs'
         self.processed_file = 'processed.pt'
         self.raw_csv = 'summary.csv'
         self.normalize = normalize
@@ -82,20 +82,15 @@ class QMugsDatset(Dataset):
         self.features_tensor = data_dict['atom_features']
 
         self.e_features_tensor = data_dict['edge_features']
-        self.coordinates = data_dict['coordinates']
+        self.coordinates = data_dict['coordinates'][:, :3]
         self.edge_indices = data_dict['edge_indices']
 
-        self.meta_dict = {k: data_dict[k] for k in ('mol_id', 'edge_slices', 'atom_slices', 'n_atoms')}
+        self.meta_dict = {k: data_dict[k] for k in ('chembl_ids','edge_slices', 'atom_slices', 'n_atoms')}
 
         self.atom_padding_indices = torch.tensor(get_atom_feature_dims(), dtype=torch.long, device=device)[None, :]
         self.bond_padding_indices = torch.tensor(get_bond_feature_dims(), dtype=torch.long, device=device)[None, :]
 
-        if 'san_graph' in self.return_types or 'positional_encoding' in self.return_types:
-            self.eig_vals = data_dict['eig_vals']
-            self.eig_vecs = data_dict['eig_vecs']
 
-        if 'smiles' in self.return_types:
-            self.smiles = pd.read_csv(os.path.join(self.root, self.raw_qm9_file))['smiles']
 
         self.prefetch_graphs = prefetch_graphs
         if self.prefetch_graphs and any(return_type in self.return_types for return_type in
@@ -133,19 +128,6 @@ class QMugsDatset(Dataset):
         self.task_indices = torch.tensor([list(self.unit_conversion.keys()).index(task) for task in self.target_tasks])
         # select targets in the order specified by the target_tasks argument
 
-        self.targets = data_dict['targets'].index_select(dim=1, index=self.task_indices)  # [130831, n_tasks]
-        self.targets_mean = self.targets.mean(dim=0)
-        self.targets_std = self.targets.std(dim=0)
-        if self.normalize:
-            self.targets = ((self.targets - self.targets_mean) / self.targets_std)
-        self.targets_mean = self.targets_mean.to(device)
-        self.targets_std = self.targets_std.to(device)
-        # get a tensor that is 1000 for all targets that are energies and 1.0 for all other ones
-        self.eV2meV = torch.tensor(
-            [1.0 if list(self.unit_conversion.values())[task_index] == 1.0 else 1000 for task_index in
-             self.task_indices]).to(self.device)  # [n_tasks]
-        self.dist_embedder = dist_emb(num_radial=6).to(device)
-        self.dist_embedding = dist_embedding
 
     def get_pairwise(self, n_atoms):
         if n_atoms in self.pairwise:
@@ -158,7 +140,7 @@ class QMugsDatset(Dataset):
             return src, dst
 
     def __len__(self):
-        return len(self.meta_dict['mol_id'])
+        return len(self.meta_dict['chembl_ids'])
 
     def __getitem__(self, idx):
         """
@@ -345,6 +327,7 @@ class QMugsDatset(Dataset):
         total_atoms = 0
         total_edges = 0
         n_atoms_list = []
+        coordinates = torch.tensor([])
         avg_degree = 0  # average degree in the dataset
         for mol_idx, chembl_id in tqdm(enumerate(chembl_ids)):
             mol_path = os.path.join(self.root, 'structures', chembl_id)
@@ -355,7 +338,7 @@ class QMugsDatset(Dataset):
                 suppl = Chem.SDMolSupplier(sdf_path)
                 mol = next(iter(suppl))
                 c = next(iter(mol.GetConformers()))
-                conformers.append(c.GetPositions())
+                conformers.append(torch.tensor(c.GetPositions()))
                 if conf_idx == 0:
                     n_atoms = len(mol.GetAtoms())
                     n_atoms_list.append(n_atoms)
@@ -383,9 +366,9 @@ class QMugsDatset(Dataset):
                     avg_degree += (len(edges_list) / 2) / n_atoms
 
                     # get all 19 attributes that should be predicted, so we drop the first two entries (name and smiles)
-                    targets['DFT:HOMO_ENERGY'].append(mol.GetProp('DFT:HOMO_ENERGY'))
-                    targets['DFT:TOTAL_ENERGY'].append(mol.GetProp('DFT:TOTAL_ENERGY'))
-                    targets['DFT:ATOMIC_ENERGY'].append(mol.GetProp('DFT:ATOMIC_ENERGY'))
+                    targets['DFT:HOMO_ENERGY'].append(float(mol.GetProp('DFT:HOMO_ENERGY')))
+                    targets['DFT:TOTAL_ENERGY'].append(float(mol.GetProp('DFT:TOTAL_ENERGY')))
+                    targets['DFT:ATOMIC_ENERGY'].append(float(mol.GetProp('DFT:ATOMIC_ENERGY')))
                     edge_indices.append(edge_index)
                     all_edge_features.append(edge_features)
 
@@ -393,8 +376,13 @@ class QMugsDatset(Dataset):
                     total_atoms += n_atoms
                     edge_slices.append(total_edges)
                     atom_slices.append(total_atoms)
+            if len(conformers) < 3:  # if there are less than 10 conformers we add the first one a few times
+                conformers.extend([conformers[0]] * (3 - len(conformers)))
 
-        data_dict = {'n_atoms': torch.tensor(n_atoms_list, dtype=torch.long),
+            coordinates = torch.cat([coordinates, torch.cat(conformers,dim=1)], dim=0)
+
+        data_dict = {'chembl_ids': chembl_ids,
+            'n_atoms': torch.tensor(n_atoms_list, dtype=torch.long),
                      'atom_slices': torch.tensor(atom_slices, dtype=torch.long),
                      'edge_slices': torch.tensor(edge_slices, dtype=torch.long),
                      'edge_indices': torch.cat(edge_indices, dim=1),

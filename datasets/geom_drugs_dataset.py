@@ -91,9 +91,6 @@ class GEOMDrugs(Dataset):
         self.bond_padding_indices = torch.tensor(get_bond_feature_dims(), dtype=torch.long, device=device)[None, :]
 
         self.meta_dict = {k: data_dict[k] for k in ('smiles', 'edge_slices', 'atom_slices', 'n_atoms')}
-        ic(len(data_dict['n_atoms']))
-        ic(len(data_dict['atom_features']) / len(data_dict['n_atoms']))
-        ic((len(data_dict['edge_features']) / 2) / len(data_dict['n_atoms']))
         if 'san_graph' in self.return_types:
             self.eig_vals = data_dict['eig_vals']
             self.eig_vecs = data_dict['eig_vecs']
