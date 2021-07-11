@@ -63,5 +63,7 @@ model_parameters:
   residual: True
 
 
+
+
 # continue training from checkpoint:
 #checkpoint: runs/PNAReadout_2_layer_03-04_15-29-07/last_checkpoint.pt
