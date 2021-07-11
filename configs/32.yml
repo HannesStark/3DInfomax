@@ -41,9 +41,9 @@ model_parameters:
   # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
   batch_norm_momentum: 0.1
   readout_hidden_dim: 100
-  readout_layers: 2
+  readout_layers: 1
   dropout: 0.0
-  propagation_depth: 3
+  propagation_depth: 5
   aggregators:
     - mean
     - max
@@ -61,6 +61,7 @@ model_parameters:
   pretrans_layers: 2
   posttrans_layers: 2
   residual: True
+
 
 
 # continue training from checkpoint:
