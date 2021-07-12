@@ -140,13 +140,7 @@ class PNATransformerLayer(nn.Module):
         h_graph = graph.ndata['feat'] # [n_nodes, hidden_dim]
         h_graph_padded = h_graph_padded.view(-1, hidden_dim) # [batch_size*(max_num_atoms + 1), hidden_dim]
         mask = mask_exclude_vnode.view(-1).unsqueeze(1).expand(-1, hidden_dim) # [batch_size*(max_num_atoms + 1), hidden_dim]
-        ic(mask.shape)
-        ic(h_graph_padded.shape)
-        ic(h_graph.shape)
-        ic(mask.shape[0]*mask.shape[1]-mask.count_nonzero())
-        ic(mask.count_nonzero())
-        ic(h_graph.shape[0]*h_graph.shape[1])
-        h_graph_padded[~mask.nonzero()] = h_graph
+        h_graph_padded[~mask] = h_graph.view(-1)
 
         h_transformer = self.transformer_layer(h, src_key_padding_mask=mask_include_vnode) # [batch_size, max_num_atoms + 1, hidden_dim]
 
