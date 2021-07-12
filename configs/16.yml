@@ -1,12 +1,12 @@
 experiment_name: 'baseline'
 
 seed: 2
-dataset: 'ogbg-mollipo'
+dataset: 'ogbg-molbace'
 num_epochs: 1000
 batch_size: 32
 log_iterations: 30
 patience: 30
-loss_func: L1Loss
+loss_func: BCEWithLogitsLoss
 required_data:
   - dgl_graph
   - targets
@@ -35,13 +35,13 @@ lr_scheduler_params:
 model_type: 'PNA'
 model_parameters:
   target_dim: 1
-  hidden_dim: 100
+  hidden_dim: 128
   mid_batch_norm: True
   last_batch_norm: True
   readout_batchnorm: True
   # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
   batch_norm_momentum: 0.96
-  readout_hidden_dim: 100
+  readout_hidden_dim: 128
   readout_layers: 2
   dropout: 0.0
   propagation_depth: 6
