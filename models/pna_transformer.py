@@ -65,7 +65,7 @@ class PNATransformerGNN(nn.Module):
 
         for _ in range(propagation_depth):
             self.mp_layers.append(
-                PNATransformerLayer(in_dim=hidden_dim, out_dim=hidden_dim, in_dim_edges=hidden_dim,
+                PNATransformerLayer(hidden_dim=hidden_dim, in_dim_edges=hidden_dim,
                                     dim_feedforward=dim_feedforward, nhead=nhead, batch_first=True,
                                     aggregators=aggregators, scalers=scalers, pairwise_distances=pairwise_distances,
                                     residual=residual, dropout=dropout, activation=activation,
@@ -94,44 +94,63 @@ class PNATransformerGNN(nn.Module):
         h = torch.cat([self.v_node[None, None, :].expand(batch_size, -1, -1), h],
                       dim=1)  # [batch_size, max_num_atoms + 1, hidden_dim]
 
-        mask = torch.cat([torch.tensor(False, device=h.device).unsqueeze(0).expand(batch_size, -1), mask],
+        mask_include_vnode = torch.cat([torch.tensor(False, device=h.device).unsqueeze(0).expand(batch_size, -1), mask],
+                         dim=1)  # [batch_size, max_num_atoms + 1]
+
+        mask_exclude_vnode = torch.cat([torch.tensor(True, device=h.device).unsqueeze(0).expand(batch_size, -1), mask],
                          dim=1)  # [batch_size, max_num_atoms + 1]
 
         h_in = h
 
         for mp_layer in self.mp_layers:
-            h = mp_layer(graph, h, mask)
+            h = mp_layer(graph, h, mask_include_vnode, mask_exclude_vnode)
         return h
 
 
 class PNATransformerLayer(nn.Module):
-    def __init__(self, in_dim, out_dim, dim_feedforward, aggregators: List[str], scalers: List[str],
+    def __init__(self, hidden_dim, dim_feedforward, aggregators: List[str], scalers: List[str],
                  nhead: int = 4,
                  residual: bool = True, pairwise_distances: bool = False, activation: Union[Callable, str] = "relu",
                  last_activation: Union[Callable, str] = "none", mid_batch_norm: bool = False,
                  last_batch_norm: bool = False, batch_norm_momentum=0.1,
-                 dropout: float = 0.0, posttrans_layers: int = 1, pretrans_layers: int = 1, **kwargs):
+                 dropout: float = 0.0, posttrans_layers: int = 1, pretrans_layers: int = 1, combine_mlp_batchnorm_last = False, **kwargs):
         super(PNATransformerLayer, self).__init__()
 
-        self.transformer_layer = TransformerEncoderLayer(d_model=in_dim, dim_feedforward=dim_feedforward,
+        self.transformer_layer = TransformerEncoderLayer(d_model=hidden_dim, dim_feedforward=dim_feedforward,
                                                          nhead=nhead, batch_first=True, dropout=dropout,
                                                          activation=activation)
 
-        self.pna_layer = PNALayer(in_dim=in_dim, out_dim=out_dim, in_dim_edges=in_dim,
+        self.pna_layer = PNALayer(in_dim=hidden_dim, out_dim=hidden_dim, in_dim_edges=hidden_dim,
                                   aggregators=aggregators, scalers=scalers, pairwise_distances=pairwise_distances,
                                   residual=residual, dropout=dropout, activation=activation,
                                   last_activation=last_activation, mid_batch_norm=mid_batch_norm,
                                   last_batch_norm=last_batch_norm, avg_d={"log": 1.0},
                                   posttrans_layers=posttrans_layers, pretrans_layers=pretrans_layers,
                                   batch_norm_momentum=batch_norm_momentum)
+        self.combine_mlp = MLP(in_dim=2*hidden_dim, hidden_size=hidden_dim,
+                          last_batch_norm=combine_mlp_batchnorm_last, out_dim=hidden_dim,
+                          layers=1, batch_norm_momentum=batch_norm_momentum)
 
-    def forward(self, graph, h, mask):
-        batch_size, n_atoms_plus_one, _ = h.size()
+    def forward(self, graph, h, mask_include_vnode, mask_exclude_vnode):
+        # shape of masks: [batch_size, max_num_atoms + 1]
+        batch_size, n_atoms_plus_one, hidden_dim = h.size()
 
-        self.pna_layer(graph)
+        h_graph_padded = h.clone() # [batch_size, max_num_atoms + 1, hidden_dim]
+        self.pna_layer(graph) 
         h_graph = graph.ndata['feat'] # [n_nodes, hidden_dim]
+        h_graph_padded = h_graph_padded.view(-1, hidden_dim) # [batch_size*(max_num_atoms + 1), hidden_dim]
+        mask = mask_exclude_vnode.view(-1).unsqueeze(1).expand(-1, hidden_dim) # [batch_size*(max_num_atoms + 1), hidden_dim]
+        ic(mask.shape)
+        ic(h_graph_padded.shape)
+        ic(h_graph.shape)
+        ic(mask.shape[0]*mask.shape[1]-mask.count_nonzero())
+        ic(mask.count_nonzero())
+        ic(h_graph.shape[0]*h_graph.shape[1])
+        h_graph_padded[~mask.nonzero()] = h_graph
 
-        h = self.transformer_layer(h, src_key_padding_mask=mask) # [batch_size, max_num_atoms + 1, hidden_dim]
+        h_transformer = self.transformer_layer(h, src_key_padding_mask=mask_include_vnode) # [batch_size, max_num_atoms + 1, hidden_dim]
 
-
+        h = torch.cat([h_graph_padded, h_transformer.view(-1, hidden_dim)], dim=1)   # [batch_size*(max_num_atoms + 1), 2*hidden_dim]
+        h = self.combine_mlp(h) # [batch_size*(max_num_atoms + 1), 2*hidden_dim]
+        h = h.view(batch_size, n_atoms_plus_one, hidden_dim) # [batch_size, max_num_atoms + 1, hidden_dim]
         return h
