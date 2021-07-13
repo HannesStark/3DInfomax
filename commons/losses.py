@@ -312,6 +312,10 @@ class NTXentMMDSeparate2D(_Loss):
         if self.norm:
             z1 = F.normalize(z1, dim=2)
             z2 = F.normalize(z2, dim=2)
+        ic(z1.mean())
+        if torch.isnan(z1).any():
+            ic(z1)
+            raise Exception
 
         mmd_similarity = []
         for i in range(batch_size):
@@ -325,13 +329,26 @@ class NTXentMMDSeparate2D(_Loss):
                 XY = kernels[:num_conformers, num_conformers:]
                 YX = kernels[num_conformers:, :num_conformers]
                 loss = torch.mean(XX + YY - XY - YX)
-                mmd_similarity.append((-loss))
+                mmd_similarity.append(1/(loss+1))
         mmd_similarity = torch.stack(mmd_similarity)
         mmd_similarity = mmd_similarity.view(batch_size, batch_size)
+        ic(mmd_similarity)
         sim_matrix = torch.exp(mmd_similarity / self.tau)
+        ic(sim_matrix.mean())
+        if torch.isnan(sim_matrix).any():
+            ic(sim_matrix)
+            raise Exception
         pos_sim = torch.diagonal(sim_matrix)
         loss = pos_sim / (sim_matrix.sum(dim=1) - pos_sim)
+        ic(loss.mean())
+        if torch.isnan(loss).any():
+            ic(loss)
+            raise Exception
         loss = - torch.log(loss).mean()
+        ic(loss.mean())
+        if torch.isnan(loss).any():
+            ic(loss)
+            raise Exception
 
         if self.variance_reg > 0:
             loss += self.variance_reg * (std_loss(z1) + std_loss(z2))

@@ -1,11 +1,11 @@
-experiment_name: 'baseline_200hidden'
+experiment_name: 'baseline_molbace_net'
 
-dataset: 'ogbg-molbace'
+dataset: 'ogbg-molesol'
 num_epochs: 1000
 batch_size: 32
 log_iterations: 30
 patience: 30
-loss_func: BCEWithLogitsLoss
+loss_func: L1Loss
 required_data:
   - dgl_graph
   - targets
@@ -15,12 +15,12 @@ metrics:
   - pearsonr
 optimizer: Adam
 optimizer_params:
-  lr: 1.0e-4
+  lr: 1.0e-3
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [1500]
+  warmup_steps: [100]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
@@ -39,7 +39,7 @@ model_parameters:
   last_batch_norm: True
   readout_batchnorm: True
   # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
-  batch_norm_momentum: 0.96
+  batch_norm_momentum: 0.1
   readout_hidden_dim: 200
   readout_layers: 2
   dropout: 0.0
@@ -61,6 +61,8 @@ model_parameters:
   pretrans_layers: 2
   posttrans_layers: 1
   residual: True
+
+
 
 
 # continue training from checkpoint:

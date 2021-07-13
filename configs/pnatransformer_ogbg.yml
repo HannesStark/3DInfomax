@@ -2,8 +2,8 @@ experiment_name: 'baseline'
 
 dataset: 'ogbg-molhiv'
 num_epochs: 1000
-batch_size: 128
-log_iterations: 1
+batch_size: 16
+log_iterations: 20
 patience: 30
 loss_func: BCEWithLogitsLoss
 required_data:
@@ -21,17 +21,18 @@ optimizer: AdamW
 optimizer_params:
   lr: 2.0e-4
 
-scheduler_step_per_batch: True
+scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [40000]
+  warmup_steps: [500]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
-  wrapped_scheduler: OneCycleLR
-  epochs: 200
-  steps_per_epoch: 258
-  anneal_strategy: 'linear'
-  max_lr: 2.0e-4
+  wrapped_scheduler: ReduceLROnPlateau
+  factor: 0.5
+  patience: 25
+  min_lr: 5.0e-6
+  mode: 'min'
+  verbose: True
 
 model_type: 'PNATransformer'
 model_parameters:

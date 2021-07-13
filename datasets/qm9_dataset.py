@@ -22,18 +22,6 @@ hartree2eV = physical_constants['hartree-electron volt relationship'][0]
 class QM9Dataset(Dataset):
     """The QM9 Dataset. It loads the specified types of data into memory. The processed data is saved in eV units.
 
-    The dataset can return these types of data and you choose them via the return_types parameter
-
-    - class 0 : mol_graph
-    - class 1 : raw_features: [n_atoms, 10]  10 features for each atom of the molecule (1 hot encoded atomic number, hybridization type, aromatic ...)
-    - class 2 : coordinates: [n_atoms, 3] 3D coordinates of each atom
-    - class 3 : mol_id: single number, id of molecule
-    - class 4 : targets: tensor of shape [n_tasks] with the tasks specified by the target_tasks parameter
-    - class 5 : one_hot_bond_types: [n_edges, 4] one hot encoding of bond type single, double, triple, aromatic
-    - class 6 : edge_indices: [2, n_edges] list of edges
-    - class 7 : smiles: SMILES representation of the molecule
-    - class 8 : atomic_number_long: [n_atoms] atomic numbers
-
     The targets are:
     +--------+----------------------------------+-----------------------------------------------------------------------------------+---------------------------------------------+
     | Target | Property                         | Description                                                                       | Unit                                        |
@@ -103,40 +91,6 @@ class QM9Dataset(Dataset):
         Whether or not to load the dgl graphs into memory. This takes a bit more memory and the upfront computation but
         the graph creation does not have to be done during training which is nice because it takes a long time and can
         slow down training
-
-    Attributes
-    ----------
-    return_types: list
-        A list with which types of data should be loaded and returened by getitems. Possible options are
-        ['mol_graph', 'raw_features', 'coordinates', 'mol_id', 'targets', 'one_hot_bond_types', 'edge_indices', 'smiles', 'atomic_number_long']
-        and the default is ['mol_graph', 'targets']
-    target_tasks: list
-        A list specifying which targets should be included in the returend targets, if targets are returned
-        options are ['A', 'B', 'C', 'mu', 'alpha', 'homo', 'lumo', 'gap', 'r2', 'zpve', 'u0', 'u298', 'h298', 'g298', 'cv', 'u0_atom', 'u298_atom', 'h298_atom', 'g298_atom']
-        and default is ['mu', 'alpha', 'homo', 'lumo', 'gap', 'r2', 'zpve', 'u0', 'u298', 'h298', 'g298', 'cv']
-        which is the stuff that is commonly predicted by papers like DimeNet, Equivariant GNNs, Spherical message passing
-        The returned targets will be in the order specified by this list
-    features:
-        possible features are ['standard_normal_noise', 'implicit-valence','degree','hybridization','chirality','mass','electronegativity','aromatic-bond','formal-charge','radical-electron','in-ring','atomic-number', 'vec1', 'vec2', 'vec3', 'vec-1', 'vec-2', 'vec-3', 'inv_vec1', 'inv_vec2', 'inv_vec3', 'inv_vec-1', 'inv_vec-2', 'inv_vec-3']
-
-    features3d:
-        possible features are ['standard_normal_noise', 'implicit-valence','degree','hybridization','chirality','mass','electronegativity','aromatic-bond','formal-charge','radical-electron','in-ring','atomic-number', 'vec1', 'vec2', 'vec3', 'vec-1', 'vec-2', 'vec-3', 'inv_vec1', 'inv_vec2', 'inv_vec3', 'inv_vec-1', 'inv_vec-2', 'inv_vec-3']
-    others: list
-        TODO
-
-    Examples
-    --------
-    >>> dataset = QM9Dataset(return_types=['mol_graph', 'targets', 'coordinates'])
-
-    The dataset instance is an iterable
-
-    >>> len(data)
-    130831
-    >>> g, label, coordinates = data[0]
-    >>> g
-    Graph(num_nodes=5, num_edges=8,
-      ndata_schemes={'features': Scheme(shape=(10,), dtype=torch.float32)}
-      edata_schemes={})
     """
 
     def __init__(self, return_types: list = None,
@@ -219,36 +173,10 @@ class QM9Dataset(Dataset):
         if 'smiles' in self.return_types:
             self.smiles = pd.read_csv(os.path.join(self.qm9_directory, self.raw_qm9_file))['smiles']
 
-        self.prefetch_graphs = prefetch_graphs
-        if self.prefetch_graphs and any(return_type in self.return_types for return_type in
-                                        ['mol_graph', 'mol_graph3d', 'se3Transformer_graph', 'se3Transformer_graph3d']):
-            print(
-                'Load molecular graphs into memory (set prefetch_graphs to False to load them on the fly => slower training)')
-            self.mol_graphs = []
-            for idx, n_atoms in tqdm(enumerate(self.meta_dict['n_atoms'])):
-                e_start = self.meta_dict['edge_slices'][idx]
-                e_end = self.meta_dict['edge_slices'][idx + 1]
-                edge_indices = self.edge_indices[:, e_start: e_end]
-                self.mol_graphs.append(dgl.graph((edge_indices[0], edge_indices[1]), num_nodes=n_atoms))
+        self.mol_graphs = {}
         self.pairwise = {}  # for memoization
-        if self.prefetch_graphs and (
-                'complete_graph' in self.return_types or 'complete_graph3d' in self.return_types or 'san_graph' in self.return_types):
-            print(
-                'Load complete graphs into memory (set prefetch_graphs to False to load them on the fly => slower training)')
-            self.complete_graphs = []
-            for idx, n_atoms in tqdm(enumerate(self.meta_dict['n_atoms'])):
-                src, dst = self.get_pairwise(n_atoms)
-                self.complete_graphs.append(dgl.graph((src, dst)))
-        if self.prefetch_graphs and (
-                'mol_complete_graph' in self.return_types or 'mol_complete_graph3d' in self.return_types):
-            print(
-                'Load mol_complete_graph graphs into memory (set prefetch_graphs to False to load them on the fly => slower training)')
-            self.mol_complete_graphs = []
-            for idx, n_atoms in tqdm(enumerate(self.meta_dict['n_atoms'])):
-                src, dst = self.get_pairwise(n_atoms)
-                self.mol_complete_graphs.append(
-                    dgl.heterograph({('atom', 'bond', 'atom'): (src, dst), ('atom', 'complete', 'atom'): (src, dst)}))
-        print('Finish loading data into memory')
+        self.complete_graphs = {}
+        self.mol_complete_graphs = {}
 
         self.avg_degree = data_dict['avg_degree']
         # indices of the tasks that should be retrieved
@@ -282,6 +210,8 @@ class QM9Dataset(Dataset):
     def __len__(self):
         return len(self.meta_dict['mol_id'])
 
+
+
     def __getitem__(self, idx):
         """
 
@@ -303,38 +233,44 @@ class QM9Dataset(Dataset):
             data.append(self.data_by_type(idx, return_type, e_start, e_end, start, n_atoms))
         return tuple(data)
 
-    def get_graph(self, idx, e_start, e_end, n_atoms):
-        if self.prefetch_graphs:
-            g = self.mol_graphs[idx]
+    def get_graph(self, idx, e_start, e_end, n_atoms, start):
+        if idx in self.mol_graphs:
+            return self.mol_graphs[idx]
         else:
             edge_indices = self.edge_indices[:, e_start: e_end]
             g = dgl.graph((edge_indices[0], edge_indices[1]), num_nodes=n_atoms)
-        return g
+            g.ndata['feat'] = self.features_tensor[start: start + n_atoms].to(self.device)
+            g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
+            g.edata['feat'] = self.e_features_tensor[e_start: e_end].to(self.device)
+            self.mol_graphs[idx] = g
+            return g
 
-    def get_complete_graph(self, idx, n_atoms):
-        if self.prefetch_graphs:
-            g = self.complete_graphs[idx]
+    def get_complete_graph(self, idx, n_atoms,start):
+        if idx in self.complete_graphs:
+            return self.complete_graphs[idx]
         else:
             src, dst = self.get_pairwise(n_atoms)
             g = dgl.graph((src, dst))
-        return g
+            g.ndata['feat'] = self.features_tensor[start: start + n_atoms]
+            g.ndata['x'] = self.coordinates[start: start + n_atoms]
+            g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2, dim=-1).unsqueeze(-1)
+            self.complete_graphs[idx] = g
+            return g
 
     def get_mol_complete_graph(self, idx, e_start, e_end, n_atoms):
-        if self.prefetch_graphs:
-            g = self.mol_complete_graphs[idx]
+        if idx in self.mol_complete_graphs:
+            return self.mol_complete_graphs[idx]
         else:
             edge_indices = self.edge_indices[:, e_start: e_end]
             src, dst = self.get_pairwise(n_atoms)
             g = dgl.heterograph({('atom', 'bond', 'atom'): (edge_indices[0], edge_indices[1]),
                                  ('atom', 'complete', 'atom'): (src, dst)})
-        return g
+            self.mol_complete_graphs[idx] = g
+            return g
 
     def data_by_type(self, idx, return_type, e_start, e_end, start, n_atoms):
         if return_type == 'mol_graph':
-            g = self.get_graph(idx, e_start, e_end, n_atoms).to(self.device)
-            g.ndata['feat'] = self.features_tensor[start: start + n_atoms].to(self.device)
-            g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
-            g.edata['feat'] = self.e_features_tensor[e_start: e_end].to(self.device)
+            g = self.get_graph(idx, e_start, e_end, n_atoms, start).to(self.device)
             return g
         elif return_type == 'mol_graph3d':
             g = self.get_graph(idx, e_start, e_end, n_atoms).to(self.device)
@@ -343,10 +279,6 @@ class QM9Dataset(Dataset):
             return g
         elif return_type == 'complete_graph':  # complete graph without self loops
             g = self.get_complete_graph(idx, n_atoms).to(self.device)
-            g.ndata['feat'] = self.features_tensor[start: start + n_atoms].to(self.device)
-            g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
-            g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2, dim=-1).unsqueeze(
-                -1)
 
             # set edge features with padding for virtual edges
             bond_features = self.e_features_tensor[e_start: e_end].to(self.device)
@@ -362,11 +294,7 @@ class QM9Dataset(Dataset):
                 g.edata['d_rbf'] = self.dist_embedder(g.edata['feat']).to(self.device)
             return g
         elif return_type == 'complete_graph3d':
-            g = self.get_complete_graph(idx, n_atoms).to(self.device)
-            g.ndata['feat'] = self.features_tensor[start: start + n_atoms].to(self.device)
-            g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
-            g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2, dim=-1).unsqueeze(
-                -1)
+            g = self.get_complete_graph(idx, n_atoms, start).to(self.device)
             if self.dist_embedding:
                 g.edata['d_rbf'] = self.dist_embedder(g.edata['feat']).to(self.device)
             return g

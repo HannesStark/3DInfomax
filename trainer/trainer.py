@@ -175,6 +175,7 @@ class Trainer():
                     for key, value in metrics_results.items():
                         total_metrics[key] += value
                 if optim == None and not self.val_per_batch:
+                    epoch_loss += loss.item()
                     epoch_targets = torch.cat((targets, epoch_targets), 0)
                     epoch_predictions = torch.cat((predictions, epoch_predictions), 0)
 
@@ -183,7 +184,7 @@ class Trainer():
                 total_metrics = {k: v / len(data_loader) for k, v in total_metrics.items()}
             else:
                 total_metrics = self.evaluate_metrics(epoch_predictions, epoch_targets, val=True)
-                total_metrics[type(self.loss_func).__name__] = epoch_loss / len(data_loader)
+            total_metrics[type(self.loss_func).__name__] = epoch_loss / len(data_loader)
             return total_metrics
 
     def after_optim_step(self):

@@ -8,9 +8,9 @@ from ogb.graphproppred import GraphPropPredDataset, DglGraphPropPredDataset
 from torch.utils.data import Subset
 
 
-class OGBGDatsetExtension(GraphPropPredDataset):
+class OGBGDatasetExtension(GraphPropPredDataset):
     def __init__(self, return_types, name, device, root='dataset', meta_dict=None, num_freq=10):
-        super(OGBGDatsetExtension, self).__init__(name=name, root=root, meta_dict=meta_dict)
+        super(OGBGDatasetExtension, self).__init__(name=name, root=root, meta_dict=meta_dict)
         '''
             - name (str): name of the dataset
             - root (str): root directory to store the dataset folder

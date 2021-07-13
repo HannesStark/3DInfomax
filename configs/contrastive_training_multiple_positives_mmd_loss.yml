@@ -1,6 +1,6 @@
 experiment_name: 'KLDivergenceMultiplePositives'
 
-dataset: drugs
+dataset: geom_qm9
 num_epochs: 1000
 batch_size: 4
 prefetch_graphs: False
@@ -9,7 +9,7 @@ patience: 35
 loss_func: NTXentMMDSeparate2D
 loss_params:
   tau: 0.1
-num_train: 120000
+num_train: 50000
 
 required_data:
   - mol_graph
@@ -28,8 +28,7 @@ collate_params:
 
 optimizer: Adam
 optimizer_params:
-  lr: 8.0e-5
-  weight_decay: 5.0e-7
+  lr: 8.0e-3
 
 
 scheduler_step_per_batch: False

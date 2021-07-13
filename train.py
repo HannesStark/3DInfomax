@@ -14,9 +14,10 @@ from datasets.esol_geomol_feat import ESOLGeomol
 from datasets.geom_drugs_dataset import GEOMDrugs
 from datasets.geom_qm9_dataset import GEOMqm9
 from datasets.lipo_geomol_feat import LIPOGeomol
-from datasets.ogbg_dataset_extension import OGBGDatsetExtension
+from datasets.ogbg_dataset_extension import OGBGDatasetExtension
 
 from datasets.qm9_geomol_featurization import QM9GeomolFeaturization
+from datasets.qmugs_dataset import QMugsDataset
 from models.geomol_mpnn import GeomolGNNWrapper
 from trainer.byol_trainer import BYOLTrainer
 from trainer.byol_wrapper import BYOLwrapper
@@ -160,6 +161,8 @@ def train(args):
         train_qm9(args, device, metrics_dict)
     elif args.dataset == 'zinc':
         train_zinc(args, device, metrics_dict)
+    elif args.dataset == 'qmugs':
+        train_geom(args, device, metrics_dict)
     elif args.dataset == 'drugs' or args.dataset == 'geom_qm9':
         train_geom(args, device, metrics_dict)
     elif args.dataset == 'qm9_geomol':
@@ -218,8 +221,7 @@ def train_bace_geomol(args, device, metrics_dict):
 
 def train_geomol_qm9(args, device, metrics_dict):
     all_data = QM9GeomolFeaturization(return_types=args.required_data, target_tasks=args.targets, device=device,
-                                      dist_embedding=args.dist_embedding, num_radial=args.num_radial,
-                                      prefetch_graphs=args.prefetch_graphs)
+                                      dist_embedding=args.dist_embedding, num_radial=args.num_radial)
 
     all_idx = get_random_indices(len(all_data), args.seed_data)
     model_idx = all_idx[:100000]
@@ -266,7 +268,7 @@ def train_geomol_qm9(args, device, metrics_dict):
 
 
 def train_ogbg(args, device, metrics_dict):
-    dataset = OGBGDatsetExtension(return_types=args.required_data, device=device, name=args.dataset)
+    dataset = OGBGDatasetExtension(return_types=args.required_data, device=device, name=args.dataset)
     split_idx = dataset.get_idx_split()
     collate_function = globals()[args.collate_function] if args.collate_params == {} else globals()[
         args.collate_function](**args.collate_params)
@@ -293,9 +295,9 @@ def train_ogbg(args, device, metrics_dict):
 
 
 def train_zinc(args, device, metrics_dict):
-    train_data = ZINCDataset(split='train', device=device, prefetch_graphs=args.prefetch_graphs)
-    val_data = ZINCDataset(split='val', device=device, prefetch_graphs=args.prefetch_graphs)
-    test_data = ZINCDataset(split='test', device=device, prefetch_graphs=args.prefetch_graphs)
+    train_data = ZINCDataset(split='train', device=device)
+    val_data = ZINCDataset(split='val', device=device)
+    test_data = ZINCDataset(split='test', device=device)
 
     model, num_pretrain = load_model(args, data=train_data, device=device)
     print('model trainable params: ', sum(p.numel() for p in model.parameters() if p.requires_grad))
@@ -319,13 +321,24 @@ def train_zinc(args, device, metrics_dict):
 
 
 def train_geom(args, device, metrics_dict):
-    dataset = GEOMDrugs if args.dataset == 'drugs' else GEOMqm9
-    all_data = dataset(return_types=args.required_data, target_tasks=args.targets, device=device,
-                       prefetch_graphs=args.prefetch_graphs)
+    dataset = GEOMDrugs \
+
+    if args.dataset == 'drugs':
+        dataset = GEOMDrugs
+    elif args.dataset =='geom_qm9':
+        dataset = GEOMqm9
+    elif args.dataset == 'qmugs':
+        dataset = QMugsDataset
+    all_data = dataset(return_types=args.required_data, target_tasks=args.targets, device=device)
 
     all_idx = get_random_indices(len(all_data), args.seed_data)
-    model_idx = all_idx[:240000] if args.dataset == 'drugs' else all_idx[:100000]
-    test_idx = all_idx[len(model_idx): len(model_idx) + int(0.1 * len(all_data))]
+    if args.dataset == 'drugs':
+        model_idx = all_idx[:240000]
+    elif args.dataset =='geom_qm9':
+        model_idx = all_idx[:100000]
+    elif args.dataset == 'qmugs':
+        model_idx = all_idx[:620000]
+    test_idx = all_idx[len(model_idx): len(model_idx) + int(0.05 * len(all_data))]
     val_idx = all_idx[len(model_idx) + len(test_idx):]
     train_idx = model_idx[:args.num_train]
     # for debugging purposes:
@@ -363,8 +376,7 @@ def train_geom(args, device, metrics_dict):
 
 def train_qm9(args, device, metrics_dict):
     all_data = QM9Dataset(return_types=args.required_data, target_tasks=args.targets, device=device,
-                          dist_embedding=args.dist_embedding, num_radial=args.num_radial,
-                          prefetch_graphs=args.prefetch_graphs)
+                          dist_embedding=args.dist_embedding, num_radial=args.num_radial)
 
     all_idx = get_random_indices(len(all_data), args.seed_data)
     model_idx = all_idx[:100000]
@@ -408,13 +420,11 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/pnatransformer.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/pna_qmugs.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
     p.add_argument('--batch_size', type=int, default=1024, help='samples that will be processed in parallel')
-    p.add_argument('--prefetch_graphs', type=bool, default=True,
-                   help='load graphs into memory (needs RAM and upfront computation) for faster data loading during training')
     p.add_argument('--patience', type=int, default=20, help='stop training after no improvement in this many epochs')
     p.add_argument('--minimum_epochs', type=int, default=0, help='minimum numer of epochs to run')
     p.add_argument('--dataset', type=str, default='qm9', help='[qm9, zinc, drugs, geom_qm9, molhiv]')

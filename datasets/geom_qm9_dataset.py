@@ -89,36 +89,10 @@ class GEOMqm9(Dataset):
             self.eig_vals = data_dict['eig_vals']
             self.eig_vecs = data_dict['eig_vecs']
 
-        self.prefetch_graphs = prefetch_graphs
-        if self.prefetch_graphs and any(return_type in self.return_types for return_type in
-                                        ['mol_graph', 'mol_graph3d', 'se3Transformer_graph', 'se3Transformer_graph3d']):
-            print(
-                'Load molecular graphs into memory (set prefetch_graphs to False to load them on the fly => slower training)')
-            self.mol_graphs = []
-            for idx, n_atoms in tqdm(enumerate(self.meta_dict['n_atoms'])):
-                e_start = self.meta_dict['edge_slices'][idx]
-                e_end = self.meta_dict['edge_slices'][idx + 1]
-                edge_indices = self.edge_indices[:, e_start: e_end]
-                self.mol_graphs.append(dgl.graph((edge_indices[0], edge_indices[1]), num_nodes=n_atoms))
+        self.mol_graphs = {}
         self.pairwise = {}  # for memoization
-        if self.prefetch_graphs and (
-                'complete_graph' in self.return_types or 'complete_graph3d' in self.return_types or 'san_graph' in self.return_types):
-            print(
-                'Load complete graphs into memory (set prefetch_graphs to False to load them on the fly => slower training)')
-            self.complete_graphs = []
-            for idx, n_atoms in tqdm(enumerate(self.meta_dict['n_atoms'])):
-                src, dst = self.get_pairwise(n_atoms)
-                self.complete_graphs.append(dgl.graph((src, dst)))
-        if self.prefetch_graphs and (
-                'mol_complete_graph' in self.return_types or 'mol_complete_graph3d' in self.return_types):
-            print(
-                'Load mol_complete_graph graphs into memory (set prefetch_graphs to False to load them on the fly => slower training)')
-            self.mol_complete_graphs = []
-            for idx, n_atoms in tqdm(enumerate(self.meta_dict['n_atoms'])):
-                src, dst = self.get_pairwise(n_atoms)
-                self.mol_complete_graphs.append(
-                    dgl.heterograph({('atom', 'bond', 'atom'): (src, dst), ('atom', 'complete', 'atom'): (src, dst)}))
-        print('Finish loading data into memory')
+        self.complete_graphs = {}
+        self.mol_complete_graphs = {}
 
         self.avg_degree = data_dict['avg_degree']
         # indices of the tasks that should be retrieved
@@ -166,30 +140,33 @@ class GEOMqm9(Dataset):
         return tuple(data)
 
     def get_graph(self, idx, e_start, e_end, n_atoms):
-        if self.prefetch_graphs:
-            g = self.mol_graphs[idx]
+        if idx in self.mol_graphs:
+            return self.mol_graphs[idx]
         else:
             edge_indices = self.edge_indices[:, e_start: e_end]
             g = dgl.graph((edge_indices[0], edge_indices[1]), num_nodes=n_atoms)
-        return g
+            self.mol_graphs[idx] = g
+            return g
 
     def get_complete_graph(self, idx, n_atoms):
-        if self.prefetch_graphs:
-            g = self.complete_graphs[idx]
+        if idx in self.complete_graphs:
+            return self.complete_graphs[idx]
         else:
             src, dst = self.get_pairwise(n_atoms)
             g = dgl.graph((src, dst))
-        return g
+            self.complete_graphs[idx] = g
+            return g
 
     def get_mol_complete_graph(self, idx, e_start, e_end, n_atoms):
-        if self.prefetch_graphs:
-            g = self.mol_complete_graphs[idx]
+        if idx in self.mol_complete_graphs:
+            return self.mol_complete_graphs[idx]
         else:
             edge_indices = self.edge_indices[:, e_start: e_end]
             src, dst = self.get_pairwise(n_atoms)
             g = dgl.heterograph({('atom', 'bond', 'atom'): (edge_indices[0], edge_indices[1]),
                                  ('atom', 'complete', 'atom'): (src, dst)})
-        return g
+            self.mol_complete_graphs[idx] = g
+            return g
 
     def data_by_type(self, idx, return_type, e_start, e_end, start, n_atoms):
         if return_type == 'conformations':

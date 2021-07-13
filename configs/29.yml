@@ -1,4 +1,4 @@
-experiment_name: 'baseline_200hidden'
+experiment_name: 'baseline_molbbbp_net'
 
 dataset: 'ogbg-molbbbp'
 num_epochs: 1000
@@ -15,12 +15,12 @@ metrics:
   - pearsonr
 optimizer: Adam
 optimizer_params:
-  lr: 1.0e-3
+  lr: 1.0e-4
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [1500]
+  warmup_steps: [100]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
@@ -61,6 +61,9 @@ model_parameters:
   pretrans_layers: 2
   posttrans_layers: 1
   residual: True
+
+
+
 
 
 
