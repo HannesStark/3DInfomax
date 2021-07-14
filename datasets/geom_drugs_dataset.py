@@ -39,20 +39,8 @@ class GEOMDrugs(Dataset):
 
     """
 
-    def __init__(self, return_types: list = None,
-                 target_tasks: list = None,
-                 normalize: bool = True, device='cuda:0',
-                 prefetch_graphs=True, transform=None, num_conformers=1, **kwargs):
-        self.return_type_options = ['mol_graph', 'complete_graph', 'mol_graph3d', 'complete_graph3d', 'san_graph',
-                                    'mol_complete_graph',
-                                    'se3Transformer_graph', 'se3Transformer_graph3d',
-                                    'pairwise_distances', 'pairwise_distances_squared',
-                                    'pairwise_indices',
-                                    'raw_features', 'coordinates',
-                                    'dist_embedding',
-                                    'mol_id', 'targets',
-                                    'one_hot_bond_types', 'edge_indices', 'smiles', 'atomic_number_long',
-                                    'conformations', 'complete_graph_random_conformer']
+    def __init__(self, return_types: list = None, target_tasks: list = None, normalize: bool = True, device='cuda:0', num_conformers=1, **kwargs):
+
         self.target_types = ['ensembleenergy', 'ensembleentropy', 'ensemblefreeenergy', 'lowestenergy', 'poplowestpct',
                              'temperature', 'uniqueconfs']
         self.directory = 'dataset/GEOM'
@@ -63,15 +51,8 @@ class GEOMDrugs(Dataset):
                         'Bi': 83, 'Si': 14, 'As': 33, 'Al': 13, 'Hg': 80}
         self.normalize = normalize
         self.device = device
-        self.transform = transform
-        self.conformer_categorical = torch.distributions.Categorical(logits=torch.ones(num_conformers))
-
-        if return_types == None:  # set default
-            self.return_types: list = ['mol_graph', 'targets']
-        else:
-            self.return_types: list = return_types
-        for return_type in self.return_types:
-            if not return_type in self.return_type_options: raise Exception(f'return_type not supported: {return_type}')
+        self.num_conformers = num_conformers
+        self.return_types: list = return_types
 
         # load the data and get normalization values
         if not os.path.exists(os.path.join(self.directory, 'processed', self.processed_file)):
@@ -84,7 +65,9 @@ class GEOMDrugs(Dataset):
         self.e_features_tensor = data_dict['edge_features']
 
         self.coordinates = data_dict['coordinates'][:, :3]
-        self.conformations = data_dict['coordinates'] if 'conformations' in self.return_types or 'complete_graph_random_conformer' in self.return_types else None
+        if 'conformations' in self.return_types or 'complete_graph_random_conformer' in self.return_types:
+            self.conformations = data_dict['coordinates']
+            self.conformer_categorical = torch.distributions.Categorical(logits=torch.ones(num_conformers))
         self.edge_indices = data_dict['edge_indices']
 
         self.atom_padding_indices = torch.tensor(get_atom_feature_dims(), dtype=torch.long, device=device)[None, :]
@@ -115,16 +98,6 @@ class GEOMDrugs(Dataset):
     def __len__(self):
         return len(self.meta_dict['smiles'])
 
-    def get_pairwise(self, n_atoms):
-        if n_atoms in self.pairwise:
-            return self.pairwise[n_atoms]
-        else:
-            src = torch.repeat_interleave(torch.arange(n_atoms), n_atoms - 1)
-            dst = torch.cat([torch.cat([torch.arange(n_atoms)[:idx], torch.arange(n_atoms)[idx + 1:]]) for idx in
-                             range(n_atoms)])  # without self loops
-            self.pairwise[n_atoms] = (src, dst)
-            return src, dst
-
     def __getitem__(self, idx):
         """
 
@@ -137,63 +110,74 @@ class GEOMDrugs(Dataset):
         tuple of all data specified via the return_types parameter of the constructor
         """
         data = []
-        e_start = self.meta_dict['edge_slices'][idx]
-        e_end = self.meta_dict['edge_slices'][idx + 1]
-        start = self.meta_dict['atom_slices'][idx]
-        n_atoms = self.meta_dict['n_atoms'][idx]
+        e_start = self.meta_dict['edge_slices'][idx].item()
+        e_end = self.meta_dict['edge_slices'][idx + 1].item()
+        start = self.meta_dict['atom_slices'][idx].item()
+        n_atoms = self.meta_dict['n_atoms'][idx].item()
 
         for return_type in self.return_types:
             data.append(self.data_by_type(idx, return_type, e_start, e_end, start, n_atoms))
         return tuple(data)
 
-    def get_graph(self, idx, e_start, e_end, n_atoms):
+    def get_pairwise(self, n_atoms):
+        if n_atoms in self.pairwise:
+            src, dst = self.pairwise[n_atoms]
+            return src.to(self.device), dst.to(self.device)
+        else:
+            arange = torch.arange(n_atoms, device=self.device)
+            src = torch.repeat_interleave(arange, n_atoms - 1)
+            dst = torch.cat([torch.cat([arange[:idx], arange[idx + 1:]]) for idx in range(n_atoms)])  # no self loops
+            self.pairwise[n_atoms] = (src.to('cpu'), dst.to('cpu'))
+            return src, dst
+
+    def get_graph(self, idx, e_start, e_end, n_atoms, start):
         if idx in self.mol_graphs:
-            return self.mol_graphs[idx]
+            return self.mol_graphs[idx].to(self.device)
         else:
             edge_indices = self.edge_indices[:, e_start: e_end]
-            g = dgl.graph((edge_indices[0], edge_indices[1]), num_nodes=n_atoms)
-            self.mol_graphs[idx] = g
+            g = dgl.graph((edge_indices[0], edge_indices[1]), num_nodes=n_atoms, device=self.device)
+            g.ndata['feat'] = self.features_tensor[start: start + n_atoms].to(self.device)
+            g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
+            g.edata['feat'] = self.e_features_tensor[e_start: e_end].to(self.device)
+            self.mol_graphs[idx] = g.to('cpu')
             return g
 
-    def get_complete_graph(self, idx, n_atoms):
+    def get_complete_graph(self, idx, n_atoms, start):
         if idx in self.complete_graphs:
-            return self.complete_graphs[idx]
+            return self.complete_graphs[idx].to(self.device)
         else:
             src, dst = self.get_pairwise(n_atoms)
-            g = dgl.graph((src, dst))
-            self.complete_graphs[idx] = g
+            g = dgl.graph((src, dst), device=self.device)
+            g.ndata['feat'] = self.features_tensor[start: start + n_atoms].to(self.device)
+            g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
+            g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2, dim=-1).unsqueeze(
+                -1)
+            self.complete_graphs[idx] = g.to('cpu')
             return g
 
-    def get_mol_complete_graph(self, idx, e_start, e_end, n_atoms):
+    def get_mol_complete_graph(self, idx, e_start, e_end, n_atoms, start):
         if idx in self.mol_complete_graphs:
-            return self.mol_complete_graphs[idx]
+            return self.mol_complete_graphs[idx].to(self.device)
         else:
             edge_indices = self.edge_indices[:, e_start: e_end]
             src, dst = self.get_pairwise(n_atoms)
             g = dgl.heterograph({('atom', 'bond', 'atom'): (edge_indices[0], edge_indices[1]),
-                                 ('atom', 'complete', 'atom'): (src, dst)})
+                                 ('atom', 'complete', 'atom'): (src, dst)}, device=self.device)
+            g.ndata['feat'] = self.features_tensor[start: start + n_atoms].to(self.device)
+            g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
             self.mol_complete_graphs[idx] = g
             return g
 
     def data_by_type(self, idx, return_type, e_start, e_end, start, n_atoms):
         if return_type == 'conformations':
             return self.conformations[start: start + n_atoms].to(self.device)
-        if return_type == 'mol_graph':
-            g = self.get_graph(idx, e_start, e_end, n_atoms).to(self.device)
-            g.ndata['feat'] = self.features_tensor[start: start + n_atoms].to(self.device)
-            g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
-            g.edata['feat'] = self.e_features_tensor[e_start: e_end].to(self.device)
-            return g
-        elif return_type == 'mol_graph3d':
-            g = self.get_graph(idx, e_start, e_end, n_atoms).to(self.device)
-            g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
+            for conf_idx in self.num_conformers:
+                pass
+        elif return_type == 'mol_graph':
+            g = self.get_graph(idx, e_start, e_end, n_atoms, start)
             return g
         elif return_type == 'complete_graph':  # complete graph without self loops
-            g = self.get_complete_graph(idx, n_atoms).to(self.device)
-            g.ndata['feat'] = self.features_tensor[start: start + n_atoms].to(self.device)
-            g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
-            g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2, dim=-1).unsqueeze(
-                -1)
+            g = self.get_complete_graph(idx, n_atoms, start)
 
             # set edge features with padding for virtual edges
             bond_features = self.e_features_tensor[e_start: e_end].to(self.device)
@@ -207,29 +191,21 @@ class GEOMDrugs(Dataset):
             g.edata['feat'] = e_features[src * n_atoms + dst]
             return g
         elif return_type == 'complete_graph3d':
-            g = self.get_complete_graph(idx, n_atoms).to(self.device)
-            g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
-            g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2, dim=-1).unsqueeze(
-                -1)
+            g = self.get_complete_graph(idx, n_atoms, start)
             return g
         elif return_type == 'complete_graph_random_conformer':
-            g = self.get_complete_graph(idx, n_atoms).to(self.device)
+            g = self.get_complete_graph(idx, n_atoms, start)
             m = self.conformer_categorical.sample()
             g.ndata['x'] = self.conformations[start: start + n_atoms, m * 3:(m + 1) * 3].to(self.device)
             g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2, dim=-1).unsqueeze(
                 -1)
             return g
-        if return_type == 'mol_complete_graph':
-            g = self.get_mol_complete_graph(idx, e_start, e_end, n_atoms).to(self.device)
-            g.ndata['feat'] = self.features_tensor[start: start + n_atoms].to(self.device)
-            g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
-
+        elif return_type == 'mol_complete_graph':
+            g = self.get_mol_complete_graph(idx, e_start, e_end, n_atoms,start)
             g.edges['bond'].data['feat'] = self.e_features_tensor[e_start: e_end].to(self.device)
             return g
-        if return_type == 'san_graph':
-            g = self.get_complete_graph(idx, n_atoms).to(self.device)
-            g.ndata['feat'] = self.features_tensor[start: start + n_atoms].to(self.device)
-            g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
+        elif return_type == 'san_graph':
+            g = self.get_complete_graph(idx, n_atoms, start)
             eig_vals = self.eig_vals[idx].to(self.device)
             sign_flip = torch.rand(eig_vals.shape[0], device=self.device)
             sign_flip[sign_flip >= 0.5] = 1.0
@@ -248,11 +224,7 @@ class GEOMDrugs(Dataset):
                                                                                 device=self.device)  # This indicates real edges
             return g
         elif return_type == 'se3Transformer_graph' or return_type == 'se3Transformer_graph3d':
-            g = self.get_graph(idx, e_start, e_end, n_atoms).to(self.device)
-            x = self.coordinates[start: start + n_atoms].to(self.device)
-            if self.transform:
-                x = self.transform(x)
-            g.ndata['x'] = x
+            g = self.get_graph(idx, e_start, e_end, n_atoms,start)
             g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2, dim=-1).unsqueeze(
                 -1)
             if self.e_features_tensor != None and return_type == 'se3Transformer_graph':

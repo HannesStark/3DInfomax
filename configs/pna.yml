@@ -1,9 +1,7 @@
 experiment_name: 'baseline'
 
-device: cpu
 num_epochs: 1000
 batch_size: 128
-prefetch_graphs: True
 log_iterations: 50
 patience: 30
 num_train: 50000
