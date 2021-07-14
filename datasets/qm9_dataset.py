@@ -239,9 +239,9 @@ class QM9Dataset(Dataset):
         else:
             edge_indices = self.edge_indices[:, e_start: e_end]
             g = dgl.graph((edge_indices[0], edge_indices[1]), num_nodes=n_atoms)
-            g.ndata['feat'] = self.features_tensor[start: start + n_atoms].to(self.device)
-            g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
-            g.edata['feat'] = self.e_features_tensor[e_start: e_end].to(self.device)
+            g.ndata['feat'] = self.features_tensor[start: start + n_atoms]
+            g.ndata['x'] = self.coordinates[start: start + n_atoms]
+            g.edata['feat'] = self.e_features_tensor[e_start: e_end]
             self.mol_graphs[idx] = g
             return g
 
