@@ -29,7 +29,7 @@ class QMugsDataset(Dataset):
                                     'pairwise_distances', 'pairwise_distances_squared', 'pairwise_indices',
                                     'raw_features', 'coordinates', 'dist_embedding', 'mol_id', 'targets',
                                     'one_hot_bond_types', 'edge_indices', 'smiles', 'atomic_number_long', 'n_atoms',
-                                    'positional_encoding', 'constant_ones', 'pytorch_geometric_graph']
+                                    'positional_encoding', 'constant_ones', 'pytorch_geometric_graph', 'conformations']
         self.root = '../../QMugs'
         self.processed_file = 'processed.pt'
         self.raw_csv = 'summary.csv'
@@ -53,6 +53,7 @@ class QMugsDataset(Dataset):
 
         self.e_features_tensor = data_dict['edge_features']
         self.coordinates = data_dict['coordinates'][:, :3].float()
+        self.conformations = data_dict['coordinates'].float() if 'conformations' in self.return_types or 'complete_graph_random_conformer' in self.return_types else None
         self.edge_indices = data_dict['edge_indices']
 
         self.meta_dict = {k: data_dict[k] for k in ('chembl_ids','edge_slices', 'atom_slices', 'n_atoms')}
@@ -141,7 +142,9 @@ class QMugsDataset(Dataset):
             return g
 
     def data_by_type(self, idx, return_type, e_start, e_end, start, n_atoms):
-        if return_type == 'mol_graph':
+        if return_type == 'conformations':
+            return self.conformations[start: start + n_atoms].to(self.device)
+        elif return_type == 'mol_graph':
             g = self.get_graph(idx, e_start, e_end, n_atoms).to(self.device)
             g.ndata['feat'] = self.features_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)

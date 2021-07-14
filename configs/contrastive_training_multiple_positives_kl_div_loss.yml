@@ -1,6 +1,6 @@
 experiment_name: 'KLDivergenceMultiplePositives'
 
-dataset: drugs
+dataset: qmugs
 num_epochs: 1000
 batch_size: 4
 prefetch_graphs: False
@@ -23,7 +23,7 @@ metrics:
 main_metric: loss
 collate_function: ConformerCollate
 collate_params:
-  num_conformers: 5
+  num_conformers: 3
 
 optimizer: Adam
 optimizer_params:

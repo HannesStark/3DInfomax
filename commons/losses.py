@@ -4,6 +4,7 @@ import math
 import dgl
 import torch
 from torch import Tensor, nn
+from torch.distributions import MultivariateNormal
 from torch.nn.modules.loss import _Loss, L1Loss, MSELoss, BCEWithLogitsLoss
 import numpy as np
 import torch.nn.functional as F
@@ -160,7 +161,8 @@ class NTXentMultiplePositives(_Loss):
             norm: Boolean. Whether to apply normlization.
         '''
 
-    def __init__(self, norm: bool = True, tau: float = 0.5, uniformity_reg=0, variance_reg=0, covariance_reg=0, conformer_variance_reg=0) -> None:
+    def __init__(self, norm: bool = True, tau: float = 0.5, uniformity_reg=0, variance_reg=0, covariance_reg=0,
+                 conformer_variance_reg=0) -> None:
         super(NTXentMultiplePositives, self).__init__()
         self.norm = norm
         self.tau = tau
@@ -234,31 +236,50 @@ class KLDivergenceMultiplePositives(_Loss):
         if self.norm:
             z1 = F.normalize(z1, dim=2)
             z2 = F.normalize(z2, dim=2)
-        z1_means = z1[:, 0, :]  # [batch_size, metric_dim]
-        z1_stds = z1[:, 1, :]  # [batch_size, metric_dim]
-        z2_means = z2.mean(1)  # [batch_size, metric_dim]
-        z2_stds = z2.std(1)  # [batch_size, metric_dim]
-        kl_similarity = []
-        for i, z1_mean in enumerate(z1_means):
-            for j, z2_mean in enumerate(z2_means):
-                z1_var = z1_stds[i] ** 2  # [metric_dim]
-                z2_var = z2_stds[j] ** 2  # [metric_dim]
 
-                log_det_diff = torch.log(((z1_var).prod() + 1e-5) / ((z2_var).prod()+ 1e-5))
+        z1_means = z1[:, 0, :]  # [batch_size, metric_dim]
+        z1_vars = torch.exp(z1[:, 1, :])  # [batch_size, metric_dim]
+        z2_means = z2.mean(1)  # [batch_size, metric_dim]
+        z2_vars = z2.var(1)  # [batch_size, metric_dim]
+        ic(torch.diag_embed(z2_vars))
+        normal1 = MultivariateNormal(z1_means, torch.diag_embed(z1_vars))
+        normal2 = MultivariateNormal(z2_means, torch.diag_embed(z2_vars))
+        kl_similarity3 = torch.distributions.kl_divergence(normal1, normal2)
+        kl_similarity4 = torch.distributions.kl_divergence(normal2, normal1)
+
+
+        z1_means = z1[:, 0, :].unsqueeze(0).expand(batch_size, -1, -1)  # [batch_size, batch_size, metric_dim]
+        z1_vars = (torch.exp(z1[:, 1, :])).unsqueeze(0).expand(batch_size, -1, -1)  # [batch_size, batch_size, metric_dim]
+        z2_means = z2.mean(1).unsqueeze(1).expand(-1, batch_size, -1)  # [batch_size, batch_size, metric_dim]
+        z2_vars = z2.var(1).unsqueeze(1).expand(-1, batch_size, -1)  # [batch_size, batch_size, metric_dim]
+
+        log_det_diff = torch.log(z1_vars.prod(dim=2) / (z2_vars.prod(dim=2)+ 1e-5))
+        trace_inv = ((1 / (z2_vars + 1e-5)) * z1_vars).sum(dim=2)
+        mean_sigma_mean = ((z2_means - z1_means) ** 2 * (1 / (z2_vars + 1e-5))).sum(dim=2)
+        kl_similarity2 = 0.5 * (log_det_diff - metric_dim + trace_inv + mean_sigma_mean)
+        kl_similarity = []
+        for i, z1_mean in enumerate(z1_means[0,:,:]):
+            for j, z2_mean in enumerate(z2_means[:, 0,:]):
+                z1_var = z1_vars[0,:,:][i]  # [metric_dim]
+                z2_var = z2_vars[:,0,:][j]  # [metric_dim]
+
+                log_det_diff = torch.log((z1_var).prod() / ((z2_var).prod() + 1e-5))
 
                 trace_inv = ((1 / (z2_var + 1e-5)) * z1_var).sum()
 
                 mean_sigma_mean = ((z2_mean - z1_mean) ** 2 * (1 / (z2_var + 1e-5))).sum()
 
                 kl_divergence = 0.5 * (log_det_diff - metric_dim + trace_inv + mean_sigma_mean)
-                kl_similarity.append(1-kl_divergence)
+                kl_similarity.append(1 - kl_divergence)
         kl_similarity = torch.stack(kl_similarity)
         kl_similarity = kl_similarity.view(batch_size, batch_size)
-
+        ic(kl_similarity4)
+        ic(kl_similarity3)
+        ic(kl_similarity2)
         ic(kl_similarity)
 
         sim_matrix = kl_similarity
-        #sim_matrix = torch.exp(kl_similarity / self.tau)
+        # sim_matrix = torch.exp(kl_similarity / self.tau)
         pos_sim = torch.diagonal(sim_matrix)
         loss = pos_sim / (sim_matrix.sum(dim=1) - pos_sim)
         loss = - torch.log(loss).mean()
@@ -271,8 +292,10 @@ class KLDivergenceMultiplePositives(_Loss):
             loss += self.uniformity_reg * uniformity_loss(z1, z2)
         return loss
 
+
 class NTXentMMDSeparate2D(_Loss):
-    def __init__(self, norm: bool = True, tau: float = 0.5, uniformity_reg=0, variance_reg=0, covariance_reg=0, kernel_num=5, kernel_mul = 2.0) -> None:
+    def __init__(self, norm: bool = True, tau: float = 0.5, uniformity_reg=0, variance_reg=0, covariance_reg=0,
+                 kernel_num=5, kernel_mul=2.0) -> None:
         super(NTXentMMDSeparate2D, self).__init__()
         self.norm = norm
         self.tau = tau
@@ -323,13 +346,13 @@ class NTXentMMDSeparate2D(_Loss):
                 source = z1[i]
                 target = z2[j]
                 kernels = self.guassian_kernel(source, target, kernel_mul=self.kernel_mul, kernel_num=self.kernel_num,
-                                          fix_sigma=self.fix_sigma)
+                                               fix_sigma=self.fix_sigma)
                 XX = kernels[:num_conformers, :num_conformers]
                 YY = kernels[num_conformers:, num_conformers:]
                 XY = kernels[:num_conformers, num_conformers:]
                 YX = kernels[num_conformers:, :num_conformers]
                 loss = torch.mean(XX + YY - XY - YX)
-                mmd_similarity.append(1/(loss+1))
+                mmd_similarity.append(1 / (loss + 1))
         mmd_similarity = torch.stack(mmd_similarity)
         mmd_similarity = mmd_similarity.view(batch_size, batch_size)
         ic(mmd_similarity)
@@ -357,6 +380,7 @@ class NTXentMMDSeparate2D(_Loss):
         if self.uniformity_reg > 0:
             loss += self.uniformity_reg * uniformity_loss(z1, z2)
         return loss
+
 
 class KLDivergenceMultiplePositivesV2(_Loss):
     '''
@@ -627,7 +651,6 @@ class NTXentMultiplePositivesSeparate2D(_Loss):
         if self.uniformity_reg > 0:
             loss += self.uniformity_reg * uniformity_loss(z1, z2)
         return loss
-
 
 
 class NTXentExtraNegatives(_Loss):
