@@ -1,5 +1,6 @@
 experiment_name: 'tune_from_drugs_property'
 
+seed: 1
 pretrain_checkpoint: runs/PNA_drugs_ogb_featurization_21-06_09-18-27/best_checkpoint.pt
 transfer_layers:
   - gnn
