@@ -1,51 +1,53 @@
-experiment_name: 'graphormer_settings'
+experiment_name: 'tune'
 
+seed: 1
+pretrain_checkpoint: runs2/geomol_drugs/best_model.pt
+transfer_layers:
+  - gnn2
+exclude_from_transfer:
+  - batch_norm
+
+dataset: esol_geomol
 num_epochs: 1000
-batch_size: 128
-prefetch_graphs: True
-log_iterations: 50
-patience: 30
-num_train: 50000
+batch_size: 32
+log_iterations: 30
+patience: 50
+minimum_epochs: 100
 loss_func: L1Loss
-targets:
-  - homo
-required_data:
-  - raw_features
-  - positional_encoding
-  - targets
 metrics:
-  - mae_denormalized
-  - pearsonr
   - rsquared
-  - qm9_properties
   - mean_predictor_loss
-collate_function: padded_collate_positional_encoding
+  - pearsonr
+collate_function: pytorch_geometric_collate
 
-optimizer: AdamW
+optimizer: Adam
 optimizer_params:
-  lr: 2.0e-4
+  lr: 1.0e-3
 
-scheduler_step_per_batch: True
+scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [40000]
+  warmup_steps: [700,700,390]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
-  wrapped_scheduler: OneCycleLR
-  epochs: 200
-  steps_per_epoch: 391
-  anneal_strategy: 'linear'
-  max_lr: 2.0e-4
+  wrapped_scheduler: ReduceLROnPlateau
+  factor: 0.5
+  patience: 25
+  min_lr: 1.0e-6
+  mode: 'min'
+  verbose: True
 
 
-model_type: 'TransformerPlain'
+
+# Model parameters
+model_type: 'GeomolGNNWrapper'
 model_parameters:
-  target_dim: 1
-  hidden_dim: 512
-  nhead: 32
-  dim_feedforward: 512
-  dropout: 0.1
-  propagation_depth: 6
+  hidden_dim: 50
+  readout_layers: 2
+  readout_batchnorm: True
+  depth: 3
+  n_layers: 2
+
 
 
 # continue training from checkpoint:

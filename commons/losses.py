@@ -177,7 +177,8 @@ class NTXentMultiplePositives(_Loss):
         :param z2: batchsize*num_conformers, metric dim
         '''
         batch_size, metric_dim = z1.size()
-        z2 = z2.view(-1, batch_size, metric_dim).permute(1, 0, 2)  # [batch_size, num_conformers, metric_dim]
+        z2 = z2.view(batch_size, -1, metric_dim)  # [batch_size, num_conformers, metric_dim]
+        z2 = z2.view(batch_size, -1, metric_dim)  # [batch_size, num_conformers, metric_dim]
 
         sim_matrix = torch.einsum('ik,juk->iju', z1, z2)  # [batch_size, batch_size, num_conformers]
 
@@ -232,26 +233,23 @@ class KLDivergenceMultiplePositives(_Loss):
         _, metric_dim = z2.size()
 
         z1 = z1.view(batch_size, 2, metric_dim)
-        z2 = z2.view(-1, batch_size, metric_dim).permute(1, 0, 2)  # [batch_size, num_conformers, metric_dim]
+        z2 = z2.view(batch_size, -1, metric_dim) # [batch_size, num_conformers, metric_dim]
         if self.norm:
             z1 = F.normalize(z1, dim=2)
             z2 = F.normalize(z2, dim=2)
-
-        z1_means = z1[:, 0, :]  # [batch_size, metric_dim]
-        z1_vars = torch.exp(z1[:, 1, :])  # [batch_size, metric_dim]
-        z2_means = z2.mean(1)  # [batch_size, metric_dim]
-        z2_vars = z2.var(1)  # [batch_size, metric_dim]
-        ic(torch.diag_embed(z2_vars))
-        normal1 = MultivariateNormal(z1_means, torch.diag_embed(z1_vars))
-        normal2 = MultivariateNormal(z2_means, torch.diag_embed(z2_vars))
-        kl_similarity3 = torch.distributions.kl_divergence(normal1, normal2)
-        kl_similarity4 = torch.distributions.kl_divergence(normal2, normal1)
 
 
         z1_means = z1[:, 0, :].unsqueeze(0).expand(batch_size, -1, -1)  # [batch_size, batch_size, metric_dim]
         z1_vars = (torch.exp(z1[:, 1, :])).unsqueeze(0).expand(batch_size, -1, -1)  # [batch_size, batch_size, metric_dim]
         z2_means = z2.mean(1).unsqueeze(1).expand(-1, batch_size, -1)  # [batch_size, batch_size, metric_dim]
         z2_vars = z2.var(1).unsqueeze(1).expand(-1, batch_size, -1)  # [batch_size, batch_size, metric_dim]
+
+        normal1 = MultivariateNormal(z1_means, torch.diag_embed(torch.sqrt(z1_vars)))
+        normal2 = MultivariateNormal(z2_means, torch.diag_embed(torch.sqrt(z2_vars)))
+        kl_similarity3 = torch.distributions.kl_divergence(normal1, normal2)
+        kl_similarity4 = torch.distributions.kl_divergence(normal2, normal1)
+
+        ic(z1_vars.shape)
 
         log_det_diff = torch.log(z1_vars.prod(dim=2) / (z2_vars.prod(dim=2)+ 1e-5))
         trace_inv = ((1 / (z2_vars + 1e-5)) * z1_vars).sum(dim=2)
@@ -331,14 +329,11 @@ class NTXentMMDSeparate2D(_Loss):
         _, metric_dim = z2.size()
         z1 = z1.view(batch_size, -1, metric_dim)  # [batch_size, num_conformers, metric_dim]
         _, num_conformers, _ = z1.size()
-        z2 = z2.view(-1, batch_size, metric_dim).permute(1, 0, 2)  # [batch_size, num_conformers, metric_dim]
+        z2 = z2.view(batch_size, -1, metric_dim)  # [batch_size, num_conformers, metric_dim]
         if self.norm:
             z1 = F.normalize(z1, dim=2)
             z2 = F.normalize(z2, dim=2)
-        ic(z1.mean())
-        if torch.isnan(z1).any():
-            ic(z1)
-            raise Exception
+
 
         mmd_similarity = []
         for i in range(batch_size):
@@ -355,23 +350,13 @@ class NTXentMMDSeparate2D(_Loss):
                 mmd_similarity.append(1 / (loss + 1))
         mmd_similarity = torch.stack(mmd_similarity)
         mmd_similarity = mmd_similarity.view(batch_size, batch_size)
-        ic(mmd_similarity)
         sim_matrix = torch.exp(mmd_similarity / self.tau)
-        ic(sim_matrix.mean())
-        if torch.isnan(sim_matrix).any():
-            ic(sim_matrix)
-            raise Exception
+
+
         pos_sim = torch.diagonal(sim_matrix)
         loss = pos_sim / (sim_matrix.sum(dim=1) - pos_sim)
-        ic(loss.mean())
-        if torch.isnan(loss).any():
-            ic(loss)
-            raise Exception
         loss = - torch.log(loss).mean()
-        ic(loss.mean())
-        if torch.isnan(loss).any():
-            ic(loss)
-            raise Exception
+
 
         if self.variance_reg > 0:
             loss += self.variance_reg * (std_loss(z1) + std_loss(z2))
@@ -410,7 +395,7 @@ class KLDivergenceMultiplePositivesV2(_Loss):
         z1 = z1.view(batch_size, 2, metric_dim)
         z1_means = z1[:, 0, :]  # [batch_size, metric_dim]
         z1_stds = torch.exp(z1[:, 1, :] / 2)  # [batch_size, metric_dim]
-        z2 = z2.view(-1, batch_size, metric_dim).permute(1, 0, 2)  # [batch_size, num_conformers, metric_dim]
+        z2 = z2.view(batch_size, -1, metric_dim)  # [batch_size, num_conformers, metric_dim]
         z2_means = z2.mean(1)  # [batch_size, metric_dim]
         z2_stds = z2.std(1)  # [batch_size, metric_dim]
 
@@ -473,7 +458,7 @@ class NTXentLikelihoodLoss(_Loss):
         z1 = z1.view(batch_size, 2, metric_dim)
         z1_means = z1[:, 0, :]  # [batch_size, metric_dim]
         z1_stds = torch.exp(z1[:, 1, :] / 2)  # [batch_size, metric_dim]
-        z2 = z2.view(-1, batch_size, metric_dim).permute(1, 0, 2)  # [batch_size, num_conformers, metric_dim]
+        z2 = z2.view(batch_size, -1, metric_dim)  # [batch_size, num_conformers, metric_dim]
 
         likelihood_kernel = []
         for i, z1_mean in enumerate(z1_means):
@@ -527,7 +512,7 @@ class NTXentMultiplePositivesV2(_Loss):
         :param z2: batch_size*num_conformers, metric dim
         '''
         batch_size, metric_dim = z1.size()
-        z2 = z2.view(-1, batch_size, metric_dim).permute(1, 0, 2)  # [batch_size, num_conformers, metric_dim]
+        z2 = z2.view(batch_size, -1, metric_dim)  # [batch_size, num_conformers, metric_dim]
 
         pos_sim = (z1[:, None, :] * z2).sum(dim=2)  # [batch_size, num_conformers]
         sim_matrix = torch.einsum('ik,jk->ij', z1, z2[:, 0, :])  # [batch_size, batch_size]
@@ -575,7 +560,7 @@ class NTXentMultiplePositivesV3(_Loss):
         :param z2: batchsize*num_conformers, metric dim
         '''
         batch_size, metric_dim = z1.size()
-        z2 = z2.view(-1, batch_size, metric_dim).permute(1, 0, 2)  # [batch_size, num_conformers, metric_dim]
+        z2 = z2.view(batch_size, -1, metric_dim)  # [batch_size, num_conformers, metric_dim]
 
         sim_matrix = torch.einsum('ik,juk->iju', z1, z2)  # [batch_size, batch_size, num_conformers]
 
@@ -624,7 +609,7 @@ class NTXentMultiplePositivesSeparate2D(_Loss):
         _, metric_dim = z2.size()
         z1 = z1.view(batch_size, -1, metric_dim)  # [batch_size, num_conformers, metric_dim]
 
-        z2 = z2.view(-1, batch_size, metric_dim).permute(1, 0, 2)  # [batch_size, num_conformers, metric_dim]
+        z2 = z2.view(batch_size, -1, metric_dim)  # [batch_size, num_conformers, metric_dim]
         sim_matrix = torch.einsum('ilk,juk->ijlu', z1, z2)  # [batch_size, batch_size, num_conformers]
 
         # only take the direct similarities such that one 2D representation is similar to one 3d conformer

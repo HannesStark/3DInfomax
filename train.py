@@ -329,7 +329,7 @@ def train_geom(args, device, metrics_dict):
         dataset = GEOMqm9
     elif args.dataset == 'qmugs':
         dataset = QMugsDataset
-    all_data = dataset(return_types=args.required_data, target_tasks=args.targets, device=device)
+    all_data = dataset(return_types=args.required_data, target_tasks=args.targets, device=device, num_conformers=args.num_conformers)
 
     all_idx = get_random_indices(len(all_data), args.seed_data)
     if args.dataset == 'drugs':
@@ -420,7 +420,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/contrastive_training.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/contrastive_training_multiple_positives_kl_div_loss.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
@@ -451,6 +451,7 @@ def parse_arguments():
                    help='frequency with which to do run the function run_eval_per_epoch that can do some expensive calculations on the val set or sth like that. If this is zero, then the function will never be called')
     p.add_argument('--linear_probing_samples', type=int, default=500,
                    help='number of samples to use for linear probing in the run_eval_per_epoch function of the self supervised trainer')
+    p.add_argument('--num_conformers', type=int, default=3,help='number of conformers to use if we are using multiple conformers on the 3d side')
     p.add_argument('--metrics', default=[], help='tensorboard metrics [mae, mae_denormalized, qm9_properties ...]')
     p.add_argument('--main_metric', default='mae_denormalized', help='for early stopping etc.')
     p.add_argument('--main_metric_goal', type=str, default='min', help='controls early stopping. [max, min]')

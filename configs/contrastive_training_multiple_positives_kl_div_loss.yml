@@ -1,9 +1,8 @@
 experiment_name: 'KLDivergenceMultiplePositives'
 
-dataset: qmugs
+dataset: drugs
 num_epochs: 1000
 batch_size: 4
-prefetch_graphs: False
 log_iterations: 1
 patience: 35
 loss_func: KLDivergenceMultiplePositives
@@ -13,7 +12,6 @@ num_train: 120000
 
 required_data:
   - mol_graph
-  - complete_graph3d
   - conformations
 metrics:
   - positive_prob
@@ -21,9 +19,8 @@ metrics:
   - batch_variance
   - dimension_covariance
 main_metric: loss
-collate_function: ConformerCollate
-collate_params:
-  num_conformers: 3
+collate_function: conformer_collate
+num_conformers: 3
 
 optimizer: Adam
 optimizer_params:

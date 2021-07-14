@@ -88,26 +88,9 @@ class NoisedDistancesCollate(object):
             return [batched_graph], [batched_graph3d]
 
 
-class ConformerCollate(object):
-    def __init__(self, num_conformers):
-        self.num_conformers = num_conformers
-
-    def __call__(self, batch: List[Tuple]):
-        graphs, graphs3d, conformers, *targets = map(list, zip(*batch))
-        conformers = torch.cat(conformers, dim=0)
-        batched_graph3d = dgl.batch(graphs3d)
-        conformer_graphs = [batched_graph3d]
-        for i in range(1, self.num_conformers):
-            conformer_graph = copy.deepcopy(batched_graph3d)
-            conformer_graph.ndata['x'] = conformers[:, i * 3:(i + 1) * 3]
-            conformer_graphs.append(conformer_graph)
-        batched_conformers = dgl.batch(conformer_graphs)
-        batched_graph = dgl.batch(graphs)
-
-        if targets:
-            return [batched_graph], [batched_conformers], torch.stack(*targets).float()
-        else:
-            return [batched_graph], [batched_conformers]
+def conformer_collate(batch: List[Tuple]):
+    graphs, conformers = map(list, zip(*batch))
+    return [dgl.batch(graphs)], [dgl.batch(conformers)]
 
 
 
