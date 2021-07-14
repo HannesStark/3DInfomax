@@ -1,6 +1,6 @@
 experiment_name: 'NTXent_tiny_20hidden'
 
-dataset: drugs
+dataset: qmugs
 num_epochs: 1000
 batch_size: 20
 log_iterations: 50
