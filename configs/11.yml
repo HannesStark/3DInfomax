@@ -1,2 +1,2 @@
 # continue training from checkpoint:
-checkpoint: runs/PNA_drugs_NTXent_mollipo_net_11-07_19-02-22/last_checkpoint.pt
+checkpoint: runs/PNA_drugs_NTXent_molbbbp_net_12-07_08-02-30/last_checkpoint.pt
