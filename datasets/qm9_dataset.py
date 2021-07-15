@@ -95,14 +95,7 @@ class QM9Dataset(Dataset):
 
     def __init__(self, return_types: list = None,
                  target_tasks: list = None,
-                 normalize: bool = True, device='cuda:0', dist_embedding: bool = False, num_radial: int = 6,
-                 prefetch_graphs=True, transform=None, **kwargs):
-        self.return_type_options = ['mol_graph', 'complete_graph', 'mol_graph3d', 'complete_graph3d', 'san_graph',
-                                    'mol_complete_graph', 'se3Transformer_graph', 'se3Transformer_graph3d',
-                                    'pairwise_distances', 'pairwise_distances_squared', 'pairwise_indices',
-                                    'raw_features', 'coordinates', 'dist_embedding', 'mol_id', 'targets',
-                                    'one_hot_bond_types', 'edge_indices', 'smiles', 'atomic_number_long', 'n_atoms',
-                                    'positional_encoding', 'constant_ones', 'pytorch_geometric_graph']
+                 normalize: bool = True, device='cuda:0', dist_embedding: bool = False, num_radial: int = 6, transform=None, **kwargs):
         self.qm9_directory = 'dataset/QM9'
         self.processed_file = 'qm9_processed.pt'
         self.distances_file = 'qm9_distances.pt'
@@ -136,12 +129,8 @@ class QM9Dataset(Dataset):
                                 'h298_atom': hartree2eV,
                                 'g298_atom': hartree2eV}
 
-        if return_types == None:  # set default
-            self.return_types: list = ['mol_graph', 'targets']
-        else:
-            self.return_types: list = return_types
-        for return_type in self.return_types:
-            if not return_type in self.return_type_options: raise Exception(f'return_type not supported: {return_type}')
+        self.return_types: list = return_types
+
 
         if target_tasks == None or target_tasks == []:  # set default
             self.target_tasks = ['mu', 'alpha', 'homo', 'lumo', 'gap', 'r2', 'zpve', 'u0', 'u298', 'h298', 'g298', 'cv']
