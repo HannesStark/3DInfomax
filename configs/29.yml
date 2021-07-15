@@ -1,6 +1,6 @@
 experiment_name: 'baseline_molbace_net'
 
-seed: 2
+seed: 3
 dataset: 'ogbg-molbbbp'
 num_epochs: 1000
 batch_size: 32
