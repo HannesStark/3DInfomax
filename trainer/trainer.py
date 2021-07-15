@@ -23,10 +23,9 @@ from commons.utils import flatten_dict, tensorboard_gradient_magnitude, move_to_
 
 
 class Trainer():
-    def __init__(self, model, args, metrics: Dict[str, Callable], main_metric: str,
-                 device: torch.device, tensorboard_functions: Dict[str, Callable],
-                 optim=None, main_metric_goal: str = 'min', loss_func=torch.nn.MSELoss(),
-                 scheduler_step_per_batch: bool = True):
+    def __init__(self, model, args, metrics: Dict[str, Callable], main_metric: str, device: torch.device,
+                 tensorboard_functions: Dict[str, Callable], optim=None, main_metric_goal: str = 'min',
+                 loss_func=torch.nn.MSELoss(), scheduler_step_per_batch: bool = True):
 
         self.args = args
         self.device = device
@@ -69,18 +68,8 @@ class Trainer():
         pass
 
     def train(self, train_loader: DataLoader, val_loader: DataLoader):
-        """
-        Train and simultaneously evaluate on the val_loader and then estimate the stderr on eval_data if it is provided
-        Args:
-            train_loader: For training
-            val_loader: For validation during training
-
-        Returns:
-
-        """
-        args = self.args
         epochs_no_improve = 0  # counts every epoch that the validation accuracy did not improve for early stopping
-        for epoch in range(self.start_epoch, args.num_epochs + 1):  # loop over the dataset multiple times
+        for epoch in range(self.start_epoch, self.args.num_epochs + 1):  # loop over the dataset multiple times
             self.model.train()
             self.predict(train_loader, epoch, optim=self.optim)
 
@@ -108,7 +97,7 @@ class Trainer():
                     epochs_no_improve += 1
                 self.save_checkpoint(epoch, checkpoint_name='last_checkpoint.pt')
 
-                if epochs_no_improve >= args.patience and epoch >= args.minimum_epochs:  # stopping criterion
+                if epochs_no_improve >= self.args.patience and epoch >= self.args.minimum_epochs:  # stopping criterion
                     print(
                         f'Early stopping criterion based on -{self.main_metric}- that should be {self.main_metric_goal} reached after {epoch} epochs. Best model checkpoint was in epoch {epoch - epochs_no_improve}.')
                     break
@@ -128,7 +117,7 @@ class Trainer():
         if optim != None:  # run backpropagation if an optimizer is provided
             loss.backward()
             self.optim.step()
-            self.after_optim_step()  # overwrite to do stuff before zeroing out grads
+            self.after_optim_step()  # overwrite this function to do stuff before zeroing out grads
             self.optim.zero_grad()
             self.optim_steps += 1
         return loss, predictions.detach(), targets.detach()
@@ -136,20 +125,6 @@ class Trainer():
     def predict(self, data_loader: DataLoader, epoch: int = 0, optim: torch.optim.Optimizer = None,
                 return_predictions: bool = False) -> Union[
         Dict, Tuple[float, Union[torch.Tensor, None], Union[torch.Tensor, None]]]:
-        """
-        get predictions for data in dataloader and do backpropagation if an optimizer is provided
-        Args:
-            data_loader: pytorch dataloader from which the batches will be taken
-            epoch: optional parameter for logging
-            optim: pytorch optimizer. If this is none, no backpropagation is done
-            return_predictions: return the prdictions if true, else returns None
-
-        Returns:
-            metrics: a dictionary with all the metrics and the loss
-            predictions: all predictions in the epoch
-            targets: all targets of the epoch
-        """
-        args = self.args
         total_metrics = {k: 0 for k in self.evaluate_metrics(torch.ones((2, 2), device=self.device),
                                                              torch.ones((2, 2), device=self.device), val=True).keys()}
         total_metrics[type(self.loss_func).__name__] = 0
@@ -160,13 +135,13 @@ class Trainer():
             batch = move_to_device(list(batch), self.device)
             loss, predictions, targets = self.process_batch(batch, optim)
             with torch.no_grad():
-                if self.optim_steps % args.log_iterations == 0 and optim != None:  # log every log_iterations during train
+                if self.optim_steps % self.args.log_iterations == 0 and optim != None:
                     metrics = self.evaluate_metrics(predictions, targets)
                     metrics[type(self.loss_func).__name__] = loss.item()
                     self.run_tensorboard_functions(predictions, targets, step=self.optim_steps, data_split='train')
                     self.tensorboard_log(metrics, data_split='train', step=self.optim_steps, epoch=epoch)
-                    print('[Epoch %d; Iter %5d/%5d] %s: loss: %.7f' % (epoch,
-                                                                       i + 1, len(data_loader), 'train', loss.item()))
+                    print('[Epoch %d; Iter %5d/%5d] %s: loss: %.7f' % (
+                    epoch, i + 1, len(data_loader), 'train', loss.item()))
                 if optim == None and self.val_per_batch:  # during validation or testing when we want to average metrics over all the data in that dataloader
                     epoch_loss += loss.item()
                     metrics_results = self.evaluate_metrics(predictions, targets, val=True)
@@ -215,7 +190,7 @@ class Trainer():
             logs[metric_name] = metric
             self.writer.add_scalar(metric_name, metric, step)
 
-        if log_hparam:  # write hyperparameters
+        if log_hparam:  # write hyperparameters to tensorboard
             exp, ssi, sei = hparams(flatten_dict(self.hparams), flatten_dict(logs))
             self.writer.file_writer.add_summary(exp)
             self.writer.file_writer.add_summary(ssi)
@@ -269,12 +244,7 @@ class Trainer():
 
     def save_checkpoint(self, epoch: int, checkpoint_name: str):
         """
-        Saves checkpoint of model in the logdir of the summarywriter/ in the used rundir
-        Args:
-            epoch: current epoch from which the run will be continued if it is loaded
-
-        Returns:
-
+        Saves checkpoint of model in the logdir of the summarywriter in the used rundi
         """
         run_dir = self.writer.log_dir
         self.save_model_state(epoch, checkpoint_name)

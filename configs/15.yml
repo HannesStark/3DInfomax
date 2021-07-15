@@ -1,13 +1,8 @@
-experiment_name: 'tune'
+experiment_name: 'baseline'
 
 seed: 6
-pretrain_checkpoint: runs2/geomol_drugs/best_model.pt
-transfer_layers:
-  - gnn2
-exclude_from_transfer:
-  - batch_norm
 
-dataset: bbbp_geomol
+dataset: bace_geomol_random
 num_epochs: 1000
 batch_size: 32
 log_iterations: 30
@@ -27,7 +22,7 @@ optimizer_params:
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [700,700,390]
+  warmup_steps: [700]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
@@ -47,8 +42,3 @@ model_parameters:
   readout_batchnorm: True
   depth: 3
   n_layers: 2
-
-
-
-# continue training from checkpoint:
-#checkpoint: runs/PNAReadout_2_layer_03-04_15-29-07/last_checkpoint.pt

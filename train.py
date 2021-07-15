@@ -9,7 +9,9 @@ from ogb.graphproppred.mol_encoder import AtomEncoder
 from commons.utils import seed_all, get_random_indices, TENSORBOARD_FUNCTIONS
 from datasets.ZINC_dataset import ZINCDataset
 from datasets.bace_geomol_feat import BACEGeomol
+from datasets.bace_geomol_random_split import BACEGeomolRandom
 from datasets.bbbp_geomol_feat import BBBPGeomol
+from datasets.bbbp_geomol_random_split import BBBPGeomolRandom
 from datasets.esol_geomol_feat import ESOLGeomol
 from datasets.geom_drugs_dataset import GEOMDrugs
 from datasets.geom_qm9_dataset import GEOMqm9
@@ -168,16 +170,20 @@ def train(args):
     elif args.dataset == 'qm9_geomol':
         train_geomol_qm9(args, device, metrics_dict)
     elif 'geomol' in args.dataset:
-        train_bace_geomol(args, device, metrics_dict)
+        train_geomol(args, device, metrics_dict)
     elif 'ogbg' in args.dataset:
         train_ogbg(args, device, metrics_dict)
 
 
-def train_bace_geomol(args, device, metrics_dict):
+def train_geomol(args, device, metrics_dict):
     if args.dataset == 'bace_geomol':
         dataset = BACEGeomol
     elif args.dataset == 'bbbp_geomol':
         dataset = BBBPGeomol
+    elif args.dataset == 'bace_geomol_random':
+        dataset = BACEGeomolRandom
+    elif args.dataset == 'bbbp_geomol_random':
+        dataset = BBBPGeomolRandom
     elif args.dataset == 'esol_geomol':
         dataset = ESOLGeomol
     elif args.dataset == 'lipo_geomol':
@@ -420,7 +426,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/10.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/15.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
