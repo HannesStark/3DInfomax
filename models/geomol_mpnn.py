@@ -142,7 +142,7 @@ class GeomolGNNWrapper(nn.Module):
         self.random_vec_dim = 10
         self.random_vec_std = 1.0
 
-        self.gnn2 = GeomolGNN(hidden_dim=hidden_dim, node_dim=node_dim +10, edge_dim=edge_dim + 10, **kwargs)
+        self.gnn = GeomolGNN(hidden_dim=hidden_dim, node_dim=node_dim +10, edge_dim=edge_dim + 10, **kwargs)
         self.output = MLP(in_dim=hidden_dim, hidden_size=hidden_dim,
                           mid_batch_norm=readout_batchnorm, out_dim=1,
                           layers=readout_layers, batch_norm_momentum=0.1)
@@ -159,7 +159,7 @@ class GeomolGNNWrapper(nn.Module):
         x = torch.cat([x, rand_x], dim=-1)
         edge_attr = torch.cat([edge_attr, rand_edge], dim=-1)
 
-        x, edge_attr = self.gnn2(x, edge_index, edge_attr)
+        x, edge_attr = self.gnn(x, edge_index, edge_attr)
         pooled = global_mean_pool(x, batch)
         return self.output(pooled)
 

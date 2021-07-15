@@ -143,7 +143,6 @@ class Trainer():
                     print('[Epoch %d; Iter %5d/%5d] %s: loss: %.7f' % (
                     epoch, i + 1, len(data_loader), 'train', loss.item()))
                 if optim == None and self.val_per_batch:  # during validation or testing when we want to average metrics over all the data in that dataloader
-                    epoch_loss += loss.item()
                     metrics_results = self.evaluate_metrics(predictions, targets, val=True)
                     metrics_results[type(self.loss_func).__name__] = loss.item()
                     self.run_tensorboard_functions(predictions, targets, step=self.optim_steps, data_split='val')
@@ -159,7 +158,7 @@ class Trainer():
                 total_metrics = {k: v / len(data_loader) for k, v in total_metrics.items()}
             else:
                 total_metrics = self.evaluate_metrics(epoch_predictions, epoch_targets, val=True)
-            total_metrics[type(self.loss_func).__name__] = epoch_loss / len(data_loader)
+                total_metrics[type(self.loss_func).__name__] = epoch_loss / len(data_loader)
             return total_metrics
 
     def after_optim_step(self):

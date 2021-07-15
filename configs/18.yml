@@ -3,11 +3,11 @@ experiment_name: 'tune'
 seed: 3
 pretrain_checkpoint: runs2/geomol_drugs/best_model.pt
 transfer_layers:
-  - gnn2
+  - gnn.
 exclude_from_transfer:
   - batch_norm
 
-dataset: bbbp_geomol_random
+dataset: bace_geomol_random
 num_epochs: 1000
 batch_size: 32
 log_iterations: 30

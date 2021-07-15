@@ -472,7 +472,6 @@ def parse_arguments():
                    help='parameters that usually should not be transferred like batchnorm params')
     p.add_argument('--transferred_lr', type=float, default=None, help='set to use a different LR for transfer layers')
 
-    p.add_argument('--pos_dir', type=bool, default=False, help='adds pos dir as key to dgl graphs (required for dgn)')
     p.add_argument('--required_data', default=[],
                    help='what will be included in a batch like [mol_graph, targets, mol_graph3d]')
     p.add_argument('--collate_function', default='graph_collate', help='the collate function to use for DataLoader')
