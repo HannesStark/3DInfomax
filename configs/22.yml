@@ -1,6 +1,6 @@
 experiment_name: 'tune_from_qm9_NTXent_molbace_net'
 
-seed: 5
+seed: 6
 pretrain_checkpoint: runs/PNA_qm9_NTXent_molbace_net_11-07_18-56-50/best_checkpoint.pt
 transfer_layers:
   - gnn
