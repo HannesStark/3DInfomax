@@ -2,7 +2,7 @@ experiment_name: 'baseline'
 
 seed: 3
 
-dataset: bace_geomol_random
+dataset: bbbp_geomol_random
 num_epochs: 1000
 batch_size: 32
 log_iterations: 30
