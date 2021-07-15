@@ -2,9 +2,8 @@ experiment_name: 'KLDivergenceMultiplePositives'
 
 dataset: geom_qm9
 num_epochs: 1000
-batch_size: 4
-prefetch_graphs: False
-log_iterations: 1
+batch_size: 20
+log_iterations: 5
 patience: 35
 loss_func: NTXentMMDSeparate2D
 loss_params:

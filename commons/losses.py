@@ -244,14 +244,15 @@ class KLDivergenceMultiplePositives(_Loss):
         z2_means = z2.mean(1).unsqueeze(1).expand(-1, batch_size, -1)  # [batch_size, batch_size, metric_dim]
         z2_vars = z2.var(1).unsqueeze(1).expand(-1, batch_size, -1)  # [batch_size, batch_size, metric_dim]
 
-        normal1 = MultivariateNormal(z1_means, torch.diag_embed(torch.sqrt(z1_vars)))
-        normal2 = MultivariateNormal(z2_means, torch.diag_embed(torch.sqrt(z2_vars)))
-        kl_similarity3 = torch.distributions.kl_divergence(normal1, normal2)
-        kl_similarity4 = torch.distributions.kl_divergence(normal2, normal1)
-
+        normal1 = MultivariateNormal(z1_means, torch.diag_embed(z1_vars))
+        normal2 = MultivariateNormal(z2_means, torch.diag_embed(z2_vars))
+        kl_div1 = torch.distributions.kl_divergence(normal1, normal2)
+        kl_div2 = -torch.distributions.kl_divergence(normal2, normal1)
+        m = 0.5*(kl_div1+kl_div2)
+        jsd = 0.5
         ic(z1_vars.shape)
 
-        log_det_diff = torch.log(z1_vars.prod(dim=2) / (z2_vars.prod(dim=2)+ 1e-5))
+        log_det_diff = torch.log((z2_vars.prod(dim=2)+ 1e-5) / (z1_vars.prod(dim=2)))
         trace_inv = ((1 / (z2_vars + 1e-5)) * z1_vars).sum(dim=2)
         mean_sigma_mean = ((z2_means - z1_means) ** 2 * (1 / (z2_vars + 1e-5))).sum(dim=2)
         kl_similarity2 = 0.5 * (log_det_diff - metric_dim + trace_inv + mean_sigma_mean)
@@ -260,23 +261,15 @@ class KLDivergenceMultiplePositives(_Loss):
             for j, z2_mean in enumerate(z2_means[:, 0,:]):
                 z1_var = z1_vars[0,:,:][i]  # [metric_dim]
                 z2_var = z2_vars[:,0,:][j]  # [metric_dim]
-
-                log_det_diff = torch.log((z1_var).prod() / ((z2_var).prod() + 1e-5))
-
+                log_det_diff = torch.log(((z2_var).prod()+ 1e-5) / ((z1_var).prod() + 1e-5))
                 trace_inv = ((1 / (z2_var + 1e-5)) * z1_var).sum()
-
                 mean_sigma_mean = ((z2_mean - z1_mean) ** 2 * (1 / (z2_var + 1e-5))).sum()
-
                 kl_divergence = 0.5 * (log_det_diff - metric_dim + trace_inv + mean_sigma_mean)
                 kl_similarity.append(1 - kl_divergence)
         kl_similarity = torch.stack(kl_similarity)
         kl_similarity = kl_similarity.view(batch_size, batch_size)
-        ic(kl_similarity4)
-        ic(kl_similarity3)
-        ic(kl_similarity2)
-        ic(kl_similarity)
 
-        sim_matrix = kl_similarity
+        sim_matrix = kl_similarity2
         # sim_matrix = torch.exp(kl_similarity / self.tau)
         pos_sim = torch.diagonal(sim_matrix)
         loss = pos_sim / (sim_matrix.sum(dim=1) - pos_sim)
