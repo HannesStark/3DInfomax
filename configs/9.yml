@@ -1,6 +1,6 @@
 experiment_name: 'tune_from_qm9_NTXent_molbbbp_net'
 
-pretrain_checkpoint: runs/PNA_drugs_NTXentMultiplePositives_conformer_variance_reg01_07-07_08-52-33/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_qm9_NTXent_molbbbp_net_12-07_07-45-12/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
@@ -9,7 +9,6 @@ exclude_from_transfer:
 dataset: drugs
 num_epochs: 1000
 batch_size: 128
-prefetch_graphs: True
 log_iterations: 30
 patience: 30
 loss_func: L1Loss
