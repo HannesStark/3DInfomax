@@ -25,7 +25,7 @@ class QMugsDataset(Dataset):
                  target_tasks: list = None,
                  normalize: bool = True, device='cuda:0', num_conformers: int = 1, **kwargs):
 
-        self.root = '../../QMugs'
+        self.root = '../QMugs'
         self.processed_file = 'processed.pt'
         self.raw_csv = 'summary.csv'
         self.normalize = normalize
