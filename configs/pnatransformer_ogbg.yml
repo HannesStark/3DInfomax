@@ -2,7 +2,7 @@ experiment_name: 'baseline'
 
 dataset: 'ogbg-molhiv'
 num_epochs: 1000
-batch_size: 16
+batch_size: 100
 log_iterations: 20
 patience: 30
 loss_func: BCEWithLogitsLoss
@@ -17,14 +17,14 @@ metrics:
   - pearsonr
 collate_function: pna_transformer_collate
 
-optimizer: AdamW
+optimizer: Adam
 optimizer_params:
   lr: 2.0e-4
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [500]
+  warmup_steps: [6000]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
