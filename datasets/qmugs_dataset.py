@@ -1,3 +1,4 @@
+import copy
 import os
 
 import torch
@@ -21,15 +22,14 @@ hartree2eV = physical_constants['hartree-electron volt relationship'][0]
 
 class QMugsDataset(Dataset):
 
-    def __init__(self, return_types: list = None,
-                 target_tasks: list = None,
-                 normalize: bool = True, device='cuda:0', num_conformers: int = 1, **kwargs):
+    def __init__(self, return_types: list = None,target_tasks: list = None,normalize: bool = True, device='cuda:0', num_conformers: int = 1, **kwargs):
 
         self.root = '../QMugs'
         self.processed_file = 'processed.pt'
         self.raw_csv = 'summary.csv'
         self.normalize = normalize
         self.device = device
+        self.num_conformers = num_conformers
         self.return_types: list = return_types
 
 
@@ -43,7 +43,7 @@ class QMugsDataset(Dataset):
         self.e_features_tensor = data_dict['edge_features']
         self.coordinates = data_dict['coordinates'][:, :3].float()
         if 'conformations' in self.return_types or 'complete_graph_random_conformer' in self.return_types:
-            self.conformations = data_dict['coordinates']
+            self.conformations = data_dict['coordinates'].float()
             self.conformer_categorical = torch.distributions.Categorical(logits=torch.ones(num_conformers))
         self.edge_indices = data_dict['edge_indices']
 
@@ -56,6 +56,7 @@ class QMugsDataset(Dataset):
         self.pairwise = {}  # for memoization
         self.complete_graphs = {}
         self.mol_complete_graphs = {}
+        self.conformer_graphs = {}
 
         self.avg_degree = data_dict['avg_degree']
         # indices of the tasks that should be retrieved
@@ -143,9 +144,20 @@ class QMugsDataset(Dataset):
 
     def data_by_type(self, idx, return_type, e_start, e_end, start, n_atoms):
         if return_type == 'conformations':
-            return self.conformations[start: start + n_atoms].to(self.device)
-            for conf_idx in self.num_conformers:
-                pass
+            if idx in self.conformer_graphs:
+                return self.conformer_graphs[idx].to(self.device)
+            else:
+                conformer_coords = self.conformations[start: start + n_atoms].to(self.device)
+                conformer_graphs = []
+                for i in range(1, self.num_conformers):
+                    g = copy.deepcopy(self.get_complete_graph(idx, n_atoms, start))
+                    g.ndata['x'] = conformer_coords[:, i * 3:(i + 1) * 3]
+                    g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2,
+                                              dim=-1).unsqueeze(-1)
+                    conformer_graphs.append(g)
+                conformer_graphs = dgl.batch(conformer_graphs)
+                self.conformer_graphs[idx] = conformer_graphs.to('cpu')
+                return conformer_graphs
         elif return_type == 'mol_graph':
             g = self.get_graph(idx, e_start, e_end, n_atoms, start)
             return g

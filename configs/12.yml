@@ -2,7 +2,7 @@ experiment_name: 'NTXentMultiplePositives'
 
 dataset: qmugs
 num_epochs: 1000
-batch_size: 500
+batch_size: 50
 log_iterations: 50
 patience: 35
 loss_func: NTXentMultiplePositives
