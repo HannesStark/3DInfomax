@@ -6,7 +6,6 @@ transfer_layers:
 exclude_from_transfer:
   - batch_norm
 
-
 num_epochs: 1000
 batch_size: 128
 log_iterations: 30
@@ -15,7 +14,6 @@ loss_func: L1Loss
 num_train: 50000
 targets:
   - homo
-
 required_data:
   - mol_graph
   - targets
@@ -24,7 +22,6 @@ metrics:
   - pearsonr
   - rsquared
   - qm9_properties
-
 optimizer: Adam
 optimizer_params:
   lr: 7.0e-5

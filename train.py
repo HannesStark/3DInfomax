@@ -111,7 +111,6 @@ def load_model(args, data, device):
             pretrain_dict = yaml.load(arg_file, Loader=yaml.FullLoader)
         pretrain_args = argparse.Namespace()
         pretrain_args.__dict__.update(pretrain_dict)
-
         checkpoint = torch.load(args.pretrain_checkpoint, map_location=device)
         # get all the weights that have something from 'args.transfer_layers' in their keys name
         # but only if they do not contain 'teacher' and remove 'student.' which we need for loading from BYOLWrapper
@@ -121,8 +120,8 @@ def load_model(args, data, device):
         model_state_dict = model.state_dict()
         model_state_dict.update(pretrained_gnn_dict)  # update the gnn layers with the pretrained weights
         model.load_state_dict(model_state_dict)
-        return model, pretrain_args.num_train
-    return model, None
+        return model, pretrain_args.num_train, pretrain_args.dataset == args.dataset
+    return model, None, False
 
 
 def train(args):
@@ -286,7 +285,7 @@ def train_ogbg(args, device, metrics_dict):
     test_loader = DataLoader(Subset(dataset, split_idx["test"]), batch_size=args.batch_size, shuffle=False,
                              collate_fn=collate_function)
 
-    model, num_pretrain = load_model(args, data=dataset, device=device)
+    model, num_pretrain, transfer_from_same_dataset = load_model(args, data=dataset, device=device)
 
     metrics = {metric: metrics_dict[metric] for metric in args.metrics}
     metrics[args.dataset] = metrics_dict[args.dataset]
@@ -305,7 +304,7 @@ def train_zinc(args, device, metrics_dict):
     val_data = ZINCDataset(split='val', device=device)
     test_data = ZINCDataset(split='test', device=device)
 
-    model, num_pretrain = load_model(args, data=train_data, device=device)
+    model, num_pretrain, transfer_from_same_dataset = load_model(args, data=train_data, device=device)
     print('model trainable params: ', sum(p.numel() for p in model.parameters() if p.requires_grad))
     collate_function = globals()[args.collate_function] if args.collate_params == {} else globals()[
         args.collate_function](**args.collate_params)
@@ -351,8 +350,8 @@ def train_geom(args, device, metrics_dict):
     # test_idx = all_idx[len(model_idx): len(model_idx) + 200]
     # val_idx = all_idx[len(model_idx) + len(test_idx): len(model_idx) + len(test_idx) + 3000]
 
-    model, num_pretrain = load_model(args, data=all_data, device=device)
-    if args.pretrain_checkpoint and not args.transfer_from_different_dataset:
+    model, num_pretrain, transfer_from_same_dataset = load_model(args, data=all_data, device=device)
+    if transfer_from_same_dataset:
         train_idx = model_idx[num_pretrain: num_pretrain + args.num_train]
     print('model trainable params: ', sum(p.numel() for p in model.parameters() if p.requires_grad))
 
@@ -393,8 +392,8 @@ def train_qm9(args, device, metrics_dict):
     # test_idx = all_idx[len(model_idx): len(model_idx) + 200]
     # val_idx = all_idx[len(model_idx) + len(test_idx): len(model_idx) + len(test_idx) + 3000]
 
-    model, num_pretrain = load_model(args, data=all_data, device=device)
-    if args.pretrain_checkpoint and not args.transfer_from_different_dataset:
+    model, num_pretrain, transfer_from_same_dataset = load_model(args, data=all_data, device=device)
+    if transfer_from_same_dataset:
         train_idx = model_idx[num_pretrain: num_pretrain + args.num_train]
     print('model trainable params: ', sum(p.numel() for p in model.parameters() if p.requires_grad))
 
@@ -406,6 +405,7 @@ def train_qm9(args, device, metrics_dict):
         sampler = globals()[args.train_sampler](data_source=all_data, batch_size=args.batch_size, indices=train_idx)
         train_loader = DataLoader(Subset(all_data, train_idx), batch_sampler=sampler, collate_fn=collate_function)
     else:
+
         train_loader = DataLoader(Subset(all_data, train_idx), batch_size=args.batch_size, shuffle=True,
                                   collate_fn=collate_function)
     val_loader = DataLoader(Subset(all_data, val_idx), batch_size=args.batch_size, collate_fn=collate_function)
@@ -426,7 +426,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/13.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/2.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
@@ -434,7 +434,7 @@ def parse_arguments():
     p.add_argument('--patience', type=int, default=20, help='stop training after no improvement in this many epochs')
     p.add_argument('--minimum_epochs', type=int, default=0, help='minimum numer of epochs to run')
     p.add_argument('--dataset', type=str, default='qm9', help='[qm9, zinc, drugs, geom_qm9, molhiv]')
-    p.add_argument('--num_train', type=int, default=100000, help='n samples of the model samples to use for train')
+    p.add_argument('--num_train', type=int, default=-1, help='n samples of the model samples to use for train')
     p.add_argument('--seed', type=int, default=123, help='seed for reproducibility')
     p.add_argument('--seed_data', type=int, default=123, help='if you want to use a different seed for the datasplit')
     p.add_argument('--loss_func', type=str, default='MSELoss', help='Class name of torch.nn like [MSELoss, L1Loss]')
@@ -495,8 +495,6 @@ def parse_arguments():
     p.add_argument('--train_sampler', type=str, default=None, help='any of pytorchs samplers or a custom sampler')
 
     p.add_argument('--eval_on_test', type=bool, default=True, help='runs evaluation on test set if true')
-    p.add_argument('--transfer_from_different_dataset', type=bool, default=False,
-                   help='set to true when transferring from different dataset')
 
     args = p.parse_args()
 
