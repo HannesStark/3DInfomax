@@ -9,13 +9,17 @@ from ogb.graphproppred.mol_encoder import AtomEncoder
 from commons.utils import seed_all, get_random_indices, TENSORBOARD_FUNCTIONS
 from datasets.ZINC_dataset import ZINCDataset
 from datasets.bace_geomol_feat import BACEGeomol
+from datasets.bace_geomol_featurization_of_qm9 import BACEGeomolQM9Featurization
 from datasets.bace_geomol_random_split import BACEGeomolRandom
 from datasets.bbbp_geomol_feat import BBBPGeomol
+from datasets.bbbp_geomol_featurization_of_qm9 import BBBPGeomolQM9Featurization
 from datasets.bbbp_geomol_random_split import BBBPGeomolRandom
 from datasets.esol_geomol_feat import ESOLGeomol
+from datasets.esol_geomol_featurization_of_qm9 import ESOLGeomolQM9Featurization
 from datasets.geom_drugs_dataset import GEOMDrugs
 from datasets.geom_qm9_dataset import GEOMqm9
 from datasets.lipo_geomol_feat import LIPOGeomol
+from datasets.lipo_geomol_featurization_of_qm9 import LIPOGeomolQM9Featurization
 from datasets.ogbg_dataset_extension import OGBGDatasetExtension
 
 from datasets.qm9_geomol_featurization import QM9GeomolFeaturization
@@ -187,6 +191,15 @@ def train_geomol(args, device, metrics_dict):
         dataset = ESOLGeomol
     elif args.dataset == 'lipo_geomol':
         dataset = LIPOGeomol
+    elif args.dataset == 'esol_geomol_qm9_featurization':
+        dataset = ESOLGeomolQM9Featurization
+    elif args.dataset == 'lipo_geomol_qm9_featurization':
+        dataset = LIPOGeomolQM9Featurization
+    if args.dataset == 'bace_geomol_qm9_featurization':
+        dataset = BACEGeomolQM9Featurization
+    elif args.dataset == 'bbbp_geomol_qm9_featurization':
+        dataset = BBBPGeomolQM9Featurization
+
     train = dataset(split='train', device=device)
     val = dataset(split='val', device=device)
     test = dataset(split='test', device=device)
@@ -426,7 +439,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/contrastive_training_multiple_positives_kl_div_loss.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/20.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')

@@ -1,7 +1,7 @@
-experiment_name: 'tune_from_qm9_NTXent_mollipo_net'
+experiment_name: 'tune_from_drugs_NTXent_molbbbp_net'
 
-seed: 6
-pretrain_checkpoint: runs/PNA_qm9_NTXent_mollipo_net_11-07_18-56-43/best_checkpoint.pt
+seed: 1
+pretrain_checkpoint: runs/PNA_drugs_NTXent_molbbbp_net_12-07_08-02-30/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
