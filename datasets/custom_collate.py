@@ -234,12 +234,12 @@ def padded_collate_positional_encoding(batch):
 
 def pna_transformer_collate(batch):
     graphs, features, pos_enc, targets = map(list, zip(*batch))
+    n_atoms = torch.tensor([len(feature) for feature in features])
     features = pad_sequence(features, batch_first=True)
     pos_enc = pad_sequence(pos_enc, batch_first=True)
 
     # create mask corresponding to the zero padding used for the shorter sequences in the batch.
     # All values corresponding to padding are True and the rest is False.
-    n_atoms = torch.tensor([len(item[0]) for item in batch])
     mask = torch.arange(features.shape[1])[None, :] >= n_atoms[:, None]  # [batch_size, n_atoms]
     return [dgl.batch(graphs), features, pos_enc, mask], torch.stack(targets).float()
 

@@ -71,9 +71,6 @@ class GEOMDrugs(Dataset):
             self.conformer_categorical = torch.distributions.Categorical(logits=torch.ones(num_conformers))
         self.edge_indices = data_dict['edge_indices']
 
-        self.atom_padding_indices = torch.tensor(get_atom_feature_dims(), dtype=torch.long, device=device)[None, :]
-        self.bond_padding_indices = torch.tensor(get_bond_feature_dims(), dtype=torch.long, device=device)[None, :]
-
         self.meta_dict = {k: data_dict[k] for k in ('smiles', 'edge_slices', 'atom_slices', 'n_atoms')}
         if 'san_graph' in self.return_types:
             self.eig_vals = data_dict['eig_vals']
@@ -186,13 +183,13 @@ class GEOMDrugs(Dataset):
                 self.conformer_graphs[idx] = conformer_graphs.to('cpu')
                 return conformer_graphs
         elif return_type == 'mol_graph':
-            g = self.get_graph(idx, e_start, e_end, n_atoms, start)
-            return g
+            return self.get_graph(idx, e_start, e_end, n_atoms, start)
         elif return_type == 'complete_graph':  # complete graph without self loops
             g = self.get_complete_graph(idx, n_atoms, start)
 
             # set edge features with padding for virtual edges
             bond_features = self.e_features_tensor[e_start: e_end].to(self.device)
+            # TODO: replace with -1 padding
             e_features = self.bond_padding_indices.expand(n_atoms * n_atoms, -1)
             edge_indices = self.edge_indices[:, e_start: e_end].to(self.device)
             bond_indices = edge_indices[0] * n_atoms + edge_indices[1]

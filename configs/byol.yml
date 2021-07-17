@@ -2,7 +2,7 @@ experiment_name: 'ogb_featurization'
 
 num_epochs: 1000
 batch_size: 250
-prefetch_graphs: False
+
 log_iterations: 20
 patience: 30
 loss_func: CosineSimilarityLoss

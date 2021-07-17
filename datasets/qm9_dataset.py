@@ -152,9 +152,6 @@ class QM9Dataset(Dataset):
 
         self.meta_dict = {k: data_dict[k] for k in ('mol_id', 'edge_slices', 'atom_slices', 'n_atoms')}
 
-        self.atom_padding_indices = torch.tensor(get_atom_feature_dims(), dtype=torch.long, device=device)[None, :]
-        self.bond_padding_indices = torch.tensor(get_bond_feature_dims(), dtype=torch.long, device=device)[None, :]
-
         if 'san_graph' in self.return_types or 'positional_encoding' in self.return_types:
             self.eig_vals = data_dict['eig_vals']
             self.eig_vecs = data_dict['eig_vecs']
@@ -267,6 +264,7 @@ class QM9Dataset(Dataset):
 
             # set edge features with padding for virtual edges
             bond_features = self.e_features_tensor[e_start: e_end].to(self.device)
+            # TODO: replace with -1 padding
             e_features = self.bond_padding_indices.expand(n_atoms * n_atoms, -1)
             edge_indices = self.edge_indices[:, e_start: e_end].to(self.device)
             bond_indices = edge_indices[0] * n_atoms + edge_indices[1]
@@ -317,6 +315,7 @@ class QM9Dataset(Dataset):
             return g
         elif return_type == 'padded_e_features':
             bond_features = self.e_features_tensor[e_start: e_end].to(self.device)
+            # TODO: replace with -1 padding
             e_features = self.bond_padding_indices.expand(n_atoms * n_atoms, -1)
             edge_indices = self.edge_indices[:, e_start: e_end].to(self.device)
             bond_indices = edge_indices[0] * n_atoms + edge_indices[1]

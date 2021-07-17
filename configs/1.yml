@@ -1,15 +1,20 @@
-experiment_name: 'baseline'
+experiment_name: 'tune_from_drugs_NTXentMultiplePositives'
 
-dataset: 'qmugs'
+pretrain_checkpoint: runs/PNA_drugs_NTXentMultiplePositives_15-07_21-30-42/best_checkpoint.pt
+transfer_layers:
+  - gnn
+exclude_from_transfer:
+  - batch_norm
+
+dataset: drugs
 num_epochs: 1000
-batch_size: 256
+batch_size: 128
 log_iterations: 30
 patience: 30
-num_train: 120000
 loss_func: L1Loss
+num_train: 120000
 targets:
-  - 'DFT:HOMO_ENERGY'
-
+  - ensemblefreeenergy
 
 required_data:
   - mol_graph
@@ -18,24 +23,26 @@ metrics:
   - mae_denormalized
   - pearsonr
   - rsquared
-  - mean_predictor_loss
 
 optimizer: Adam
 optimizer_params:
-  lr: 1.0e-4
+  lr: 7.0e-5
+  weight_decay: 1.0e-11
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [1500]
+  warmup_steps: [700,700,390]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
   factor: 0.5
   patience: 25
-  min_lr: 5.0e-6
+  min_lr: 1.0e-6
   mode: 'min'
   verbose: True
+
+
 
 # Model parameters
 model_type: 'PNA'

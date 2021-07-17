@@ -3,7 +3,7 @@ experiment_name: 'geom_qm9_NTXent'
 dataset: geom_qm9
 num_epochs: 1000
 batch_size: 50
-prefetch_graphs: False
+
 log_iterations: 1
 patience: 35
 loss_func: NTXentMultiplePositivesV3

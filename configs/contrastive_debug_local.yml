@@ -3,7 +3,7 @@ experiment_name: 'contrastive'
 device: cuda
 num_epochs: 1
 batch_size: 30
-prefetch_graphs: False
+
 log_iterations: 1
 patience: 80
 loss_func: NTXentLocalGlobal

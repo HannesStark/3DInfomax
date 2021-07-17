@@ -2,7 +2,7 @@ experiment_name: 'reproduce'
 
 num_epochs: 100
 batch_size: 8
-prefetch_graphs: True
+
 log_iterations: 4
 patience: 50
 num_train: 100000

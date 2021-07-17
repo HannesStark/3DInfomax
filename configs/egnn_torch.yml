@@ -2,7 +2,7 @@ experiment_name: 'all_data'
 
 num_epochs: 1000
 batch_size: 96
-prefetch_graphs: False
+
 log_iterations: 30
 patience: 50
 num_train: 100000

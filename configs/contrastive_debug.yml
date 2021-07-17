@@ -3,7 +3,7 @@ experiment_name: 'debug'
 ssl_mode: 'contrastive'
 num_epochs: 1000
 batch_size: 100
-prefetch_graphs: False
+
 log_iterations: 1
 patience: 35
 loss_func: NTXent

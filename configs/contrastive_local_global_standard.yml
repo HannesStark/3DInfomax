@@ -2,7 +2,7 @@ experiment_name: 'standard_local_global_infomax'
 
 num_epochs: 1000
 batch_size: 128
-prefetch_graphs: False
+
 log_iterations: 30
 patience: 80
 loss_func: NTXentLocalGlobal

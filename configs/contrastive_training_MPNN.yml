@@ -2,7 +2,7 @@ experiment_name: 'contrastive_MPNN'
 
 num_epochs: 1000
 batch_size: 256
-prefetch_graphs: True
+
 log_iterations: 30
 patience: 50
 loss_func: NTXent

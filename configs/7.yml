@@ -3,7 +3,7 @@ experiment_name: 'NTXentLikelihoodLoss'
 dataset: geom_qm9
 num_epochs: 1000
 batch_size: 4
-prefetch_graphs: False
+
 log_iterations: 50
 patience: 35
 loss_func: NTXentLikelihoodLoss

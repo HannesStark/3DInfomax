@@ -2,7 +2,7 @@ experiment_name: 'distance_predictor_'
 
 num_epochs: 1000
 batch_size: 128
-prefetch_graphs: True
+
 log_iterations: 30
 patience: 50
 loss_func: SampleLossWrapper

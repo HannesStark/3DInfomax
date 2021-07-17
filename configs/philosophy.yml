@@ -3,7 +3,7 @@ experiment_name: 'philosophy_dropout08'
 ssl_mode: philosophy
 num_epochs: 1000
 batch_size: 500
-prefetch_graphs: True
+
 log_iterations: 30
 patience: 35
 loss_func: RegularizationLoss
