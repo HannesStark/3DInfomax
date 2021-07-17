@@ -41,16 +41,16 @@ lr_scheduler_params:
 model_type: 'PNA'
 model_parameters:
   target_dim: 1
-  hidden_dim: 128
+  hidden_dim: 200
   mid_batch_norm: True
   last_batch_norm: True
   readout_batchnorm: True
   # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
   batch_norm_momentum: 0.1
-  readout_hidden_dim: 128
+  readout_hidden_dim: 200
   readout_layers: 2
   dropout: 0.0
-  propagation_depth: 6
+  propagation_depth: 7
   aggregators:
     - mean
     - max
