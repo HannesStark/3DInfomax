@@ -1,7 +1,7 @@
-experiment_name: 'tune_from_drugs_property'
+experiment_name: 'tune_from_drugs_NTXent_molbbbp_net'
 
-seed: 1
-pretrain_checkpoint: runs/PNA_drugs_ogb_featurization_21-06_09-18-27/best_checkpoint.pt
+seed: 6
+pretrain_checkpoint: runs/PNA_drugs_NTXent_molbbbp_net_12-07_08-02-30/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
@@ -20,13 +20,9 @@ metrics:
   - rsquared
   - mean_predictor_loss
   - pearsonr
-
-collate_function: graph_collate
-
 optimizer: Adam
 optimizer_params:
-  lr: 1.0e-5
-  weight_decay: 1.0e-7
+  lr: 1.0e-3
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
@@ -74,10 +70,3 @@ model_parameters:
   pretrans_layers: 2
   posttrans_layers: 1
   residual: True
-
-
-
-
-
-# continue training from checkpoint:
-#checkpoint: runs/PNAReadout_2_layer_03-04_15-29-07/last_checkpoint.pt

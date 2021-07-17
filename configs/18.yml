@@ -7,7 +7,7 @@ transfer_layers:
 exclude_from_transfer:
   - batch_norm
 
-dataset: bbbp_geomol_qm9_featurization
+dataset: bace_geomol_qm9_featurization
 num_epochs: 1000
 batch_size: 32
 log_iterations: 30

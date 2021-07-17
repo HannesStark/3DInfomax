@@ -1,15 +1,15 @@
-experiment_name: 'tune_from_qm9_property'
+experiment_name: 'tune_from_drugs_NTXent_molbbbp_net'
 
-pretrain_checkpoint: runs/PNA_qm9_property_pretraining_bace_model_08-07_19-20-30/best_checkpoint.pt
+seed: 6
+pretrain_checkpoint: runs/PNA_drugs_NTXent_molbbbp_net_12-07_08-02-30/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
   - batch_norm
 
-seed: 2
 dataset: 'ogbg-molbace'
 num_epochs: 1000
-batch_size: 32
+batch_size: 48
 log_iterations: 30
 patience: 30
 loss_func: BCEWithLogitsLoss
@@ -20,9 +20,6 @@ metrics:
   - rsquared
   - mean_predictor_loss
   - pearsonr
-
-collate_function: graph_collate
-
 optimizer: Adam
 optimizer_params:
   lr: 1.0e-3
@@ -30,38 +27,35 @@ optimizer_params:
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [700,700,390]
+  warmup_steps: [100]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
   factor: 0.5
   patience: 25
-  min_lr: 1.0e-6
-  mode: 'min'
+  min_lr: 5.0e-6
+  mode: 'max'
   verbose: True
-
-
 
 # Model parameters
 model_type: 'PNA'
 model_parameters:
   target_dim: 1
-  hidden_dim: 100
+  hidden_dim: 200
   mid_batch_norm: True
   last_batch_norm: True
   readout_batchnorm: True
   # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
   batch_norm_momentum: 0.1
-  readout_hidden_dim: 100
+  readout_hidden_dim: 200
   readout_layers: 2
   dropout: 0.0
-  propagation_depth: 5
+  propagation_depth: 7
   aggregators:
     - mean
     - max
     - min
     - std
-    - sum
   scalers:
     - identity
     - amplification
@@ -71,9 +65,13 @@ model_parameters:
     - max
     - mean
     - sum
-  pretrans_layers: 1
+  pretrans_layers: 2
   posttrans_layers: 1
   residual: True
+
+
+
+
 
 
 

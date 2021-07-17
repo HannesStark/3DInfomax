@@ -1,6 +1,12 @@
-experiment_name: 'baseline_mollipo_net'
+experiment_name: 'tune_from_drugs_NTXent_molbbbp_net'
 
-seed: 6
+seed: 4
+pretrain_checkpoint: runs/PNA_drugs_NTXent_molbbbp_net_12-07_08-02-30/best_checkpoint.pt
+transfer_layers:
+  - gnn
+exclude_from_transfer:
+  - batch_norm
+
 dataset: 'ogbg-molbace'
 num_epochs: 1000
 batch_size: 48
@@ -35,16 +41,16 @@ lr_scheduler_params:
 model_type: 'PNA'
 model_parameters:
   target_dim: 1
-  hidden_dim: 128
+  hidden_dim: 200
   mid_batch_norm: True
   last_batch_norm: True
   readout_batchnorm: True
   # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
   batch_norm_momentum: 0.1
-  readout_hidden_dim: 128
+  readout_hidden_dim: 200
   readout_layers: 2
   dropout: 0.0
-  propagation_depth: 6
+  propagation_depth: 7
   aggregators:
     - mean
     - max
@@ -62,6 +68,12 @@ model_parameters:
   pretrans_layers: 2
   posttrans_layers: 1
   residual: True
+
+
+
+
+
+
 
 
 # continue training from checkpoint:

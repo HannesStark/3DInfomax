@@ -87,9 +87,13 @@ class ESOLGeomolQM9Featurization(InMemoryDataset):
             data_list = []
             for i, smiles in enumerate(csv_file['smiles']):
                 if i in splits[split_idx]:
-                    pyg_graph = featurize_mol_from_smiles(smiles)
-                    pyg_graph.y = csv_file['ESOL predicted log solubility in mols per litre'][i]
-                    data_list.append(pyg_graph)
+                    try:
+                        pyg_graph = featurize_mol_from_smiles(smiles)
+                        pyg_graph.y = csv_file['ESOL predicted log solubility in mols per litre'][i]
+                        data_list.append(pyg_graph)
+                    except Exception as e:
+                        print('rdkit failed for this smiles and it was excluded: ', smiles)
+                        print('this was rdkits error message: ', e)
             data, slices = self.collate(data_list)
             torch.save((data, slices), self.processed_paths[split_idx])
 
