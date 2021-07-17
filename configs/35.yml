@@ -1,6 +1,6 @@
 experiment_name: 'baseline_mollipo_net'
 
-seed: 7
+seed: 1
 dataset: 'ogbg-mollipo'
 num_epochs: 1000
 batch_size: 32
