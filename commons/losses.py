@@ -237,6 +237,56 @@ class KLDivergenceMultiplePositives(_Loss):
         if self.norm:
             z1 = F.normalize(z1, dim=2)
             z2 = F.normalize(z2, dim=2)
+        z1_means = z1[:, 0, :]  # [batch_size, metric_dim]
+        z1_vars = torch.exp(z1[:, 1, :]) # [batch_size, metric_dim]
+        z2_means = z2.mean(1)  # [batch_size, metric_dim]
+        z2_vars = z2.var(1)  # [batch_size, metric_dim]
+
+        normal1 = MultivariateNormal(z1_means, torch.diag_embed(z1_vars))
+        normal2 = MultivariateNormal(z2_means, torch.diag_embed(z2_vars))
+        #kl_div = torch.distributions.kl_divergence(normal1, normal2)
+        kl_div = torch.distributions.kl_divergence(normal2, normal1)
+        loss = kl_div.mean()
+
+        if self.variance_reg > 0:
+            loss += self.variance_reg * (std_loss(z1) + std_loss(z2))
+        if self.covariance_reg > 0:
+            loss += self.covariance_reg * (cov_loss(z1) + cov_loss(z2))
+        if self.uniformity_reg > 0:
+            loss += self.uniformity_reg * uniformity_loss(z1, z2)
+        return loss
+
+
+class JSDMultiplePositivesLoss(_Loss):
+    '''
+        Normalized Temperature-scaled Cross Entropy Loss from SimCLR paper
+        Args:
+            z1, z2: Tensor of shape [batch_size, z_dim]
+            tau: Float. Usually in (0,1].
+            norm: Boolean. Whether to apply normlization.
+        '''
+
+    def __init__(self, norm: bool = True, tau: float = 0.5, uniformity_reg=0, variance_reg=0, covariance_reg=0) -> None:
+        super(JSDMultiplePositivesLoss, self).__init__()
+        self.norm = norm
+        self.tau = tau
+        self.uniformity_reg = uniformity_reg
+        self.variance_reg = variance_reg
+        self.covariance_reg = covariance_reg
+
+    def forward(self, z1, z2, **kwargs) -> Tensor:
+        '''
+        :param z1: batchsize, metric dim*2
+        :param z2: batchsize*num_conformers, metric dim
+        '''
+        batch_size, _ = z1.size()
+        _, metric_dim = z2.size()
+
+        z1 = z1.view(batch_size, 2, metric_dim)
+        z2 = z2.view(batch_size, -1, metric_dim) # [batch_size, num_conformers, metric_dim]
+        if self.norm:
+            z1 = F.normalize(z1, dim=2)
+            z2 = F.normalize(z2, dim=2)
 
 
         z1_means = z1[:, 0, :].unsqueeze(0).expand(batch_size, -1, -1)  # [batch_size, batch_size, metric_dim]
@@ -246,8 +296,8 @@ class KLDivergenceMultiplePositives(_Loss):
 
         normal1 = MultivariateNormal(z1_means, torch.diag_embed(z1_vars))
         normal2 = MultivariateNormal(z2_means, torch.diag_embed(z2_vars))
-        kl_div1 = torch.distributions.kl_divergence(normal1, normal2)
-        kl_div2 = -torch.distributions.kl_divergence(normal2, normal1)
+        #kl_div = torch.distributions.kl_divergence(normal1, normal2)
+        kl_div = -torch.distributions.kl_divergence(normal2, normal1)
         m = 0.5*(kl_div1+kl_div2)
         jsd = 0.5
         ic(z1_vars.shape)
@@ -282,7 +332,6 @@ class KLDivergenceMultiplePositives(_Loss):
         if self.uniformity_reg > 0:
             loss += self.uniformity_reg * uniformity_loss(z1, z2)
         return loss
-
 
 class NTXentMMDSeparate2D(_Loss):
     def __init__(self, norm: bool = True, tau: float = 0.5, uniformity_reg=0, variance_reg=0, covariance_reg=0,

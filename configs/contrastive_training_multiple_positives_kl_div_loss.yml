@@ -1,6 +1,6 @@
 experiment_name: 'KLDivergenceMultiplePositives'
 
-dataset: drugs
+dataset: qmugs
 num_epochs: 1000
 batch_size: 4
 log_iterations: 1
