@@ -3,11 +3,11 @@ experiment_name: 'tune'
 seed: 1
 pretrain_checkpoint: runs2/geomol_qm9/best_model.pt
 transfer_layers:
-  - gnn.
+  - gnn2
 exclude_from_transfer:
   - batch_norm
 
-dataset: esol_geomol_qm9_featurization
+dataset: lipo_geomol_qm9_featurization
 num_epochs: 1000
 batch_size: 32
 log_iterations: 30

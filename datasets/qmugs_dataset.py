@@ -22,7 +22,8 @@ hartree2eV = physical_constants['hartree-electron volt relationship'][0]
 
 class QMugsDataset(Dataset):
 
-    def __init__(self, return_types: list = None,target_tasks: list = None,normalize: bool = True, device='cuda:0', num_conformers: int = 1, **kwargs):
+    def __init__(self, return_types: list = None, target_tasks: list = None, normalize: bool = True, device='cuda:0',
+                 num_conformers: int = 1, **kwargs):
 
         self.root = '../QMugs'
         self.processed_file = 'processed.pt'
@@ -31,7 +32,6 @@ class QMugsDataset(Dataset):
         self.device = device
         self.num_conformers = num_conformers
         self.return_types: list = return_types
-
 
         # load the data and get normalization values
         if not os.path.exists(os.path.join(self.root, 'processed', self.processed_file)):
@@ -47,7 +47,7 @@ class QMugsDataset(Dataset):
             self.conformer_categorical = torch.distributions.Categorical(logits=torch.ones(num_conformers))
         self.edge_indices = data_dict['edge_indices']
 
-        self.meta_dict = {k: data_dict[k] for k in ('chembl_ids','edge_slices', 'atom_slices', 'n_atoms')}
+        self.meta_dict = {k: data_dict[k] for k in ('chembl_ids', 'edge_slices', 'atom_slices', 'n_atoms')}
 
         self.atom_padding_indices = torch.tensor(get_atom_feature_dims(), dtype=torch.long, device=device)[None, :]
         self.bond_padding_indices = torch.tensor(get_bond_feature_dims(), dtype=torch.long, device=device)[None, :]
@@ -148,10 +148,13 @@ class QMugsDataset(Dataset):
                 return self.conformer_graphs[idx].to(self.device)
             else:
                 conformer_coords = self.conformations[start: start + n_atoms].to(self.device)
-                conformer_graphs = []
+                conformer_graphs = [self.get_complete_graph(idx, n_atoms, start)]
                 for i in range(1, self.num_conformers):
-                    g = copy.deepcopy(self.get_complete_graph(idx, n_atoms, start))
-                    g.ndata['x'] = conformer_coords[:, i * 3:(i + 1) * 3]
+                    g = copy.deepcopy(conformer_graphs[0])
+                    coords = conformer_coords[:, i * 3:(i + 1) * 3]
+                    if torch.equal(coords,conformer_graphs[0].ndata['x']): # add noise to the conformer if it is the same as the first one
+                        coords += torch.randn_like(coords, device=self.device) * 0.05
+                    g.ndata['x'] = coords
                     g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2,
                                               dim=-1).unsqueeze(-1)
                     conformer_graphs.append(g)
@@ -275,10 +278,10 @@ class QMugsDataset(Dataset):
             if len(conformers) < 3:  # if there are less than 10 conformers we add the first one a few times
                 conformers.extend([conformers[0]] * (3 - len(conformers)))
 
-            coordinates = torch.cat([coordinates, torch.cat(conformers,dim=1)], dim=0)
+            coordinates = torch.cat([coordinates, torch.cat(conformers, dim=1)], dim=0)
 
         data_dict = {'chembl_ids': chembl_ids,
-            'n_atoms': torch.tensor(n_atoms_list, dtype=torch.long),
+                     'n_atoms': torch.tensor(n_atoms_list, dtype=torch.long),
                      'atom_slices': torch.tensor(atom_slices, dtype=torch.long),
                      'edge_slices': torch.tensor(edge_slices, dtype=torch.long),
                      'edge_indices': torch.cat(edge_indices, dim=1),

@@ -1,3 +1,4 @@
+import copy
 import json
 import os
 import pickle
@@ -53,6 +54,7 @@ class GEOMqm9(Dataset):
         self.device = device
         self.transform = transform
         self.return_types: list = return_types
+        self.num_conformers = num_conformers
 
 
         # load the data and get normalization values
@@ -85,6 +87,7 @@ class GEOMqm9(Dataset):
         self.pairwise = {}  # for memoization
         self.complete_graphs = {}
         self.mol_complete_graphs = {}
+        self.conformer_graphs = {}
 
         self.avg_degree = data_dict['avg_degree']
         # indices of the tasks that should be retrieved
@@ -172,9 +175,24 @@ class GEOMqm9(Dataset):
 
     def data_by_type(self, idx, return_type, e_start, e_end, start, n_atoms):
         if return_type == 'conformations':
-            return self.conformations[start: start + n_atoms].to(self.device)
-            for conf_idx in self.num_conformers:
-                pass
+            if idx in self.conformer_graphs:
+                return self.conformer_graphs[idx].to(self.device)
+            else:
+                conformer_coords = self.conformations[start: start + n_atoms].to(self.device)
+                conformer_graphs = [self.get_complete_graph(idx, n_atoms, start)]
+                for i in range(1, self.num_conformers):
+                    g = copy.deepcopy(conformer_graphs[0])
+                    coords = conformer_coords[:, i * 3:(i + 1) * 3]
+                    if torch.equal(coords, conformer_graphs[0].ndata[
+                        'x']):  # add noise to the conformer if it is the same as the first one
+                        coords += torch.randn_like(coords, device=self.device) * 0.05
+                    g.ndata['x'] = coords
+                    g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2,
+                                              dim=-1).unsqueeze(-1)
+                    conformer_graphs.append(g)
+                conformer_graphs = dgl.batch(conformer_graphs)
+                self.conformer_graphs[idx] = conformer_graphs.to('cpu')
+                return conformer_graphs
         elif return_type == 'mol_graph':
             return self.get_graph(idx, e_start, e_end, n_atoms, start)
         elif return_type == 'complete_graph':  # complete graph without self loops

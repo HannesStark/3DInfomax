@@ -173,11 +173,16 @@ class GEOMDrugs(Dataset):
                 return self.conformer_graphs[idx].to(self.device)
             else:
                 conformer_coords = self.conformations[start: start + n_atoms].to(self.device)
-                conformer_graphs = []
+                conformer_graphs = [self.get_complete_graph(idx, n_atoms, start)]
                 for i in range(1, self.num_conformers):
-                    g = copy.deepcopy(self.get_complete_graph(idx, n_atoms, start))
-                    g.ndata['x'] = conformer_coords[:, i * 3:(i + 1) * 3]
-                    g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2,dim=-1).unsqueeze(-1)
+                    g = copy.deepcopy(conformer_graphs[0])
+                    coords = conformer_coords[:, i * 3:(i + 1) * 3]
+                    if torch.equal(coords, conformer_graphs[0].ndata[
+                        'x']):  # add noise to the conformer if it is the same as the first one
+                        coords += torch.randn_like(coords, device=self.device) * 0.05
+                    g.ndata['x'] = coords
+                    g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2,
+                                              dim=-1).unsqueeze(-1)
                     conformer_graphs.append(g)
                 conformer_graphs = dgl.batch(conformer_graphs)
                 self.conformer_graphs[idx] = conformer_graphs.to('cpu')
