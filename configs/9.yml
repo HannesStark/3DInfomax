@@ -4,7 +4,7 @@ dataset: 'ogbg-molhiv'
 num_epochs: 1000
 batch_size: 96
 log_iterations: 20
-patience: 30
+patience: 50
 loss_func: BCEWithLogitsLoss
 required_data:
   - dgl_graph
@@ -24,11 +24,16 @@ optimizer_params:
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [10000]
-  interpolation: 'linear'
+  warmup_steps: [20000]
   # parameters of scheduler to run after warmup
-  wrapped_scheduler: ExponentialLR
-  gamma: 0.94
+  wrapped_scheduler: ReduceLROnPlateau
+  cooldown: 20
+  factor: 0.6
+  patience: 25
+  min_lr: 1.0e-6
+  threshold: 1.0e-4
+  mode: 'min'
+  verbose: True
 
 
 model_type: 'PNATransformer'
@@ -37,7 +42,7 @@ model_parameters:
   hidden_dim: 128
   nhead: 32
   dim_feedforward: 512
-  dropout: 0.1
+  dropout: 0.0
   propagation_depth: 6
   readout_batchnorm: True
   readout_hidden_dim: 128
