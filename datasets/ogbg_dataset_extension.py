@@ -3,6 +3,7 @@ import torch.nn.functional as F
 import dgl
 import numpy as np
 import torch
+import torch_geometric
 
 from ogb.graphproppred import GraphPropPredDataset, DglGraphPropPredDataset
 from torch.utils.data import Subset
@@ -41,6 +42,12 @@ class OGBGDatasetExtension(GraphPropPredDataset):
             return torch.tensor(self.graphs[idx]['node_feat']).to(self.device)
         elif return_type == 'targets':
             return self.labels[idx].to(self.device)
+        elif return_type == 'pytorch_geometric_graph':
+            graph_info = self.graphs[idx]
+            return torch_geometric.data.Data(z=torch.from_numpy(graph_info['node_feat']).to(self.device),
+                                             edge_attr=torch.from_numpy(graph_info['edge_feat']).to(self.device),
+                                             edge_index=torch.from_numpy(graph_info['edge_index']).to(self.device),
+                                             num_nodes=graph_info['num_nodes'])
         elif return_type == 'positional_encoding':
             eig_vals, eig_vecs = self.get_pos_enc(idx)
             eig_vals = eig_vals.to(self.device)
@@ -72,7 +79,7 @@ class OGBGDatasetExtension(GraphPropPredDataset):
             src = torch.repeat_interleave(torch.arange(n_atoms, device=self.device), n_atoms - 1)
             dst = torch.cat([torch.cat(
                 [torch.arange(n_atoms, device=self.device)[:idx], torch.arange(n_atoms, device=self.device)[idx + 1:]])
-                             for idx in range(n_atoms)])  # without self loops
+                for idx in range(n_atoms)])  # without self loops
             g = dgl.graph((src, dst), device=self.device)
             g.ndata['feat'] = torch.from_numpy(graph_info['node_feat']).to(self.device)
 
@@ -105,7 +112,8 @@ class OGBGDatasetExtension(GraphPropPredDataset):
             graph_info = self.graphs[idx]
             edge_index = graph_info['edge_index']
             n_atoms = graph_info['num_nodes']
-            sparse = torch.sparse_coo_tensor(edge_index, torch.ones(edge_index.shape[1]),size=(n_atoms,n_atoms), device=self.device)
+            sparse = torch.sparse_coo_tensor(edge_index, torch.ones(edge_index.shape[1]), size=(n_atoms, n_atoms),
+                                             device=self.device)
             A = sparse.to_dense()
             A += torch.eye(n_atoms, device=self.device)
             D = A.sum(dim=0)

@@ -1,23 +1,19 @@
-experiment_name: 'tune'
+experiment_name: 'baseline'
 
-seed: 4
-pretrain_checkpoint: runs2/geomol_qm9/best_model.pt
-transfer_layers:
-  - gnn2
-exclude_from_transfer:
-  - batch_norm
-
-dataset: bbbp_geomol_qm9_featurization
+seed: 2
+dataset: 'ogbg-molbbbp'
 num_epochs: 1000
 batch_size: 32
 log_iterations: 30
-patience: 50
-minimum_epochs: 100
+patience: 30
 loss_func: BCEWithLogitsLoss
+minimum_epochs: 100
+required_data:
+  - pytorch_geometric_graph
+  - targets
 metrics:
-  - rsquared
-  - mean_predictor_loss
   - pearsonr
+  - rsquared
 collate_function: pytorch_geometric_collate
 
 optimizer: Adam
@@ -27,7 +23,7 @@ optimizer_params:
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [700,700,390]
+  warmup_steps: [700]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
@@ -40,8 +36,9 @@ lr_scheduler_params:
 
 
 # Model parameters
-model_type: 'GeomolGNNWrapper'
+model_type: 'GeomolGNNWrapperOGBFeat'
 model_parameters:
+  target_dim: 1
   hidden_dim: 50
   readout_layers: 2
   readout_batchnorm: True
