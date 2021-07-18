@@ -2,6 +2,7 @@ import os
 from itertools import chain
 from typing import Dict, Callable
 
+import dgl
 import torch
 
 from trainer.trainer import Trainer
@@ -24,7 +25,7 @@ class SelfSupervisedTrainer(Trainer):
         info2d, info3d, *snorm_n = tuple(batch)
         view2d = self.model(*info2d, *snorm_n)  # foward the rest of the batch to the model
         view3d = self.model3d(*info3d)
-        loss = self.loss_func(view2d, view3d, nodes_per_graph=info2d[0].batch_num_nodes())
+        loss = self.loss_func(view2d, view3d, nodes_per_graph=info2d[0].batch_num_nodes() if isinstance(info2d[0], dgl.DGLGraph) else None)
         return loss, view2d, view3d
 
     def evaluate_metrics(self, z2d, z3d, batch=None, val=False) -> Dict[str, float]:

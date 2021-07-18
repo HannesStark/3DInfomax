@@ -322,10 +322,16 @@ class QM9Dataset(Dataset):
             # overwrite the bond features
             return e_features.scatter(dim=0, index=bond_indices[:, None].expand(-1, bond_features.shape[1]),
                                       src=bond_features)
-        elif return_type == 'pytorch_geometric_graph':
+        elif return_type == 'pytorch_geometric_smp_graph':
             R_i = self.coordinates[start: start + n_atoms].to(self.device)
             z_i = self.features_tensor[start: start + n_atoms].to(self.device)
             return torch_geometric.data.Data(pos=R_i, z=z_i)
+        elif return_type == 'pytorch_geometric_graph':
+            edge_features = self.e_features_tensor[e_start: e_end].to(self.device)
+            edge_indices = self.edge_indices[:, e_start: e_end].to(self.device)
+            R_i = self.coordinates[start: start + n_atoms].to(self.device)
+            z_i = self.features_tensor[start: start + n_atoms].to(self.device)
+            return torch_geometric.data.Data(pos=R_i, z=z_i, edge_attr=edge_features, edge_index=edge_indices)
         elif return_type == 'pairwise_indices':
             src, dst = self.get_pairwise(n_atoms)
             return torch.stack([src, dst], dim=0).to(self.device)

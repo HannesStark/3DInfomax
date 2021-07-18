@@ -5,6 +5,7 @@ import pickle
 
 import torch
 import dgl
+import torch_geometric
 from ogb.utils.features import bond_to_feature_vector, atom_to_feature_vector, get_atom_feature_dims, \
     get_bond_feature_dims
 from rdkit.Chem.rdmolops import GetAdjacencyMatrix
@@ -244,6 +245,12 @@ class GEOMDrugs(Dataset):
             if self.e_features_tensor != None and return_type == 'se3Transformer_graph':
                 g.edata['feat'] = self.e_features_tensor[e_start: e_end].to(self.device)
             return g
+        elif return_type == 'pytorch_geometric_graph':
+            edge_features = self.e_features_tensor[e_start: e_end].to(self.device)
+            edge_indices = self.edge_indices[:, e_start: e_end].to(self.device)
+            R_i = self.coordinates[start: start + n_atoms].to(self.device)
+            z_i = self.features_tensor[start: start + n_atoms].to(self.device)
+            return torch_geometric.data.Data(pos=R_i, z=z_i, edge_attr=edge_features, edge_index=edge_indices)
         elif return_type == 'raw_features':
             return self.features_tensor[start: start + n_atoms]
         elif return_type == 'coordinates':

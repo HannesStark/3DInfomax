@@ -22,7 +22,7 @@ class GeomolMLP(nn.Module):
         activation (torch function): activation function to be used during the hidden layers
     """
 
-    def __init__(self, in_dim, out_dim, num_layers, activation=torch.nn.ReLU(), layer_norm=False, batch_norm=False):
+    def __init__(self, in_dim, out_dim, num_layers, activation=torch.nn.ReLU(), layer_norm=False, batch_norm=False, batch_norm_momentum=0.1):
         super(GeomolMLP, self).__init__()
         self.layers = nn.ModuleList()
 
@@ -35,7 +35,7 @@ class GeomolMLP(nn.Module):
             else:
                 self.layers.append(nn.Linear(h_dim, h_dim))
             if layer_norm: self.layers.append(nn.LayerNorm(h_dim))
-            if batch_norm: self.layers.append(nn.BatchNorm1d(h_dim))
+            if batch_norm: self.layers.append(nn.BatchNorm1d(h_dim, momentum=batch_norm_momentum))
             self.layers.append(activation)
         self.layers.append(nn.Linear(h_dim, out_dim))
 
@@ -77,12 +77,12 @@ class GeomolMetaLayer(torch.nn.Module):
 
 
 class EdgeModel(nn.Module):
-    def __init__(self, hidden_dim, n_layers):
+    def __init__(self, hidden_dim, n_layers, batch_norm_momentum=0.1):
         super(EdgeModel, self).__init__()
         self.edge = Lin(hidden_dim, hidden_dim)
         self.node_in = Lin(hidden_dim, hidden_dim, bias=False)
         self.node_out = Lin(hidden_dim, hidden_dim, bias=False)
-        self.mlp = GeomolMLP(hidden_dim, hidden_dim, n_layers)
+        self.mlp = GeomolMLP(hidden_dim, hidden_dim, n_layers, batch_norm_momentum=batch_norm_momentum)
 
     def forward(self, x, edge_attr, edge_index):
         # source, target: [2, E], where E is the number of edges.
@@ -100,10 +100,10 @@ class EdgeModel(nn.Module):
 
 
 class GeomolNodeModel(nn.Module):
-    def __init__(self, hidden_dim, n_layers):
+    def __init__(self, hidden_dim, n_layers, batch_norm_momentum=0.1):
         super(GeomolNodeModel, self).__init__()
-        self.node_mlp_1 = GeomolMLP(hidden_dim, hidden_dim, n_layers)
-        self.node_mlp_2 = GeomolMLP(hidden_dim, hidden_dim, n_layers)
+        self.node_mlp_1 = GeomolMLP(hidden_dim, hidden_dim, n_layers, batch_norm_momentum=batch_norm_momentum)
+        self.node_mlp_2 = GeomolMLP(hidden_dim, hidden_dim, n_layers, batch_norm_momentum=batch_norm_momentum)
 
     def forward(self, x, edge_index, edge_attr, batch):
         # x: [N, h], where N is the number of nodes.

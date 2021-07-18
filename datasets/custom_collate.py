@@ -57,10 +57,16 @@ def contrastive_collate(batch: List[Tuple]):
     else:
         return [batched_graph], [batched_graph3d]
 
-def pytorch_geometric_contrastive_collate(batch: List[Tuple]):
+def pytorch_geometric3d_contrastive_collate(batch: List[Tuple]):
     graphs, graphs3d  = map(list, zip(*batch))
     batched_graph3d = torch_geometric.data.batch.Batch.from_data_list(graphs3d)
     batched_graph = dgl.batch(graphs)
+    return [batched_graph],  [batched_graph3d]
+
+def pytorch_geometric2d_contrastive_collate(batch: List[Tuple]):
+    graphs, graphs3d  = map(list, zip(*batch))
+    batched_graph = torch_geometric.data.batch.Batch.from_data_list(graphs)
+    batched_graph3d = dgl.batch(graphs3d)
     return [batched_graph],  [batched_graph3d]
 
 
