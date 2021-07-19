@@ -52,13 +52,13 @@ class GeomolGNNWrapperOGBFeat(nn.Module):
 
         if readout_hidden_dim == None:
             readout_hidden_dim = hidden_dim
-        self.gnn = GeomolGNNOGBFeat(hidden_dim=hidden_dim, **kwargs)
+        self.node_gnn = GeomolGNNOGBFeat(hidden_dim=hidden_dim, **kwargs)
         self.output = MLP(in_dim=hidden_dim, hidden_size=readout_hidden_dim,
                           mid_batch_norm=readout_batchnorm, out_dim=target_dim,
                           layers=readout_layers, batch_norm_momentum=0.1)
 
     def forward(self, data):
         x, edge_index, edge_attr, batch = data.z, data.edge_index, data.edge_attr, data.batch
-        x, edge_attr = self.gnn(x, edge_index, edge_attr)
+        x, edge_attr = self.node_gnn(x, edge_index, edge_attr)
         pooled = global_mean_pool(x, batch)
         return self.output(pooled)
