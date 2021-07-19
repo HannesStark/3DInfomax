@@ -251,6 +251,12 @@ class GEOMDrugs(Dataset):
             R_i = self.coordinates[start: start + n_atoms].to(self.device)
             z_i = self.features_tensor[start: start + n_atoms].to(self.device)
             return torch_geometric.data.Data(pos=R_i, z=z_i, edge_attr=edge_features, edge_index=edge_indices)
+        elif return_type == 'geomol_graph':
+            edge_features = self.e_features_tensor[e_start: e_end].to(self.device)
+            edge_indices = self.edge_indices[:, e_start: e_end].to(self.device)
+            R_i = self.coordinates[start: start + n_atoms].to(self.device)
+            z_i = self.features_tensor[start: start + n_atoms].to(self.device)
+            return torch_geometric.data.Data(pos=R_i, z=z_i, edge_attr=edge_features, edge_index=edge_indices)
         elif return_type == 'raw_features':
             return self.features_tensor[start: start + n_atoms]
         elif return_type == 'coordinates':
