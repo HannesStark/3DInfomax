@@ -158,8 +158,40 @@ class BatchVariance(nn.Module):
         super(BatchVariance, self).__init__()
 
     def forward(self, x1: Tensor, x2: Tensor, pos_mask: Tensor = None) -> Tensor:
-        return std_loss(x1) + std_loss(x2)
+        return x1.std(dim=0).mean() +x2.std(dim=0).mean()
 
+class Conformer3DVariance(nn.Module):
+    def __init__(self, normalize=False) -> None:
+        super(Conformer3DVariance, self).__init__()
+        self.norm = normalize
+
+    def forward(self, z1: Tensor, z2: Tensor, pos_mask: Tensor = None) -> Tensor:
+        batch_size, _ = z1.size()
+        _, metric_dim = z2.size()
+
+        z1 = z1.view(batch_size, 2, metric_dim)
+        z2 = z2.view(batch_size, -1, metric_dim)  # [batch_size, num_conformers, metric_dim]
+        if self.norm:
+            z2 = F.normalize(z2, dim=2)
+
+        z2_vars = z2.var(1)  # [batch_size, metric_dim]
+        return z2_vars.mean()
+
+class Conformer2DVariance(nn.Module):
+    def __init__(self, normalize=False) -> None:
+        super(Conformer2DVariance, self).__init__()
+        self.norm = normalize
+
+    def forward(self, z1: Tensor, z2: Tensor, pos_mask: Tensor = None) -> Tensor:
+        batch_size, _ = z1.size()
+        _, metric_dim = z2.size()
+
+        z1 = z1.view(batch_size, 2, metric_dim)
+        z2 = z2.view(batch_size, -1, metric_dim)  # [batch_size, num_conformers, metric_dim]
+        if self.norm:
+            z1 = F.normalize(z1, dim=2)
+        z1_vars = torch.exp(z1[:, 1, :])  # [batch_size, metric_dim]
+        return z1_vars.mean()
 
 class Alignment(nn.Module):
     def __init__(self, alpha=2) -> None:

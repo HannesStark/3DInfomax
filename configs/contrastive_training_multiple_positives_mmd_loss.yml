@@ -27,7 +27,7 @@ collate_params:
 
 optimizer: Adam
 optimizer_params:
-  lr: 8.0e-3
+  lr: 8.0e-5
 
 
 scheduler_step_per_batch: False

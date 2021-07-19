@@ -1,35 +1,30 @@
-experiment_name: 'NTXent'
+experiment_name: 'KLDivergenceMultiplePositives'
 
-dataset: drugs
+dataset: qmugs
 num_epochs: 1000
-batch_size: 500
+batch_size: 128
 log_iterations: 50
 patience: 35
-loss_func: NTXent
+loss_func: KLDivergenceMultiplePositives
 loss_params:
   tau: 0.1
-num_train: 300000
+num_train: 120000
 
 required_data:
-  - pytorch_geometric_graph
-  - complete_graph3d
+  - mol_graph
+  - conformations
 metrics:
-  - positive_similarity
-  - negative_similarity
-  - contrastive_accuracy
-  - true_negative_rate
-  - true_positive_rate
-  - uniformity
-  - alignment
+  - conformer_3d_variance
+  - conformer_2d_variance
   - batch_variance
   - dimension_covariance
 main_metric: loss
-collate_function: pytorch_geometric2d_contrastive_collate
+collate_function: conformer_collate
+num_conformers: 3
 
 optimizer: Adam
 optimizer_params:
   lr: 8.0e-5
-
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
@@ -48,14 +43,35 @@ lr_scheduler_params:
 
 
 # Model parameters
-model_type: 'GeomolGNNWrapperOGBFeat'
+model_type: 'PNA'
 model_parameters:
-  target_dim: 256
-  hidden_dim: 50
-  readout_layers: 2
+  target_dim: 512
+  hidden_dim: 200
+  mid_batch_norm: True
+  last_batch_norm: True
   readout_batchnorm: True
-  depth: 3
-  n_layers: 2
+  # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
+  batch_norm_momentum: 0.93
+  readout_hidden_dim: 256
+  readout_layers: 2
+  dropout: 0.0
+  propagation_depth: 7
+  aggregators:
+    - mean
+    - max
+    - min
+    - std
+  scalers:
+    - identity
+    - amplification
+    - attenuation
+  readout_aggregators:
+    - min
+    - max
+    - mean
+  pretrans_layers: 2
+  posttrans_layers: 1
+  residual: True
 
 # Model parameters
 model3d_type: 'Net3D'

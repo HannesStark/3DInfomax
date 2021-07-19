@@ -55,7 +55,8 @@ from trainer.metrics import QM9DenormalizedL1, QM9DenormalizedL2, \
     QM9SingleTargetDenormalizedL1, Rsquared, NegativeSimilarity, MeanPredictorLoss, \
     PositiveSimilarity, ContrastiveAccuracy, TrueNegativeRate, TruePositiveRate, Alignment, Uniformity, \
     BatchVariance, DimensionCovariance, MAE, PositiveSimilarityMultiplePositivesSeparate2d, \
-    NegativeSimilarityMultiplePositivesSeparate2d, OGBEvaluator, PearsonR, PositiveProb, NegativeProb
+    NegativeSimilarityMultiplePositivesSeparate2d, OGBEvaluator, PearsonR, PositiveProb, NegativeProb, \
+    Conformer2DVariance, Conformer3DVariance
 from trainer.trainer import Trainer
 
 
@@ -146,6 +147,8 @@ def train(args):
                     'ogbg-molsider': OGBEvaluator(d_name='ogbg-molsider', metric='rocauc'),
                     'ogbg-molfreesolv': OGBEvaluator(d_name='ogbg-molfreesolv', metric='rmse'),
                     'ogbg-molesol': OGBEvaluator(d_name='ogbg-molesol', metric='rmse'),
+                    'conformer_3d_variance': Conformer3DVariance(),
+                    'conformer_2d_variance': Conformer2DVariance(),
                     'positive_similarity': PositiveSimilarity(),
                     'positive_similarity_multiple_positives_separate2d': PositiveSimilarityMultiplePositivesSeparate2d(),
                     'positive_prob': PositiveProb(),
@@ -439,7 +442,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/20.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/contrastive_training_multiple_positives_kl_div_loss.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')

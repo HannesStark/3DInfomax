@@ -216,7 +216,7 @@ class KLDivergenceMultiplePositives(_Loss):
             norm: Boolean. Whether to apply normlization.
         '''
 
-    def __init__(self, norm: bool = True, tau: float = 0.5, uniformity_reg=0, variance_reg=0, covariance_reg=0) -> None:
+    def __init__(self, norm: bool = False, tau: float = 0.5, uniformity_reg=0, variance_reg=0, covariance_reg=0) -> None:
         super(KLDivergenceMultiplePositives, self).__init__()
         self.norm = norm
         self.tau = tau

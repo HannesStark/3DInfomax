@@ -125,9 +125,9 @@ class Trainer():
     def predict(self, data_loader: DataLoader, epoch: int = 0, optim: torch.optim.Optimizer = None,
                 return_predictions: bool = False) -> Union[
         Dict, Tuple[float, Union[torch.Tensor, None], Union[torch.Tensor, None]]]:
-        total_metrics = {k: 0 for k in self.evaluate_metrics(torch.ones((2, 2), device=self.device),
-                                                             torch.ones((2, 2), device=self.device), val=True).keys()}
-        total_metrics[type(self.loss_func).__name__] = 0
+        total_metrics = {k: 0 for k in
+                         list(self.metrics.keys()) + [type(self.loss_func).__name__, 'mean_pred', 'std_pred',
+                                                      'mean_targets', 'std_targets']}
         epoch_targets = torch.tensor([]).to(self.device)
         epoch_predictions = torch.tensor([]).to(self.device)
         epoch_loss = 0
@@ -141,7 +141,7 @@ class Trainer():
                     self.run_tensorboard_functions(predictions, targets, step=self.optim_steps, data_split='train')
                     self.tensorboard_log(metrics, data_split='train', step=self.optim_steps, epoch=epoch)
                     print('[Epoch %d; Iter %5d/%5d] %s: loss: %.7f' % (
-                    epoch, i + 1, len(data_loader), 'train', loss.item()))
+                        epoch, i + 1, len(data_loader), 'train', loss.item()))
                 if optim == None and self.val_per_batch:  # during validation or testing when we want to average metrics over all the data in that dataloader
                     metrics_results = self.evaluate_metrics(predictions, targets, val=True)
                     metrics_results[type(self.loss_func).__name__] = loss.item()
