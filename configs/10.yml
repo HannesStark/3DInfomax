@@ -2,7 +2,7 @@ experiment_name: 'KLDivergenceMultiplePositives'
 
 dataset: qmugs
 num_epochs: 1000
-batch_size: 128
+batch_size: 5
 log_iterations: 50
 patience: 35
 loss_func: KLDivergenceMultiplePositives
