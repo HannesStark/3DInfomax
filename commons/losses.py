@@ -241,9 +241,14 @@ class KLDivergenceMultiplePositives(_Loss):
         z1_vars = torch.exp(z1[:, 1, :]) # [batch_size, metric_dim]
         z2_means = z2.mean(1)  # [batch_size, metric_dim]
         z2_vars = z2.var(1)  # [batch_size, metric_dim]
-
-        normal1 = MultivariateNormal(z1_means, torch.diag_embed(z1_vars))
-        normal2 = MultivariateNormal(z2_means, torch.diag_embed(z2_vars))
+        try:
+            normal1 = MultivariateNormal(z1_means, torch.diag_embed(z1_vars))
+        except:
+            print(z1_vars)
+        try:
+            normal2 = MultivariateNormal(z2_means, torch.diag_embed(z2_vars))
+        except:
+            print(z2_vars)
         #kl_div = torch.distributions.kl_divergence(normal1, normal2)
         kl_div = torch.distributions.kl_divergence(normal2, normal1)
         loss = kl_div.mean()
