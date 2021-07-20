@@ -340,11 +340,9 @@ class QM9Dataset(Dataset):
             if idx in self.pairwise_distances:
                 return self.pairwise_distances[idx].to(self.device)
             else:
-
                 src, dst = self.get_pairwise(n_atoms)
                 coords = self.coordinates[start: start + n_atoms].to(self.device)
-                distances = torch.norm(coords[src] - coords[dst], p=2, dim=-1).unsqueeze(
-                    -1).detach()
+                distances = torch.norm(coords[src] - coords[dst], p=2, dim=-1).unsqueeze(-1).detach()
                 self.pairwise_distances[idx] = distances.to('cpu')
                 return distances
         elif return_type == 'raw_features':

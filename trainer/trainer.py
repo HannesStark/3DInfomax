@@ -114,7 +114,13 @@ class Trainer():
 
     def process_batch(self, batch, optim):
         loss, predictions, targets = self.forward_pass(batch)
+        ic(predictions)
+        ic(targets)
+        ic(loss)
+        ic(predictions.shape)
+        ic(targets.shape)
         if optim != None:  # run backpropagation if an optimizer is provided
+            ic(loss)
             loss.backward()
             self.optim.step()
             self.after_optim_step()  # overwrite this function to do stuff before zeroing out grads

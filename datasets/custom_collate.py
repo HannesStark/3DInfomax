@@ -14,6 +14,7 @@ def graph_collate(batch: List[Tuple]):
     batched_graph = dgl.batch(graphs)
     return [batched_graph], torch.stack(targets).float()
 
+
 def pytorch_geometric_collate(batch: List[Tuple]):
     graphs, targets = map(list, zip(*batch))
     batched_graph = torch_geometric.data.batch.Batch.from_data_list(graphs)
@@ -32,7 +33,7 @@ def pairwise_distance_collate(batch: List[Tuple]):
     mol_graphs, pairwise_indices, distances = map(list, zip(*batch))
     batched_mol_graph = dgl.batch(mol_graphs)
 
-    return [batched_mol_graph], [torch.cat(pairwise_indices, dim=-1)], torch.cat(distances)
+    return [batched_mol_graph, torch.cat(pairwise_indices, dim=-1)], torch.cat(distances)
 
 
 def s_norm_contrastive_collate(batch: List[Tuple]):

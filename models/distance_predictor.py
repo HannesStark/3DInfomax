@@ -18,7 +18,7 @@ class DistancePredictor(nn.Module):
     def __init__(self, target_dim, pna_args, projection_dim  = 3, distance_net=False, projection_layers=1, **kwargs):
         super(DistancePredictor, self).__init__()
         hidden_dim = pna_args['hidden_dim']
-        self.gnn = PNAGNN(**pna_args)
+        self.node_gnn = PNAGNN(**pna_args)
 
         if projection_dim > 0:
             self.node_projection_net = MLP(in_dim=hidden_dim, hidden_size=32,
@@ -47,10 +47,10 @@ class DistancePredictor(nn.Module):
         dst_h = torch.index_select(h, dim=0, index=pairwise_indices[1])
 
         # for debugging:
-        # x = graph.ndata['x']
-        # src_x = torch.index_select(x, dim=0, index=pairwise_indices[0])
-        # dst_x = torch.index_select(x, dim=0, index=pairwise_indices[1])
-        # ic(torch.norm(src_x-dst_x, dim=-1))
+        x = graph.ndata['x']
+        src_x = torch.index_select(x, dim=0, index=pairwise_indices[0])
+        dst_x = torch.index_select(x, dim=0, index=pairwise_indices[1])
+        ic(torch.norm(src_x-dst_x, dim=-1))
 
         if self.distance_net:
             src_dst_h = torch.cat([src_h, dst_h], dim=1)
@@ -59,7 +59,7 @@ class DistancePredictor(nn.Module):
         else:
             distances = torch.norm(src_h-dst_h, dim=-1).unsqueeze(-1)
 
-        return distances
+        return torch.norm(src_x - dst_x, p=2, dim=-1).unsqueeze(-1)
 
     def node_projection(self, nodes):
         return {'feat': self.node_projection_net(nodes.data['feat'])}

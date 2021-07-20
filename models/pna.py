@@ -154,7 +154,6 @@ class PNAGNN(nn.Module):
                          last_batch_norm=last_batch_norm, avg_d={"log": 1.0}, posttrans_layers=posttrans_layers,
                          pretrans_layers=pretrans_layers, batch_norm_momentum=batch_norm_momentum
                          ),
-
                 )
         self.atom_encoder = AtomEncoder(emb_dim=hidden_dim)
         self.bond_encoder = BondEncoder(emb_dim=hidden_dim)
