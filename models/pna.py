@@ -138,14 +138,26 @@ class PNA(nn.Module):
 
 
 class PNAGNN(nn.Module):
-    def __init__(self, hidden_dim, aggregators: List[str], scalers: List[str],
+    def __init__(self, node_dim, edge_dim, hidden_dim, aggregators: List[str], scalers: List[str],
                  residual: bool = True, pairwise_distances: bool = False, activation: Union[Callable, str] = "relu",
                  last_activation: Union[Callable, str] = "none", mid_batch_norm: bool = False,
                  last_batch_norm: bool = False, batch_norm_momentum=0.1, propagation_depth: int = 5,
                  dropout: float = 0.0, posttrans_layers: int = 1, pretrans_layers: int = 1, **kwargs):
         super(PNAGNN, self).__init__()
+        self.node_input_net = MLP(in_dim=node_dim, hidden_size=hidden_dim, out_dim=hidden_dim,
+                                  mid_batch_norm=mid_batch_norm, last_batch_norm=last_batch_norm, layers=1,
+                                  mid_activation='relu', dropout=dropout, last_activation=last_activation,
+                                  batch_norm_momentum=batch_norm_momentum
 
+                                  )
+        if edge_dim > 0:
+            self.edge_input = MLP(in_dim=edge_dim, hidden_size=hidden_dim, out_dim=hidden_dim,
+                                  mid_batch_norm=mid_batch_norm, last_batch_norm=last_batch_norm, layers=1,
+                                  mid_activation='relu', dropout=dropout, last_activation=last_activation,
+                                  batch_norm_momentum=batch_norm_momentum
+                                  )
         self.mp_layers = nn.ModuleList()
+
         for _ in range(propagation_depth):
             self.mp_layers.append(
                 PNALayer(in_dim=hidden_dim, out_dim=int(hidden_dim), in_dim_edges=hidden_dim, aggregators=aggregators,
@@ -154,6 +166,7 @@ class PNAGNN(nn.Module):
                          last_batch_norm=last_batch_norm, avg_d={"log": 1.0}, posttrans_layers=posttrans_layers,
                          pretrans_layers=pretrans_layers, batch_norm_momentum=batch_norm_momentum
                          ),
+
                 )
         self.atom_encoder = AtomEncoder(emb_dim=hidden_dim)
         self.bond_encoder = BondEncoder(emb_dim=hidden_dim)
