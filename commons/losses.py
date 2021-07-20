@@ -303,10 +303,10 @@ class JSDMultiplePositivesLoss(_Loss):
         normal2 = MultivariateNormal(z2_means, torch.diag_embed(z2_vars))
         #kl_div = torch.distributions.kl_divergence(normal1, normal2)
         kl_div = -torch.distributions.kl_divergence(normal2, normal1)
-        m = 0.5*(kl_div1+kl_div2)
-        jsd = 0.5
-        ic(z1_vars.shape)
 
+        sigma_alpha = 1/(0.5/z1_vars + 0.5/z2_vars)
+        mu_alpha = sigma_alpha*(z1_means*0.5/z1_vars + 0.5*z2_means/z2_vars)
+        
         log_det_diff = torch.log((z2_vars.prod(dim=2)+ 1e-5) / (z1_vars.prod(dim=2)))
         trace_inv = ((1 / (z2_vars + 1e-5)) * z1_vars).sum(dim=2)
         mean_sigma_mean = ((z2_means - z1_means) ** 2 * (1 / (z2_vars + 1e-5))).sum(dim=2)

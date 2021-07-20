@@ -1,32 +1,30 @@
-experiment_name: 'KLDivergenceMultiplePositives'
+experiment_name: 'JSDMultiplePositivesLoss'
 
-dataset: geom_qm9
+dataset: qmugs
 num_epochs: 1000
-batch_size: 20
-log_iterations: 5
+batch_size: 4
+log_iterations: 1
 patience: 35
-loss_func: NTXentMMDSeparate2D
+loss_func: JSDMultiplePositivesLoss
 loss_params:
   tau: 0.1
-num_train: 50000
+num_train: 120000
 
 required_data:
   - mol_graph
   - conformations
 metrics:
-  - positive_similarity_multiple_positives_separate2d
-  - negative_similarity_multiple_positives_separate2d
-  - uniformity
+  - conformer_3d_variance
+  - conformer_2d_variance
   - batch_variance
   - dimension_covariance
 main_metric: loss
 collate_function: conformer_collate
-num_conformers: 5
+num_conformers: 3
 
 optimizer: Adam
 optimizer_params:
   lr: 8.0e-5
-
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
@@ -47,7 +45,7 @@ lr_scheduler_params:
 # Model parameters
 model_type: 'PNA'
 model_parameters:
-  target_dim: 1280
+  target_dim: 512
   hidden_dim: 200
   mid_batch_norm: True
   last_batch_norm: True

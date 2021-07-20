@@ -151,7 +151,7 @@ class GEOMDrugs(Dataset):
             g.ndata['feat'] = self.features_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
             g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2, dim=-1).unsqueeze(
-                -1)
+                -1).detach()
             self.complete_graphs[idx] = g.to('cpu')
             return g
 

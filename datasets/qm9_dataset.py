@@ -163,6 +163,7 @@ class QM9Dataset(Dataset):
         self.pairwise = {}  # for memoization
         self.complete_graphs = {}
         self.mol_complete_graphs = {}
+        self.pairwise_distances = {}
 
         self.avg_degree = data_dict['avg_degree']
         # indices of the tasks that should be retrieved
@@ -239,7 +240,7 @@ class QM9Dataset(Dataset):
             g.ndata['feat'] = self.features_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
             g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2, dim=-1).unsqueeze(
-                -1)
+                -1).detach()
             self.complete_graphs[idx] = g.to('cpu')
             return g
 
@@ -334,7 +335,18 @@ class QM9Dataset(Dataset):
             return torch_geometric.data.Data(pos=R_i, z=z_i, edge_attr=edge_features, edge_index=edge_indices)
         elif return_type == 'pairwise_indices':
             src, dst = self.get_pairwise(n_atoms)
-            return torch.stack([src, dst], dim=0).to(self.device)
+            return torch.stack([src, dst], dim=0)
+        elif return_type == 'pairwise_distances':
+            if idx in self.pairwise_distances:
+                return self.pairwise_distances[idx].to(self.device)
+            else:
+
+                src, dst = self.get_pairwise(n_atoms)
+                coords = self.coordinates[start: start + n_atoms].to(self.device)
+                distances = torch.norm(coords[src] - coords[dst], p=2, dim=-1).unsqueeze(
+                    -1).detach()
+                self.pairwise_distances[idx] = distances.to('cpu')
+                return distances
         elif return_type == 'raw_features':
             return self.features_tensor[start: start + n_atoms].to(self.device)
         elif return_type == 'constant_ones':

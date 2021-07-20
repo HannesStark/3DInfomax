@@ -7,6 +7,7 @@ from torch import nn
 
 from models.base_layers import MLP
 from models.pna import PNAGNN
+import torch.nn.functional as F
 
 
 class DistancePredictor(nn.Module):
@@ -14,9 +15,10 @@ class DistancePredictor(nn.Module):
     Message Passing Neural Network that does not use 3D information
     """
 
-    def __init__(self, hidden_dim, target_dim, projection_dim  = 3, distance_net=False, projection_layers=1, **kwargs):
+    def __init__(self, target_dim, pna_args, projection_dim  = 3, distance_net=False, projection_layers=1, **kwargs):
         super(DistancePredictor, self).__init__()
-        self.gnn = PNAGNN(hidden_dim=hidden_dim, **kwargs)
+        hidden_dim = pna_args['hidden_dim']
+        self.gnn = PNAGNN(**pna_args)
 
         if projection_dim > 0:
             self.node_projection_net = MLP(in_dim=hidden_dim, hidden_size=32,
@@ -31,28 +33,29 @@ class DistancePredictor(nn.Module):
         else:
             self.distance_net = None
 
-    def forward(self, mol_graph: dgl.DGLGraph, pairwise_indices: torch.Tensor):
+    def forward(self, graph: dgl.DGLGraph, pairwise_indices: torch.Tensor):
         # get embeddings
-        self.gnn(mol_graph)
+        self.node_gnn(graph)
 
         # apply down projection to embeddings if we are not using a distance net and projection_dim > 0
         if self.node_projection_net and not self.distance_net:
-            mol_graph.apply_nodes(self.node_projection)
+            graph.apply_nodes(self.node_projection)
 
         # put the embeddings h from the same graph in the batched graph into pairs for the distance net to predict the pairwise distances
-        h = mol_graph.ndata['feat']
+        h = graph.ndata['feat']
         src_h = torch.index_select(h, dim=0, index=pairwise_indices[0])
         dst_h = torch.index_select(h, dim=0, index=pairwise_indices[1])
 
         # for debugging:
-        # x = mol_graph.ndata['x']
+        # x = graph.ndata['x']
         # src_x = torch.index_select(x, dim=0, index=pairwise_indices[0])
         # dst_x = torch.index_select(x, dim=0, index=pairwise_indices[1])
         # ic(torch.norm(src_x-dst_x, dim=-1))
 
         if self.distance_net:
             src_dst_h = torch.cat([src_h, dst_h], dim=1)
-            distances = self.distance_net(src_dst_h)
+            dst_src_h = torch.cat([dst_h,src_h], dim=1)
+            distances = F.softplus(self.distance_net(src_dst_h) + self.distance_net(dst_src_h))
         else:
             distances = torch.norm(src_h-dst_h, dim=-1).unsqueeze(-1)
 
