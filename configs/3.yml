@@ -1,20 +1,20 @@
-experiment_name: 'tune_qm9_NTXent_sum_aggregation'
+experiment_name: 'tune_from_qmugs_NTXent'
 
-pretrain_checkpoint: runs/PNA_qm9_NTXent_sum_aggregation_11-07_18-55-24/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_qmugs_NTXent_19-07_19-02-38/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
   - batch_norm
 
-
+dataset: 'qmugs'
 num_epochs: 1000
-batch_size: 1280
+batch_size: 128
 log_iterations: 30
 patience: 30
+num_train: 120000
 loss_func: L1Loss
-num_train: 50000
 targets:
-  - homo
+  - 'DFT:HOMO_ENERGY'
 
 required_data:
   - mol_graph
@@ -23,27 +23,24 @@ metrics:
   - mae_denormalized
   - pearsonr
   - rsquared
-  - qm9_properties
+  - mean_predictor_loss
 
 optimizer: Adam
 optimizer_params:
-  lr: 7.0e-5
-  weight_decay: 1.0e-11
+  lr: 1.0e-3
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [700,700,390]
+  warmup_steps: [1500]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
   factor: 0.5
   patience: 25
-  min_lr: 1.0e-6
+  min_lr: 5.0e-6
   mode: 'min'
   verbose: True
-
-
 
 # Model parameters
 model_type: 'PNA'
@@ -76,7 +73,6 @@ model_parameters:
   pretrans_layers: 2
   posttrans_layers: 1
   residual: True
-
 
 
 # continue training from checkpoint:
