@@ -1,12 +1,18 @@
-experiment_name: 'baseline_mollipo_net'
+experiment_name: 'tune_from_drugs_NTXent_molbbbp_net'
 
 seed: 3
-dataset: 'ogbg-mollipo'
+pretrain_checkpoint: runs/PNA_drugs_NTXentMultiplePositives_17-07_16-02-17/best_checkpoint.pt
+transfer_layers:
+  - gnn
+exclude_from_transfer:
+  - batch_norm
+
+dataset: 'ogbg-molhiv'
 num_epochs: 1000
-batch_size: 32
+batch_size: 128
 log_iterations: 30
 patience: 30
-loss_func: L1Loss
+loss_func: BCEWithLogitsLoss
 required_data:
   - dgl_graph
   - targets
@@ -17,7 +23,6 @@ metrics:
 optimizer: Adam
 optimizer_params:
   lr: 1.0e-4
-  weight_decay: 1.0e-8
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
@@ -63,6 +68,10 @@ model_parameters:
   pretrans_layers: 2
   posttrans_layers: 1
   residual: True
+
+
+
+
 
 
 
