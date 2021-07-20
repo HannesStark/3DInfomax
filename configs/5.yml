@@ -1,44 +1,33 @@
-experiment_name: 'tune_from_drugs_NTXentMultiplePositives'
+experiment_name: 'baseline_molbbbp_net'
 
-pretrain_checkpoint: runs/PNA_drugs_NTXentMultiplePositives_17-07_16-02-17/best_checkpoint.pt
-transfer_layers:
-  - gnn
-exclude_from_transfer:
-  - batch_norm
-
-dataset: 'qmugs'
+seed: 5
+dataset: 'ogbg-molhiv'
 num_epochs: 1000
 batch_size: 128
 log_iterations: 30
 patience: 30
-num_train: 120000
-loss_func: L1Loss
-targets:
-  - 'DFT:HOMO_ENERGY'
-
+loss_func: BCEWithLogitsLoss
 required_data:
-  - mol_graph
+  - dgl_graph
   - targets
 metrics:
-  - mae_denormalized
-  - pearsonr
   - rsquared
   - mean_predictor_loss
-
+  - pearsonr
 optimizer: Adam
 optimizer_params:
-  lr: 1.0e-3
+  lr: 1.0e-4
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [1500]
+  warmup_steps: [350]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
   factor: 0.5
   patience: 25
-  min_lr: 5.0e-6
+  min_lr: 1.0e-6
   mode: 'min'
   verbose: True
 
@@ -73,6 +62,12 @@ model_parameters:
   pretrans_layers: 2
   posttrans_layers: 1
   residual: True
+
+
+
+
+
+
 
 
 # continue training from checkpoint:

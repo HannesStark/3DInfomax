@@ -55,7 +55,7 @@ class Trainer():
             self.optim_steps = 0
             self.best_val_score = -np.inf if self.main_metric_goal == 'max' else np.inf  # running score to decide whether or not a new model should be saved
             self.writer = SummaryWriter(
-                '{}/{}_{}_{}_{}'.format(args.logdir, args.model_type, args.dataset, args.experiment_name,
+                '{}/{}_{}_{}_{}_{}'.format(args.logdir, args.model_type, args.dataset, args.experiment_name, args.seed,
                                         datetime.now().strftime('%d-%m_%H-%M-%S')))
             shutil.copyfile(self.args.config.name,
                             os.path.join(self.writer.log_dir, os.path.basename(self.args.config.name)))
@@ -114,13 +114,7 @@ class Trainer():
 
     def process_batch(self, batch, optim):
         loss, predictions, targets = self.forward_pass(batch)
-        ic(predictions)
-        ic(targets)
-        ic(loss)
-        ic(predictions.shape)
-        ic(targets.shape)
         if optim != None:  # run backpropagation if an optimizer is provided
-            ic(loss)
             loss.backward()
             self.optim.step()
             self.after_optim_step()  # overwrite this function to do stuff before zeroing out grads
