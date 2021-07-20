@@ -216,7 +216,8 @@ class KLDivergenceMultiplePositives(_Loss):
             norm: Boolean. Whether to apply normlization.
         '''
 
-    def __init__(self, norm: bool = False, tau: float = 0.5, uniformity_reg=0, variance_reg=0, covariance_reg=0) -> None:
+    def __init__(self, norm: bool = False, tau: float = 0.5, uniformity_reg=0, variance_reg=0,
+                 covariance_reg=0) -> None:
         super(KLDivergenceMultiplePositives, self).__init__()
         self.norm = norm
         self.tau = tau
@@ -233,12 +234,12 @@ class KLDivergenceMultiplePositives(_Loss):
         _, metric_dim = z2.size()
 
         z1 = z1.view(batch_size, 2, metric_dim)
-        z2 = z2.view(batch_size, -1, metric_dim) # [batch_size, num_conformers, metric_dim]
+        z2 = z2.view(batch_size, -1, metric_dim)  # [batch_size, num_conformers, metric_dim]
         if self.norm:
             z1 = F.normalize(z1, dim=2)
             z2 = F.normalize(z2, dim=2)
         z1_means = z1[:, 0, :]  # [batch_size, metric_dim]
-        z1_vars = torch.exp(z1[:, 1, :]) # [batch_size, metric_dim]
+        z1_vars = torch.exp(z1[:, 1, :])  # [batch_size, metric_dim]
         z2_means = z2.mean(1)  # [batch_size, metric_dim]
         z2_vars = z2.var(1)  # [batch_size, metric_dim]
         try:
@@ -249,7 +250,7 @@ class KLDivergenceMultiplePositives(_Loss):
             normal2 = MultivariateNormal(z2_means, torch.diag_embed(z2_vars))
         except:
             print(z2_vars)
-        #kl_div = torch.distributions.kl_divergence(normal1, normal2)
+        # kl_div = torch.distributions.kl_divergence(normal1, normal2)
         kl_div = torch.distributions.kl_divergence(normal2, normal1)
         loss = kl_div.mean()
 
@@ -288,35 +289,35 @@ class JSDMultiplePositivesLoss(_Loss):
         _, metric_dim = z2.size()
 
         z1 = z1.view(batch_size, 2, metric_dim)
-        z2 = z2.view(batch_size, -1, metric_dim) # [batch_size, num_conformers, metric_dim]
+        z2 = z2.view(batch_size, -1, metric_dim)  # [batch_size, num_conformers, metric_dim]
         if self.norm:
             z1 = F.normalize(z1, dim=2)
             z2 = F.normalize(z2, dim=2)
 
-
         z1_means = z1[:, 0, :].unsqueeze(0).expand(batch_size, -1, -1)  # [batch_size, batch_size, metric_dim]
-        z1_vars = (torch.exp(z1[:, 1, :])).unsqueeze(0).expand(batch_size, -1, -1)  # [batch_size, batch_size, metric_dim]
+        z1_vars = (torch.exp(z1[:, 1, :])).unsqueeze(0).expand(batch_size, -1,
+                                                               -1)  # [batch_size, batch_size, metric_dim]
         z2_means = z2.mean(1).unsqueeze(1).expand(-1, batch_size, -1)  # [batch_size, batch_size, metric_dim]
         z2_vars = z2.var(1).unsqueeze(1).expand(-1, batch_size, -1)  # [batch_size, batch_size, metric_dim]
 
         normal1 = MultivariateNormal(z1_means, torch.diag_embed(z1_vars))
         normal2 = MultivariateNormal(z2_means, torch.diag_embed(z2_vars))
-        #kl_div = torch.distributions.kl_divergence(normal1, normal2)
+        # kl_div = torch.distributions.kl_divergence(normal1, normal2)
         kl_div = -torch.distributions.kl_divergence(normal2, normal1)
 
-        sigma_alpha = 1/(0.5/z1_vars + 0.5/z2_vars)
-        mu_alpha = sigma_alpha*(z1_means*0.5/z1_vars + 0.5*z2_means/z2_vars)
-        
-        log_det_diff = torch.log((z2_vars.prod(dim=2)+ 1e-5) / (z1_vars.prod(dim=2)))
+        sigma_alpha = 1 / (0.5 / z1_vars + 0.5 / z2_vars)
+        mu_alpha = sigma_alpha * (z1_means * 0.5 / z1_vars + 0.5 * z2_means / z2_vars)
+
+        log_det_diff = torch.log((z2_vars.prod(dim=2) + 1e-5) / (z1_vars.prod(dim=2)))
         trace_inv = ((1 / (z2_vars + 1e-5)) * z1_vars).sum(dim=2)
         mean_sigma_mean = ((z2_means - z1_means) ** 2 * (1 / (z2_vars + 1e-5))).sum(dim=2)
         kl_similarity2 = 0.5 * (log_det_diff - metric_dim + trace_inv + mean_sigma_mean)
         kl_similarity = []
-        for i, z1_mean in enumerate(z1_means[0,:,:]):
-            for j, z2_mean in enumerate(z2_means[:, 0,:]):
-                z1_var = z1_vars[0,:,:][i]  # [metric_dim]
-                z2_var = z2_vars[:,0,:][j]  # [metric_dim]
-                log_det_diff = torch.log(((z2_var).prod()+ 1e-5) / ((z1_var).prod() + 1e-5))
+        for i, z1_mean in enumerate(z1_means[0, :, :]):
+            for j, z2_mean in enumerate(z2_means[:, 0, :]):
+                z1_var = z1_vars[0, :, :][i]  # [metric_dim]
+                z2_var = z2_vars[:, 0, :][j]  # [metric_dim]
+                log_det_diff = torch.log(((z2_var).prod() + 1e-5) / ((z1_var).prod() + 1e-5))
                 trace_inv = ((1 / (z2_var + 1e-5)) * z1_var).sum()
                 mean_sigma_mean = ((z2_mean - z1_mean) ** 2 * (1 / (z2_var + 1e-5))).sum()
                 kl_divergence = 0.5 * (log_det_diff - metric_dim + trace_inv + mean_sigma_mean)
@@ -337,6 +338,7 @@ class JSDMultiplePositivesLoss(_Loss):
         if self.uniformity_reg > 0:
             loss += self.uniformity_reg * uniformity_loss(z1, z2)
         return loss
+
 
 class NTXentMMDSeparate2D(_Loss):
     def __init__(self, norm: bool = True, tau: float = 0.5, uniformity_reg=0, variance_reg=0, covariance_reg=0,
@@ -381,7 +383,6 @@ class NTXentMMDSeparate2D(_Loss):
             z1 = F.normalize(z1, dim=2)
             z2 = F.normalize(z2, dim=2)
 
-
         mmd_similarity = []
         for i in range(batch_size):
             for j in range(batch_size):
@@ -399,11 +400,9 @@ class NTXentMMDSeparate2D(_Loss):
         mmd_similarity = mmd_similarity.view(batch_size, batch_size)
         sim_matrix = torch.exp(mmd_similarity / self.tau)
 
-
         pos_sim = torch.diagonal(sim_matrix)
         loss = pos_sim / (sim_matrix.sum(dim=1) - pos_sim)
         loss = - torch.log(loss).mean()
-
 
         if self.variance_reg > 0:
             loss += self.variance_reg * (std_loss(z1) + std_loss(z2))
@@ -674,6 +673,57 @@ class NTXentMultiplePositivesSeparate2D(_Loss):
 
         sim_matrix = sim_matrix.reshape(batch_size, batch_size, -1).sum(dim=2)  # [batch_size, batch_size]
         loss = pos_sim / (sim_matrix.sum(dim=1) - torch.diagonal(sim_matrix))
+        loss = - torch.log(loss).mean()
+
+        if self.variance_reg > 0:
+            loss += self.variance_reg * (std_loss(z1) + std_loss(z2))
+        if self.covariance_reg > 0:
+            loss += self.covariance_reg * (cov_loss(z1) + cov_loss(z2))
+        if self.uniformity_reg > 0:
+            loss += self.uniformity_reg * uniformity_loss(z1, z2)
+        return loss
+
+
+class NTXentMinimumMatching(_Loss):
+    '''
+        Normalized Temperature-scaled Cross Entropy Loss from SimCLR paper
+        Args:
+            z1, z2: Tensor of shape [batch_size, z_dim]
+            tau: Float. Usually in (0,1].
+            norm: Boolean. Whether to apply normlization.
+        '''
+
+    def __init__(self, norm: bool = True, tau: float = 0.5, uniformity_reg=0, variance_reg=0, covariance_reg=0) -> None:
+        super(NTXentMinimumMatching, self).__init__()
+        self.norm = norm
+        self.tau = tau
+        self.uniformity_reg = uniformity_reg
+        self.variance_reg = variance_reg
+        self.covariance_reg = covariance_reg
+
+    def forward(self, z1, z2, **kwargs) -> Tensor:
+        '''
+        :param z1: batchsize, metric dim * num_conformers
+        :param z2: batchsize * num_conformers, metric dim
+        '''
+        batch_size, _ = z1.size()
+        _, metric_dim = z2.size()
+        z1 = z1.view(batch_size, -1, metric_dim)  # [batch_size, num_conformers, metric_dim]
+
+        z2 = z2.view(batch_size, -1, metric_dim)  # [batch_size, num_conformers, metric_dim]
+        sim_matrix = torch.einsum('ilk,juk->ijlu', z1, z2)  # [batch_size, batch_size, num_conformers]
+
+        if self.norm:
+            z1_abs = z1.norm(dim=2)
+            z2_abs = z2.norm(dim=2)
+            sim_matrix = sim_matrix / torch.einsum('il,ju->ijlu', z1_abs, z2_abs)
+
+        sim_matrix = torch.exp(sim_matrix / self.tau)  # [batch_size, batch_size, num_conformers, num_conformers]
+        pos_sim = torch.amax(torch.diagonal(sim_matrix, dim1=2, dim2=3), dim=(1,2))  # [batch_size]
+        min_sim_matrix = torch.amin(sim_matrix, dim=(2,3))  # [batch_size, batch_size]
+
+
+        loss = pos_sim / (min_sim_matrix.sum(dim=1) - torch.diagonal(min_sim_matrix))
         loss = - torch.log(loss).mean()
 
         if self.variance_reg > 0:
