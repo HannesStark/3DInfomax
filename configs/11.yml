@@ -1,6 +1,6 @@
 experiment_name: 'NTXent_complete_graph_random_conformer'
 
-dataset: qmugs
+dataset: drugs
 num_epochs: 1000
 batch_size: 500
 log_iterations: 50
