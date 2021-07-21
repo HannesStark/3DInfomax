@@ -1,0 +1,68 @@
+experiment_name: 'baseline'
+
+num_epochs: 1000
+batch_size: 4
+log_iterations: 1
+patience: 30
+loss_func: L1Loss
+targets:
+  - homo
+required_data:
+  - mol_graph
+  - raw_features
+  - positional_encoding
+  - targets
+metrics:
+  - rsquared
+  - mean_predictor_loss
+  - pearsonr
+collate_function: pna_transformer_collate
+
+optimizer: AdamW
+optimizer_params:
+  lr: 2.0e-4
+
+scheduler_step_per_batch: False
+lr_scheduler: WarmUpWrapper
+lr_scheduler_params:
+  warmup_steps: [20000]
+  interpolation: 'linear'
+  # parameters of scheduler to run after warmup
+  wrapped_scheduler: ReduceLROnPlateau
+  factor: 0.5
+  patience: 25
+  min_lr: 5.0e-6
+  mode: 'min'
+  verbose: True
+
+model_type: 'PNATransformer'
+model_parameters:
+  target_dim: 1
+  hidden_dim: 512
+  nhead: 32
+  dim_feedforward: 512
+  dropout: 0.1
+  propagation_depth: 6
+
+  readout_batchnorm: True
+  readout_hidden_dim: 128
+  readout_layers: 2
+
+  mid_batch_norm: True
+  last_batch_norm: True
+  aggregators:
+    - mean
+    - max
+    - min
+    - std
+  scalers:
+    - identity
+    - amplification
+    - attenuation
+  pretrans_layers: 2
+  posttrans_layers: 1
+  residual: True
+
+
+# continue training from checkpoint:
+#checkpoint: runs/PNAReadout_2_layer_03-04_15-29-07/last_checkpoint.pt
