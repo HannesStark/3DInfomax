@@ -1,7 +1,7 @@
-experiment_name: 'tune_from_qmugs_NTXent_geomol_net'
+experiment_name: 'tune_from_qmugs_NTXentMultiplePositives_molbbbp_net'
 
 seed: 2
-pretrain_checkpoint: runs/GeomolGNNWrapperOGBFeat_drugs_NTXent_19-07_07-31-35/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_qmugs_NTXentMultiplePositives_17-07_18-51-51/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
@@ -13,9 +13,8 @@ batch_size: 48
 log_iterations: 30
 patience: 30
 loss_func: BCEWithLogitsLoss
-collate_function: pytorch_geometric_collate
 required_data:
-  - pytorch_geometric_graph
+  - dgl_graph
   - targets
 metrics:
   - rsquared
@@ -39,14 +38,36 @@ lr_scheduler_params:
   verbose: True
 
 # Model parameters
-model_type: 'GeomolGNNWrapperOGBFeat'
+model_type: 'PNA'
 model_parameters:
   target_dim: 1
-  hidden_dim: 50
-  readout_layers: 2
+  hidden_dim: 200
+  mid_batch_norm: True
+  last_batch_norm: True
   readout_batchnorm: True
-  depth: 3
-  n_layers: 2
+  # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
+  batch_norm_momentum: 0.1
+  readout_hidden_dim: 200
+  readout_layers: 2
+  dropout: 0.0
+  propagation_depth: 7
+  aggregators:
+    - mean
+    - max
+    - min
+    - std
+  scalers:
+    - identity
+    - amplification
+    - attenuation
+  readout_aggregators:
+    - min
+    - max
+    - mean
+    - sum
+  pretrans_layers: 2
+  posttrans_layers: 1
+  residual: True
 
 
 
