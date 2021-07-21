@@ -1,6 +1,6 @@
 experiment_name: 'tune_from_qmugs_NTXent_geomol_net'
 
-seed: 4
+seed: 1
 pretrain_checkpoint: runs/GeomolGNNWrapperOGBFeat_drugs_NTXent_19-07_07-31-35/best_checkpoint.pt
 transfer_layers:
   - gnn
