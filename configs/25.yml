@@ -43,7 +43,7 @@ lr_scheduler_params:
 # Model parameters
 model_type: 'GeomolGNNWrapperOGBFeat'
 model_parameters:
-  target_dim: 256
+  target_dim: 1
   hidden_dim: 50
   readout_layers: 2
   readout_batchnorm: True
