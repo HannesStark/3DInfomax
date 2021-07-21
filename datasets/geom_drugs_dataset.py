@@ -69,7 +69,7 @@ class GEOMDrugs(Dataset):
         self.coordinates = data_dict['coordinates'][:, :3]
         if 'conformations' in self.return_types or 'complete_graph_random_conformer' in self.return_types:
             self.conformations = data_dict['coordinates']
-            self.conformer_categorical = torch.distributions.Categorical(logits=torch.ones(num_conformers))
+            self.conformer_categorical = torch.distributions.Categorical(logits=torch.ones(self.num_conformers))
         self.edge_indices = data_dict['edge_indices']
 
         self.meta_dict = {k: data_dict[k] for k in ('smiles', 'edge_slices', 'atom_slices', 'n_atoms')}

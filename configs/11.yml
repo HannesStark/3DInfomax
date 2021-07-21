@@ -1,18 +1,18 @@
-experiment_name: 'NTXentMultiplePositives'
+experiment_name: 'NTXent_complete_graph_random_conformer'
 
 dataset: qmugs
 num_epochs: 1000
 batch_size: 500
 log_iterations: 50
 patience: 35
-loss_func: NTXentMultiplePositives
+loss_func: NTXent
 loss_params:
   tau: 0.1
-num_train: 300000
+num_train: 120000
 
 required_data:
   - mol_graph
-  - conformations
+  - complete_graph_random_conformer
 metrics:
   - positive_similarity
   - negative_similarity
@@ -24,12 +24,13 @@ metrics:
   - batch_variance
   - dimension_covariance
 main_metric: loss
-collate_function: conformer_collate
+collate_function: contrastive_collate
 num_conformers: 3
 
 optimizer: Adam
 optimizer_params:
   lr: 8.0e-5
+
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
