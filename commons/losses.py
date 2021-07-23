@@ -241,7 +241,7 @@ class KLDivergenceMultiplePositives(_Loss):
         z1_means = z1[:, 0, :]  # [batch_size, metric_dim]
         z1_vars = torch.exp(z1[:, 1, :])  # [batch_size, metric_dim]
         z2_means = z2.mean(1)  # [batch_size, metric_dim]
-        z2_vars = z2.var(1)  # [batch_size, metric_dim]
+        z2_vars = z2.var(1) + 1e-6  # [batch_size, metric_dim]
         try:
             normal1 = MultivariateNormal(z1_means, torch.diag_embed(z1_vars))
         except:
