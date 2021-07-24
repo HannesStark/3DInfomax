@@ -31,8 +31,12 @@ def s_norm_graph_collate(batch: List[Tuple]):
 
 def pairwise_distance_collate(batch: List[Tuple]):
     mol_graphs, pairwise_indices, distances = map(list, zip(*batch))
-    batched_mol_graph = dgl.batch(mol_graphs)
 
+    cumulative_length = 0
+    for i, pairwise_index in enumerate(pairwise_indices):
+        pairwise_index += cumulative_length
+        cumulative_length += mol_graphs[i].number_of_nodes()
+    batched_mol_graph = dgl.batch(mol_graphs)
     return [batched_mol_graph, torch.cat(pairwise_indices, dim=-1)], torch.cat(distances)
 
 
