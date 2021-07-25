@@ -49,7 +49,7 @@ class DistancePredictor(nn.Module):
 
         if self.transformer_layer:
             # put the embeddings h from the same graph in the batched graph into pairs for the distance net to predict the pairwise distances
-            feat = graph.ndata['feat'] # [batch_size*hidden_dim]
+            feat = graph.ndata['feat'] # [n_atoms*hidden_dim]
 
             expanded_mask = mask.view(-1).unsqueeze(1).expand(-1,hidden_dim)  # [batch_size*(max_num_atoms), hidden_dim]
             transformer_feat = torch.zeros_like(expanded_mask, device=mask.device, dtype=torch.float) # [batch_size*(max_num_atoms), hidden_dim]

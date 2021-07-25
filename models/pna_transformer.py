@@ -140,14 +140,14 @@ class PNATransformerLayer(nn.Module):
         h_graph = graph.ndata['feat'] # [n_nodes, hidden_dim]
         n_atoms, hidden_dim = h_graph.size()
         h_graph_padded = h_graph_padded.view(-1, hidden_dim) # [batch_size*(max_num_atoms + 1), hidden_dim]
-        mask = mask_exclude_vnode.view(-1).unsqueeze(1).expand(-1, hidden_dim) # [batch_size*(max_num_atoms + 1), hidden_dim]
-        h_graph_padded[~mask] = h_graph.view(-1)
+        expanded_mask = mask_exclude_vnode.view(-1).unsqueeze(1).expand(-1, hidden_dim) # [batch_size*(max_num_atoms + 1), hidden_dim]
+        h_graph_padded[~expanded_mask] = h_graph.view(-1)
 
         h_transformer = self.transformer_layer(h, src_key_padding_mask=mask_include_vnode) # [batch_size, max_num_atoms + 1, hidden_dim]
 
         h = torch.cat([h_graph_padded, h_transformer.view(-1, hidden_dim)], dim=1)   # [batch_size*(max_num_atoms + 1), 2*hidden_dim]
         h = self.combine_mlp(h) # [batch_size*(max_num_atoms + 1), hidden_dim]
-        h_graph = h[~mask]  # [n_atoms*hidden_dim]
+        h_graph = h[~expanded_mask]  # [n_atoms*hidden_dim]
         graph.ndata['feat'] = h_graph.view(n_atoms, hidden_dim)
         h = h.view(batch_size, n_atoms_plus_one, hidden_dim) # [batch_size, max_num_atoms + 1, hidden_dim]
         return h
