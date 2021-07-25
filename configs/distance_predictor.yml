@@ -1,7 +1,7 @@
 experiment_name: 'baseline'
 
 num_epochs: 1000
-batch_size: 128
+batch_size: 2
 log_iterations: 50
 patience: 30
 num_train: 50000
@@ -41,6 +41,9 @@ model_parameters:
   projection_dim: 0
   distance_net: True
   projection_layers: 1
+  transformer_layer: True
+  nhead: 10
+  dim_feedforward: 256
   pna_args:
     hidden_dim: 200
     mid_batch_norm: True

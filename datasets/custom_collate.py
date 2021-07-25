@@ -37,7 +37,12 @@ def pairwise_distance_collate(batch: List[Tuple]):
         pairwise_index += cumulative_length
         cumulative_length += mol_graphs[i].number_of_nodes()
     batched_mol_graph = dgl.batch(mol_graphs)
-    return [batched_mol_graph, torch.cat(pairwise_indices, dim=-1)], torch.cat(distances)
+
+    n_atoms = batched_mol_graph.batch_num_nodes()
+    # create mask corresponding to the zero padding used for the shorter sequences in the batch.
+    # All values corresponding to padding are True and the rest is False.
+    mask = torch.arange(n_atoms.max(), device=distances[0].device)[None, :] >= n_atoms[:, None]  # [batch_size, n_atoms]
+    return [batched_mol_graph, torch.cat(pairwise_indices, dim=-1), mask], torch.cat(distances)
 
 
 def s_norm_contrastive_collate(batch: List[Tuple]):

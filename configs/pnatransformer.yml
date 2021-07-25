@@ -1,7 +1,7 @@
 experiment_name: 'baseline'
 
 num_epochs: 1000
-batch_size: 4
+batch_size: 2
 log_iterations: 1
 patience: 30
 loss_func: L1Loss
