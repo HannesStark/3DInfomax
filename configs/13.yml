@@ -1,4 +1,4 @@
-experiment_name: 'KLDivergenceMultiplePositives'
+experiment_name: 'NTXentMMDSeparate2D'
 
 dataset: drugs
 num_epochs: 1000
