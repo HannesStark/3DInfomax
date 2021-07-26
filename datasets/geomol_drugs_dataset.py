@@ -306,7 +306,7 @@ class GeomolDrugsDataset(Dataset):
         total_atoms = 0
         total_edges = 0
         avg_degree = 0  # average degree in the dataset
-        for smiles, sub_dic in tqdm(list(summary.items())[:100]):
+        for smiles, sub_dic in tqdm(list(summary.items())):
             pickle_path = os.path.join(self.directory, sub_dic.get("pickle_path", ""))
             if os.path.isfile(pickle_path):
                 pickle_file = open(pickle_path, 'rb')
@@ -375,13 +375,13 @@ class GeomolDrugsDataset(Dataset):
                 N = adj.sum(dim=0) ** -0.5
                 L_sym = torch.eye(n_atoms) - N * L * N
                 try:
-                    eig_vals, eig_vecs = torch.linalg.eigh(L_sym, eigenvectors=True)
+                    eig_vals, eig_vecs = torch.linalg.eigh(L_sym)
                 except Exception as e:  # if we have disconnected components
                     deg = adj.sum(dim=0)
                     deg[deg == 0] = 1
                     N = deg ** -0.5
                     L_sym = torch.eye(n_atoms) - N * L * N
-                    eig_vals, eig_vecs = torch.linalg.eigh(L_sym, eigenvectors=True)
+                    eig_vals, eig_vecs = torch.linalg.eigh(L_sym)
                 idx = eig_vals.argsort()[0: max_freqs]  # Keep up to the maximum desired number of frequencies
                 eig_vals, eig_vecs = eig_vals[idx], eig_vecs[:, idx]
                 # Sort, normalize and pad EigenVectors
