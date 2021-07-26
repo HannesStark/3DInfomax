@@ -1,6 +1,6 @@
 experiment_name: 'NTXent_EGNN_hidden_dim30_alternating'
 
-ssl_mode: alternating
+trainer: alternating
 num_epochs: 1000
 batch_size: 500
 

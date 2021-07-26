@@ -1,6 +1,6 @@
 experiment_name: 'philosophy_dropout08'
 
-ssl_mode: philosophy
+trainer: philosophy
 num_epochs: 1000
 batch_size: 500
 

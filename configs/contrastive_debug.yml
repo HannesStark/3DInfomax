@@ -1,6 +1,6 @@
 experiment_name: 'debug'
 
-ssl_mode: 'contrastive'
+trainer: 'contrastive'
 num_epochs: 1000
 batch_size: 100
 

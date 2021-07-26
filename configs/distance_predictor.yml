@@ -1,11 +1,11 @@
 experiment_name: 'baseline'
 
 num_epochs: 1000
-batch_size: 2
+batch_size: 100
 log_iterations: 50
 patience: 30
 num_train: 50000
-loss_func: MSELoss
+loss_func: L1Loss
 required_data:
   - mol_graph
   - pairwise_indices
@@ -42,8 +42,8 @@ model_parameters:
   distance_net: True
   projection_layers: 1
   transformer_layer: True
-  nhead: 10
-  dim_feedforward: 256
+  nhead: 2
+  dim_feedforward: 200
   pna_args:
     hidden_dim: 200
     mid_batch_norm: True

@@ -30,6 +30,7 @@ from trainer.byol_wrapper import BYOLwrapper
 
 import seaborn
 
+from trainer.geomol_trainer import GeomolTrainer
 from trainer.philosophy_trainer import PhilosophyTrainer
 from trainer.self_supervised_alternating_trainer import SelfSupervisedAlternatingTrainer
 
@@ -72,13 +73,13 @@ def get_trainer(args, model, data, device, metrics):
         print('3D model trainable params: ', sum(p.numel() for p in model3d.parameters() if p.requires_grad))
 
         critic = None
-        if args.ssl_mode == 'byol':
+        if args.trainer == 'byol':
             ssl_trainer = BYOLTrainer
-        elif args.ssl_mode == 'alternating':
+        elif args.trainer == 'alternating':
             ssl_trainer = SelfSupervisedAlternatingTrainer
-        elif args.ssl_mode == 'contrastive':
+        elif args.trainer == 'contrastive':
             ssl_trainer = SelfSupervisedTrainer
-        elif args.ssl_mode == 'philosophy':
+        elif args.trainer == 'philosophy':
             ssl_trainer = PhilosophyTrainer
             critic = globals()[args.critic_type](**args.critic_parameters)
         return ssl_trainer(model=model, model3d=model3d, critic=critic, args=args, metrics=metrics,
@@ -88,7 +89,11 @@ def get_trainer(args, model, data, device, metrics):
                            tensorboard_functions=tensorboard_functions,
                            scheduler_step_per_batch=args.scheduler_step_per_batch)
     else:
-        return Trainer(model=model, args=args, metrics=metrics, main_metric=args.main_metric,
+        if args.trainer == 'geomol':
+            trainer = GeomolTrainer
+        else:
+            trainer = Trainer
+        return trainer(model=model, args=args, metrics=metrics, main_metric=args.main_metric,
                        main_metric_goal=args.main_metric_goal, optim=globals()[args.optimizer],
                        loss_func=globals()[args.loss_func](**args.loss_params), device=device,
                        tensorboard_functions=tensorboard_functions,
@@ -442,7 +447,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/pnatransformer.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/contrastive_training_multiple_positives_mmd_loss.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
@@ -507,7 +512,7 @@ def parse_arguments():
     p.add_argument('--model3d_parameters', type=dict, help='dictionary of model parameters')
     p.add_argument('--critic_type', type=str, default=None, help='Classname of one of the models in the models dir')
     p.add_argument('--critic_parameters', type=dict, help='dictionary of model parameters')
-    p.add_argument('--ssl_mode', type=str, default='contrastive', help='[contrastive, byol, alternating, philosophy]')
+    p.add_argument('--trainer', type=str, default='contrastive', help='[contrastive, byol, alternating, philosophy]')
     p.add_argument('--train_sampler', type=str, default=None, help='any of pytorchs samplers or a custom sampler')
 
     p.add_argument('--eval_on_test', type=bool, default=True, help='runs evaluation on test set if true')

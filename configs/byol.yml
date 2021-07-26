@@ -46,7 +46,7 @@ lr_scheduler_params:
 
 
 # self supervision mode either byol or contrastive
-ssl_mode: 'byol'
+trainer: 'byol'
 # Model parameters
 model_type: 'BYOLwrapper'
 model_parameters:

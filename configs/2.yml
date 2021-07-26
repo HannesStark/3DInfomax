@@ -1,6 +1,6 @@
 experiment_name: 'tune_from_DistancePredictor_qm9_baseline'
 
-pretrain_checkpoint: runs/DistancePredictor_qm9_baseline_123_24-07_22-04-38/best_checkpoint.pt
+pretrain_checkpoint: runs/DistancePredictor_qm9_baseline_123_25-07_08-04-18/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:

@@ -1,17 +1,14 @@
 experiment_name: 'baseline'
 
 
-dataset: qm9_geomol
+
 num_epochs: 1000
 batch_size: 128
-
+trainer: geomol
 log_iterations: 30
 patience: 30
 loss_func: L1Loss
 num_train: 50000
-targets:
-  - homo
-
 required_data:
   - pytorch_geometric_graph
   - targets
@@ -43,13 +40,38 @@ lr_scheduler_params:
 
 
 # Model parameters
-model_type: 'GeomolGNNWrapper'
+model_type: 'Geomol'
 model_parameters:
-  hidden_dim: 50
-  readout_layers: 2
-  readout_batchnorm: True
-  depth: 3
-  n_layers: 2
+  hyperparams:
+    alpha_mlp:
+      n_layers: 2
+    c_mlp:
+      n_layers: 1
+    coord_pred:
+      n_layers: 2
+    d_mlp:
+      n_layers: 1
+    encoder:
+      n_head: 2
+    global_transformer: false
+    gnn1:
+      depth: 3
+      n_layers: 2
+    gnn2:
+      depth: 3
+      n_layers: 2
+    h_mol_mlp:
+      n_layers: 1
+    loss_type: ot_emd
+    model_dim: 50
+    n_model_confs: 10
+    n_true_confs: 10
+    random_alpha: false
+    random_vec_dim: 10
+    random_vec_std: 5.0
+    teacher_force: false
+  num_edge_features: 4
+  num_node_features: 44
 
 
 

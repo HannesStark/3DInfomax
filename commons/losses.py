@@ -360,13 +360,16 @@ class NTXentMMDSeparate2D(_Loss):
         total0 = total.unsqueeze(0).expand(int(total.size(0)), int(total.size(0)), int(total.size(1)))
         total1 = total.unsqueeze(1).expand(int(total.size(0)), int(total.size(0)), int(total.size(1)))
         L2_distance = ((total0 - total1) ** 2).sum(2)
+        ic(L2_distance)
         if fix_sigma:
             bandwidth = fix_sigma
         else:
             bandwidth = torch.sum(L2_distance.data) / (n_samples ** 2 - n_samples)
+        ic(bandwidth)
         bandwidth /= kernel_mul ** (kernel_num // 2)
         bandwidth_list = [bandwidth * (kernel_mul ** i) for i in range(kernel_num)]
         kernel_val = [torch.exp(-L2_distance / bandwidth_temp) for bandwidth_temp in bandwidth_list]
+        ic(kernel_val[0])
         return sum(kernel_val)
 
     def forward(self, z1, z2, **kwargs) -> Tensor:
@@ -379,25 +382,32 @@ class NTXentMMDSeparate2D(_Loss):
         z1 = z1.view(batch_size, -1, metric_dim)  # [batch_size, num_conformers, metric_dim]
         _, num_conformers, _ = z1.size()
         z2 = z2.view(batch_size, -1, metric_dim)  # [batch_size, num_conformers, metric_dim]
+
         if self.norm:
             z1 = F.normalize(z1, dim=2)
             z2 = F.normalize(z2, dim=2)
 
-        mmd_similarity = []
-        for i in range(batch_size):
-            for j in range(batch_size):
-                source = z1[i]
-                target = z2[j]
-                kernels = self.guassian_kernel(source, target, kernel_mul=self.kernel_mul, kernel_num=self.kernel_num,
-                                               fix_sigma=self.fix_sigma)
-                XX = kernels[:num_conformers, :num_conformers]
-                YY = kernels[num_conformers:, num_conformers:]
-                XY = kernels[:num_conformers, num_conformers:]
-                YX = kernels[num_conformers:, :num_conformers]
-                loss = torch.mean(XX + YY - XY - YX)
-                mmd_similarity.append(1 / (loss + 1))
-        mmd_similarity = torch.stack(mmd_similarity)
-        mmd_similarity = mmd_similarity.view(batch_size, batch_size)
+        z1_vec = z1.clone().unsqueeze(0).expand(batch_size,-1 , -1, -1)  # [batch_size, batch_size, num_conformers, metric_dim]
+        z2_vec = z2.clone().unsqueeze(1).expand(-1, batch_size, -1, -1)  # [batch_size, batch_size, num_conformers, metric_dim]
+
+        n_samples = num_conformers * 2
+        total = torch.cat([z1_vec, z2_vec], dim=2)
+
+        total0 = total.unsqueeze(2).expand(-1,-1,int(total.size(2)), int(total.size(2)), int(total.size(3))) # [batch_size, batch_size, num_conformers*2, num_conformers*2, metric_dim]
+        total1 = total.unsqueeze(3).expand(-1,-1,int(total.size(2)), int(total.size(2)), int(total.size(3))) # [batch_size, batch_size, num_conformers*2, num_conformers*2, metric_dim]
+        L2_distance = ((total0 - total1) ** 2).sum(4)
+        bandwidth = torch.sum(L2_distance.data, dim=(2,3)) / (n_samples ** 2 - n_samples)
+        bandwidth /= self.kernel_mul ** (self.kernel_num // 2)
+        bandwidth_list = [bandwidth * (self.kernel_mul ** i) for i in range(self.kernel_num)]
+        kernel_val = [torch.exp(-L2_distance / bandwidth_temp[:,:,None,None].expand(-1,-1,n_samples,n_samples)) for bandwidth_temp in bandwidth_list]
+        kernel_val = sum(kernel_val)
+        XX = kernel_val[:,:,:num_conformers, :num_conformers]
+        YY = kernel_val[:,:,num_conformers:, num_conformers:]
+        XY = kernel_val[:,:,:num_conformers, num_conformers:]
+        YX = kernel_val[:,:,num_conformers:, :num_conformers]
+        mmd_loss = torch.mean(XX + YY - XY - YX, dim=(2,3))
+        mmd_similarity = 1 / (mmd_loss + 1)
+
         sim_matrix = torch.exp(mmd_similarity / self.tau)
 
         pos_sim = torch.diagonal(sim_matrix)
@@ -719,9 +729,8 @@ class NTXentMinimumMatching(_Loss):
             sim_matrix = sim_matrix / torch.einsum('il,ju->ijlu', z1_abs, z2_abs)
 
         sim_matrix = torch.exp(sim_matrix / self.tau)  # [batch_size, batch_size, num_conformers, num_conformers]
-        pos_sim = torch.amax(torch.diagonal(sim_matrix, dim1=2, dim2=3), dim=(1,2))  # [batch_size]
-        min_sim_matrix = torch.amin(sim_matrix, dim=(2,3))  # [batch_size, batch_size]
-
+        pos_sim = torch.amax(torch.diagonal(sim_matrix, dim1=2, dim2=3), dim=(1, 2))  # [batch_size]
+        min_sim_matrix = torch.amin(sim_matrix, dim=(2, 3))  # [batch_size, batch_size]
 
         loss = pos_sim / (min_sim_matrix.sum(dim=1) - torch.diagonal(min_sim_matrix))
         loss = - torch.log(loss).mean()
