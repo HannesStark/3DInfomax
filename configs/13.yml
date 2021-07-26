@@ -2,8 +2,8 @@ experiment_name: 'KLDivergenceMultiplePositives'
 
 dataset: drugs
 num_epochs: 1000
-batch_size: 500
-log_iterations: 1
+batch_size: 300
+log_iterations: 50
 patience: 35
 loss_func: NTXentMMDSeparate2D
 loss_params:
@@ -47,7 +47,7 @@ lr_scheduler_params:
 # Model parameters
 model_type: 'PNA'
 model_parameters:
-  target_dim: 1280
+  target_dim: 640
   hidden_dim: 200
   mid_batch_norm: True
   last_batch_norm: True
@@ -78,7 +78,7 @@ model_parameters:
 # Model parameters
 model3d_type: 'Net3D'
 model3d_parameters:
-  target_dim: 256
+  target_dim: 128
   hidden_dim: 20
   hidden_edge_dim: 20
   node_wise_output_layers: 0
