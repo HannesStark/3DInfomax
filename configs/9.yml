@@ -39,13 +39,13 @@ lr_scheduler_params:
 model_type: 'PNATransformer'
 model_parameters:
   target_dim: 1
-  hidden_dim: 128
-  nhead: 32
-  dim_feedforward: 512
+  hidden_dim: 90
+  nhead: 16
+  dim_feedforward: 256
   dropout: 0.0
-  propagation_depth: 6
+  propagation_depth: 5
   readout_batchnorm: True
-  readout_hidden_dim: 128
+  readout_hidden_dim: 90
   readout_layers: 2
   mid_batch_norm: True
   last_batch_norm: True
