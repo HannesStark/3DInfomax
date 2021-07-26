@@ -8,6 +8,7 @@ batch_size: 32
 log_iterations: 30
 patience: 30
 loss_func: L1Loss
+collate_function: pytorch_geometric_collate
 required_data:
   - pytorch_geometric_graph
   - targets
@@ -31,6 +32,7 @@ lr_scheduler_params:
   min_lr: 1.0e-6
   mode: 'min'
   verbose: True
+
 
 
 

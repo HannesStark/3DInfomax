@@ -8,6 +8,7 @@ batch_size: 32
 log_iterations: 30
 patience: 30
 loss_func: BCEWithLogitsLoss
+collate_function: pytorch_geometric_collate
 required_data:
   - pytorch_geometric_graph
   - targets
