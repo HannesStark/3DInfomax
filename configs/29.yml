@@ -1,6 +1,6 @@
 experiment_name: 'baseline_molbbbp_net'
 
-seed: 4
+seed: 1
 
 dataset: 'ogbg-molbbbp'
 num_epochs: 1000
