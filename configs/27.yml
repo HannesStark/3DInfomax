@@ -1,4 +1,4 @@
-experiment_name: 'tune_from_qmugs_NTXentMultiplePositives_molbbbp_net'
+experiment_name: 'baseline_molbbbp_net'
 
 seed: 6
 
