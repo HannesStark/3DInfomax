@@ -25,7 +25,7 @@ chirality = {ChiralType.CHI_TETRAHEDRAL_CW: -1.,
              ChiralType.CHI_OTHER: 0}
 
 
-class GeomolDrugsDataset(Dataset):
+class GeomolGeomQM9Datset(Dataset):
 
     def __init__(self, return_types: list = None, target_tasks: list = None, normalize: bool = True, device='cuda:0',
                  num_conformers=1, **kwargs):
@@ -59,7 +59,8 @@ class GeomolDrugsDataset(Dataset):
             self.conformer_categorical = torch.distributions.Categorical(logits=torch.ones(self.num_conformers))
         self.edge_indices = data_dict['edge_indices']
 
-        self.meta_dict = {k: data_dict[k] for k in ('smiles', 'edge_slices', 'atom_slices', 'n_atoms')}
+        self.meta_dict = {k: data_dict[k] for k in (
+        'smiles', 'edge_slices', 'atom_slices', 'n_atoms', 'neighbor_dicts', 'neighbors_list', 'neighbors_slices')}
         if 'san_graph' in self.return_types:
             self.eig_vals = data_dict['eig_vals']
             self.eig_vecs = data_dict['eig_vecs']
@@ -177,6 +178,16 @@ class GeomolDrugsDataset(Dataset):
                 return conformer_graphs
         elif return_type == 'mol_graph':
             return self.get_graph(idx, e_start, e_end, n_atoms, start)
+        elif return_type == 'neighbors':
+            slices = self.meta_dict['neighbors_slices'][start: start + n_atoms]
+            neighbors = []
+            ic(slices)
+            ic(self.meta_dict['neighbors_slices'])
+            for i, slice in enumerate(slices[:-1]):
+                neighbors.append(self.meta_dict['neighbors_list'][slice: slices[i + 1]])
+            return neighbors
+        elif return_type == 'dict_neighbors':
+            return self.meta_dict['neighbor_dicts'][idx]
         elif return_type == 'complete_graph':  # complete graph without self loops
             g = self.get_complete_graph(idx, n_atoms, start)
 
@@ -266,11 +277,12 @@ class GeomolDrugsDataset(Dataset):
 
         atom_slices = [0]
         edge_slices = [0]
+        neighbors_slices = [0]
+        all_neighbors_list = []
         total_eigvecs = []
         total_eigvals = []
         all_pos_masks = []
         all_atom_chiral_tags = []
-        all_atom_neighbor_dicts = []
         all_atom_features = []
         all_edge_features = []
         targets = {'ensembleenergy': [], 'ensembleentropy': [], 'ensemblefreeenergy': [], 'lowestenergy': [],
@@ -307,7 +319,6 @@ class GeomolDrugsDataset(Dataset):
                     continue
 
                 confs_coords = []
-                neighbors = []
                 pos_mask = torch.zeros(10, dtype=torch.int64)
                 for i, conformer in enumerate(conformers[:10]):
                     conf_mol = conformer['rd_mol']
@@ -329,24 +340,25 @@ class GeomolDrugsDataset(Dataset):
                     confs_coords.append(torch.tensor(conf_mol.GetConformer().GetPositions(), dtype=torch.float))
                     correct_mol = conf_mol
                     pos_mask[i] = 1
-                    neighbors
 
-                if len(confs_coords) == 0: # skip mol for which we have no valid conformers
+                if len(confs_coords) == 0:  # skip mol for which we have no valid conformers
                     continue
                 if len(confs_coords) < 10:  # if there are less than 10 confs_coords we add the first one a few times
                     confs_coords.extend([confs_coords[0]] * (10 - len(confs_coords)))
 
                 chiral_tag = []
-                neighbor_dict = {}
+                neighbors_per_mol = []
                 atom_features_list = []
                 for i, atom in enumerate(correct_mol.GetAtoms()):
                     atom_features_list.append(atom_to_feature_vector(atom))
                     n_ids = [n.GetIdx() for n in atom.GetNeighbors()]
                     if len(n_ids) > 1:
-                        neighbor_dict[i] = torch.tensor(n_ids)
+                        total_neighbors += len(n_ids)
+                        neighbors_slices.append(total_neighbors)
+                        neighbors_per_mol.append(torch.tensor(n_ids, dtype=torch.long))
                     chiral_tag.append(chirality[atom.GetChiralTag()])
+                all_neighbors_list.append(torch.cat(neighbors_per_mol, dim=0))
                 all_atom_chiral_tags.append(torch.tensor(chiral_tag, dtype=torch.float))
-                all_atom_neighbor_dicts.append(neighbor_dict)
                 all_atom_features.append(torch.tensor(atom_features_list, dtype=torch.long))
                 adj = GetAdjacencyMatrix(correct_mol, useBO=False, force=True)
                 max_freqs = 10
@@ -396,7 +408,6 @@ class GeomolDrugsDataset(Dataset):
                 targets['temperature'].append(mol_dict['temperature'])
                 targets['uniqueconfs'].append(mol_dict['uniqueconfs'])
 
-
                 avg_degree += (len(edges_list) / 2) / n_atoms
                 all_edge_features.append(edge_features)
                 all_pos_masks.append(pos_mask)
@@ -421,7 +432,9 @@ class GeomolDrugsDataset(Dataset):
                      'edge_indices': torch.cat(edge_indices, dim=1),
                      'coordinates': torch.cat(coordinates, dim=0).float(),
                      'targets': targets,
-                     'neighbor_dicts': all_atom_neighbor_dicts,
+                     'neighbors_list': torch.cat(all_neighbors_list, dim=0),
+                     # very long tensor with neighbors for each atom indexed by neighbors_slices
+                     'neighbors_slices': torch.tensor(neighbors_slices, dtype=torch.long),  # n_atoms
                      'chiral_tags': torch.cat(all_atom_chiral_tags, dim=0),
                      'pos_masks': torch.stack(all_pos_masks, dim=0),
                      'avg_degree': avg_degree / len(n_atoms_list)
