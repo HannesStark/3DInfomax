@@ -44,6 +44,16 @@ def pairwise_distance_collate(batch: List[Tuple]):
     mask = torch.arange(n_atoms.max(), device=distances[0].device)[None, :] >= n_atoms[:, None]  # [batch_size, n_atoms]
     return [batched_mol_graph, torch.cat(pairwise_indices, dim=-1), mask], torch.cat(distances)
 
+def contrastive_graphs_with_mask_collate(batch: List[Tuple]):
+    mol_graphs, complete_graph3d = map(list, zip(*batch))
+
+    batched_mol_graph = dgl.batch(mol_graphs)
+    n_atoms = batched_mol_graph.batch_num_nodes()
+    # create mask corresponding to the zero padding used for the shorter sequences in the batch.
+    # All values corresponding to padding are True and the rest is False.
+    mask = torch.arange(n_atoms.max(), device=batched_mol_graph.device)[None, :] >= n_atoms[:, None]  # [batch_size, n_atoms]
+    return [batched_mol_graph, mask], [dgl.batch(complete_graph3d)]
+
 
 def s_norm_contrastive_collate(batch: List[Tuple]):
     # optionally take targets
