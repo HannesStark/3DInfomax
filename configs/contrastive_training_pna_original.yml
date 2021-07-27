@@ -1,14 +1,14 @@
-experiment_name: 'NTXent_tiny_20hidden'
+experiment_name: 'NTXent'
 
-dataset: qmugs
+dataset: drugs
 num_epochs: 1000
-batch_size: 20
+batch_size: 500
 log_iterations: 50
 patience: 35
 loss_func: NTXent
 loss_params:
   tau: 0.1
-num_train: 1200
+num_train: 200000
 
 required_data:
   - mol_graph
@@ -24,7 +24,7 @@ metrics:
   - batch_variance
   - dimension_covariance
 main_metric: loss
-collate_function: contrastive_collate
+collate_function: s_norm_contrastive_collate
 
 optimizer: Adam
 optimizer_params:
