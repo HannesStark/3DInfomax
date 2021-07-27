@@ -43,7 +43,7 @@ model_parameters:
   nhead: 32
   dim_feedforward: 512
   dropout: 0.0
-  propagation_depth: 5
+  propagation_depth: 10
   readout_batchnorm: True
   readout_hidden_dim: 128
   readout_layers: 2
@@ -58,7 +58,7 @@ model_parameters:
     - identity
     - amplification
     - attenuation
-  pretrans_layers: 1
+  pretrans_layers: 2
   posttrans_layers: 1
   residual: True
 
