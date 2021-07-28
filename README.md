@@ -19,10 +19,9 @@ Create a new environment with all required packages using `environment.yml` (thi
 
     conda env create
 
-Activate the environment and install the current package
+Activate the environment and start training with a specific configuration file
 
     conda activate ssg
-    pip install -e .
+    python train.py --config=configs/contrastive_training.yml
 
-The environment `ssg` must always be activated when running/debugging the code.
 
