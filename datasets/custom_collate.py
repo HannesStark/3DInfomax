@@ -26,7 +26,7 @@ def s_norm_graph_collate(batch: List[Tuple]):
     tab_snorm_n = [torch.FloatTensor(size, 1).fill_(1. / float(size)) for size in tab_sizes_n]
     snorm_n = torch.cat(tab_snorm_n).sqrt()
     batched_graph = dgl.batch(graphs)
-    return [batched_graph], snorm_n, torch.stack(targets).float()
+    return [batched_graph, snorm_n], torch.stack(targets).float()
 
 
 def pairwise_distance_collate(batch: List[Tuple]):
