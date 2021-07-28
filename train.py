@@ -176,7 +176,7 @@ def train(args):
         train_zinc(args, device, metrics_dict)
     elif args.dataset == 'qmugs':
         train_geom(args, device, metrics_dict)
-    elif args.dataset == 'drugs' or args.dataset == 'geom_qm9':
+    elif args.dataset == 'drugs' or args.dataset == 'geom_qm9' or args.dataset == 'geom_qm9_geomol' or args.dataset == 'geom_drugs_geomol':
         train_geom(args, device, metrics_dict)
     elif args.dataset == 'qm9_geomol':
         train_geomol_qm9(args, device, metrics_dict)
@@ -354,6 +354,10 @@ def train_geom(args, device, metrics_dict):
     elif args.dataset =='geom_qm9':
         dataset = GEOMqm9
     elif args.dataset == 'qmugs':
+        dataset = QMugsDataset
+    elif args.dataset == 'geom_qm9_geomol':
+        dataset = QMugsDataset
+    elif args.dataset == 'geom_drugs_geomol':
         dataset = QMugsDataset
     all_data = dataset(return_types=args.required_data, target_tasks=args.targets, device=device, num_conformers=args.num_conformers)
 

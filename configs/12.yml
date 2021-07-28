@@ -12,7 +12,7 @@ num_train: 200000
 
 required_data:
   - mol_graph
-  - complete_graph3d
+  - conformations
 metrics:
   - positive_similarity
   - negative_similarity
