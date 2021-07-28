@@ -1,6 +1,12 @@
-experiment_name: 'baseline_molbbbp_net'
+experiment_name: 'tune_from_qmugs_NTXentMultiplePositives_molbbbp_net'
 
 seed: 1
+pretrain_checkpoint: runs/PNA_qmugs_NTXentMultiplePositives_17-07_18-51-51/best_checkpoint.pt
+transfer_layers:
+  - gnn
+exclude_from_transfer:
+  - batch_norm
+
 
 dataset: 'ogbg-molbbbp'
 num_epochs: 1000
