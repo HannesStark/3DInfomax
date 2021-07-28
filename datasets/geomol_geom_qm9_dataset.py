@@ -60,7 +60,7 @@ class GeomolGeomQM9Datset(Dataset):
         self.edge_indices = data_dict['edge_indices']
 
         self.meta_dict = {k: data_dict[k] for k in (
-        'smiles', 'edge_slices', 'atom_slices', 'n_atoms', 'neighbor_dicts', 'neighbors_list', 'neighbors_slices')}
+        'smiles', 'edge_slices', 'atom_slices', 'n_atoms', 'neighbors_list', 'neighbors_slices')}
         if 'san_graph' in self.return_types:
             self.eig_vals = data_dict['eig_vals']
             self.eig_vecs = data_dict['eig_vecs']
@@ -181,8 +181,6 @@ class GeomolGeomQM9Datset(Dataset):
         elif return_type == 'neighbors':
             slices = self.meta_dict['neighbors_slices'][start: start + n_atoms]
             neighbors = []
-            ic(slices)
-            ic(self.meta_dict['neighbors_slices'])
             for i, slice in enumerate(slices[:-1]):
                 neighbors.append(self.meta_dict['neighbors_list'][slice: slices[i + 1]])
             return neighbors

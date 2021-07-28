@@ -18,6 +18,8 @@ from datasets.esol_geomol_feat import ESOLGeomol
 from datasets.esol_geomol_featurization_of_qm9 import ESOLGeomolQM9Featurization
 from datasets.geom_drugs_dataset import GEOMDrugs
 from datasets.geom_qm9_dataset import GEOMqm9
+from datasets.geomol_drugs_dataset import GeomolDrugsDataset
+from datasets.geomol_geom_qm9_dataset import GeomolGeomQM9Datset
 from datasets.lipo_geomol_feat import LIPOGeomol
 from datasets.lipo_geomol_featurization_of_qm9 import LIPOGeomolQM9Featurization
 from datasets.ogbg_dataset_extension import OGBGDatasetExtension
@@ -356,11 +358,11 @@ def train_geom(args, device, metrics_dict):
     elif args.dataset == 'qmugs':
         dataset = QMugsDataset
     elif args.dataset == 'geom_qm9_geomol':
-        dataset = QMugsDataset
+        dataset = GeomolGeomQM9Datset
     elif args.dataset == 'geom_drugs_geomol':
-        dataset = QMugsDataset
+        dataset = GeomolDrugsDataset
     all_data = dataset(return_types=args.required_data, target_tasks=args.targets, device=device, num_conformers=args.num_conformers)
-
+    ic(len(all_data))
     all_idx = get_random_indices(len(all_data), args.seed_data)
     if args.dataset == 'drugs':
         model_idx = all_idx[:240000]
@@ -368,6 +370,10 @@ def train_geom(args, device, metrics_dict):
         model_idx = all_idx[:100000]
     elif args.dataset == 'qmugs':
         model_idx = all_idx[:620000]
+    elif args.dataset == 'geom_qm9_geomol':
+        model_idx = all_idx[:80000] # 107962 molecules in all_data
+    elif args.dataset == 'geom_drugs_geomol':
+        model_idx = all_idx[:160000]
     test_idx = all_idx[len(model_idx): len(model_idx) + int(0.05 * len(all_data))]
     val_idx = all_idx[len(model_idx) + len(test_idx):]
     train_idx = model_idx[:args.num_train]
@@ -451,7 +457,7 @@ def train_qm9(args, device, metrics_dict):
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/12.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/11.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
