@@ -362,7 +362,6 @@ def train_geom(args, device, metrics_dict):
     elif args.dataset == 'geom_drugs_geomol':
         dataset = GeomolDrugsDataset
     all_data = dataset(return_types=args.required_data, target_tasks=args.targets, device=device, num_conformers=args.num_conformers)
-    ic(len(all_data))
     all_idx = get_random_indices(len(all_data), args.seed_data)
     if args.dataset == 'drugs':
         model_idx = all_idx[:240000]
