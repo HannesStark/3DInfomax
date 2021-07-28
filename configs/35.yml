@@ -1,6 +1,6 @@
 experiment_name: 'tune_from_drugs_NTXent_PNAOriginal'
 
-seed: 1
+seed: 4
 pretrain_checkpoint: runs/PNAOriginal_drugs_NTXent_123_27-07_07-25-53/best_checkpoint.pt
 transfer_layers:
   - gnn
