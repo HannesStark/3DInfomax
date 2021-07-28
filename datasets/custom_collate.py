@@ -64,7 +64,9 @@ def s_norm_contrastive_collate(batch: List[Tuple]):
     batched_graph = dgl.batch(graphs)
     batched_graph3d = dgl.batch(graphs3d)
 
-    return [batched_graph], [batched_graph3d], snorm_n
+    return [batched_graph, snorm_n], [batched_graph3d]
+
+
 
 def contrastive_collate(batch: List[Tuple]):
     # optionally take targets
