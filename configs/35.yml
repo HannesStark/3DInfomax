@@ -23,7 +23,7 @@ metrics:
 optimizer: Adam
 optimizer_params:
   lr: 1.0e-4
-collate_function: s_norm_graph_collate
+collate_function: graph_collate
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
