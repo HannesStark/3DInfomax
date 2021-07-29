@@ -1,7 +1,7 @@
 experiment_name: 'tune_from_drugs_NTXent_PNAOriginal'
 
 seed: 3
-pretrain_checkpoint: runs/PNAOriginal_drugs_NTXent_123_27-07_07-25-53/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_geom_drugs_geomol_NTXentMultiplePositives_123_28-07_13-58-16/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
@@ -23,7 +23,7 @@ metrics:
 optimizer: Adam
 optimizer_params:
   lr: 1.0e-4
-collate_function: s_norm_graph_collate
+collate_function: graph_collate
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
@@ -38,24 +38,21 @@ lr_scheduler_params:
   mode: 'min'
   verbose: True
 
-model_type: 'PNAOriginal'
+
+# Model parameters
+model_type: 'PNA'
 model_parameters:
   target_dim: 1
-  hidden_dim: 70
-  last_layer_dim: 70
+  hidden_dim: 200
   mid_batch_norm: True
   last_batch_norm: True
-  graph_norm: True
   readout_batchnorm: True
-  edge_hidden_dim: 30
-  readout_hidden_dim: 70
+  # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
+  batch_norm_momentum: 0.1
+  readout_hidden_dim: 200
   readout_layers: 2
   dropout: 0.0
-  in_feat_dropout: 0.0
-  propagation_depth: 4
-  towers: 5
-  divide_input_first: False
-  divide_input_last: True
+  propagation_depth: 7
   aggregators:
     - mean
     - max
@@ -66,14 +63,13 @@ model_parameters:
     - amplification
     - attenuation
   readout_aggregators:
-    - mean
-    - max
     - min
+    - max
+    - mean
     - sum
-  pretrans_layers: 1
+  pretrans_layers: 2
   posttrans_layers: 1
   residual: True
-  gru: False
 
 
 

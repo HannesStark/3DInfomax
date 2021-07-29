@@ -1,6 +1,6 @@
-experiment_name: 'tune_qm9_PNASelfAttentionReadout_qm9_NTXent_SNAPSHOT'
+experiment_name: 'tune_geom_drugs_geomol_NTXentMultiplePositives'
 
-pretrain_checkpoint: runs/PNASelfAttentionReadout_qm9_NTXent_123_27-07_07-10-21/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_geom_drugs_geomol_NTXentMultiplePositives_123_28-07_13-58-16/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
