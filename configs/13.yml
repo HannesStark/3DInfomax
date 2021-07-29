@@ -1,11 +1,11 @@
-experiment_name: 'NTXentMMDSeparate2D'
+experiment_name: 'NTXentMaximumSimilarity'
 
 dataset: drugs
 num_epochs: 1000
-batch_size: 300
+batch_size: 500
 log_iterations: 50
 patience: 35
-loss_func: NTXentMMDSeparate2D
+loss_func: NTXentMaximumSimilarity
 loss_params:
   tau: 0.1
 num_train: 120000
@@ -14,9 +14,9 @@ required_data:
   - mol_graph
   - conformations
 metrics:
+  - uniformity
   - positive_similarity_multiple_positives_separate2d
   - negative_similarity_multiple_positives_separate2d
-  - uniformity
   - batch_variance
   - dimension_covariance
 main_metric: loss
@@ -47,7 +47,7 @@ lr_scheduler_params:
 # Model parameters
 model_type: 'PNA'
 model_parameters:
-  target_dim: 640
+  target_dim: 1280
   hidden_dim: 200
   mid_batch_norm: True
   last_batch_norm: True
@@ -78,7 +78,7 @@ model_parameters:
 # Model parameters
 model3d_type: 'Net3D'
 model3d_parameters:
-  target_dim: 128
+  target_dim: 256
   hidden_dim: 20
   hidden_edge_dim: 20
   node_wise_output_layers: 0
