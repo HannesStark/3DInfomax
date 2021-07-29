@@ -387,25 +387,30 @@ class NTXentMMDSeparate2D(_Loss):
             z1 = F.normalize(z1, dim=2)
             z2 = F.normalize(z2, dim=2)
 
-        z1_vec = z1.clone().unsqueeze(0).expand(batch_size,-1 , -1, -1)  # [batch_size, batch_size, num_conformers, metric_dim]
-        z2_vec = z2.clone().unsqueeze(1).expand(-1, batch_size, -1, -1)  # [batch_size, batch_size, num_conformers, metric_dim]
+        z1_vec = z1.clone().unsqueeze(0).expand(batch_size, -1, -1,
+                                                -1)  # [batch_size, batch_size, num_conformers, metric_dim]
+        z2_vec = z2.clone().unsqueeze(1).expand(-1, batch_size, -1,
+                                                -1)  # [batch_size, batch_size, num_conformers, metric_dim]
 
         n_samples = num_conformers * 2
         total = torch.cat([z1_vec, z2_vec], dim=2)
 
-        total0 = total.unsqueeze(2).expand(-1,-1,int(total.size(2)), int(total.size(2)), int(total.size(3))) # [batch_size, batch_size, num_conformers*2, num_conformers*2, metric_dim]
-        total1 = total.unsqueeze(3).expand(-1,-1,int(total.size(2)), int(total.size(2)), int(total.size(3))) # [batch_size, batch_size, num_conformers*2, num_conformers*2, metric_dim]
+        total0 = total.unsqueeze(2).expand(-1, -1, int(total.size(2)), int(total.size(2)), int(total.size(
+            3)))  # [batch_size, batch_size, num_conformers*2, num_conformers*2, metric_dim]
+        total1 = total.unsqueeze(3).expand(-1, -1, int(total.size(2)), int(total.size(2)), int(total.size(
+            3)))  # [batch_size, batch_size, num_conformers*2, num_conformers*2, metric_dim]
         L2_distance = ((total0 - total1) ** 2).sum(4)
-        bandwidth = torch.sum(L2_distance.data, dim=(2,3)) / (n_samples ** 2 - n_samples)
+        bandwidth = torch.sum(L2_distance.data, dim=(2, 3)) / (n_samples ** 2 - n_samples)
         bandwidth /= self.kernel_mul ** (self.kernel_num // 2)
         bandwidth_list = [bandwidth * (self.kernel_mul ** i) for i in range(self.kernel_num)]
-        kernel_val = [torch.exp(-L2_distance / bandwidth_temp[:,:,None,None].expand(-1,-1,n_samples,n_samples)) for bandwidth_temp in bandwidth_list]
+        kernel_val = [torch.exp(-L2_distance / bandwidth_temp[:, :, None, None].expand(-1, -1, n_samples, n_samples))
+                      for bandwidth_temp in bandwidth_list]
         kernel_val = sum(kernel_val)
-        XX = kernel_val[:,:,:num_conformers, :num_conformers]
-        YY = kernel_val[:,:,num_conformers:, num_conformers:]
-        XY = kernel_val[:,:,:num_conformers, num_conformers:]
-        YX = kernel_val[:,:,num_conformers:, :num_conformers]
-        mmd_loss = torch.mean(XX + YY - XY - YX, dim=(2,3))
+        XX = kernel_val[:, :, :num_conformers, :num_conformers]
+        YY = kernel_val[:, :, num_conformers:, num_conformers:]
+        XY = kernel_val[:, :, :num_conformers, num_conformers:]
+        YX = kernel_val[:, :, num_conformers:, :num_conformers]
+        mmd_loss = torch.mean(XX + YY - XY - YX, dim=(2, 3))
         mmd_similarity = 1 / (mmd_loss + 1)
 
         sim_matrix = torch.exp(mmd_similarity / self.tau)
@@ -733,6 +738,56 @@ class NTXentMinimumMatching(_Loss):
         min_sim_matrix = torch.amin(sim_matrix, dim=(2, 3))  # [batch_size, batch_size]
 
         loss = pos_sim / (min_sim_matrix.sum(dim=1) - torch.diagonal(min_sim_matrix))
+        loss = - torch.log(loss).mean()
+
+        if self.variance_reg > 0:
+            loss += self.variance_reg * (std_loss(z1) + std_loss(z2))
+        if self.covariance_reg > 0:
+            loss += self.covariance_reg * (cov_loss(z1) + cov_loss(z2))
+        if self.uniformity_reg > 0:
+            loss += self.uniformity_reg * uniformity_loss(z1, z2)
+        return loss
+
+
+class NTXentMaximumSimilarity(_Loss):
+    '''
+        Normalized Temperature-scaled Cross Entropy Loss from SimCLR paper
+        Args:
+            z1, z2: Tensor of shape [batch_size, z_dim]
+            tau: Float. Usually in (0,1].
+            norm: Boolean. Whether to apply normlization.
+        '''
+
+    def __init__(self, norm: bool = True, tau: float = 0.5, uniformity_reg=0, variance_reg=0, covariance_reg=0) -> None:
+        super(NTXentMaximumSimilarity, self).__init__()
+        self.norm = norm
+        self.tau = tau
+        self.uniformity_reg = uniformity_reg
+        self.variance_reg = variance_reg
+        self.covariance_reg = covariance_reg
+
+    def forward(self, z1, z2, **kwargs) -> Tensor:
+        '''
+        :param z1: batchsize, metric dim * num_conformers
+        :param z2: batchsize * num_conformers, metric dim
+        '''
+        batch_size, _ = z1.size()
+        _, metric_dim = z2.size()
+        z1 = z1.view(batch_size, -1, metric_dim)  # [batch_size, num_conformers, metric_dim]
+
+        z2 = z2.view(batch_size, -1, metric_dim)  # [batch_size, num_conformers, metric_dim]
+        sim_matrix = torch.einsum('ilk,juk->ijlu', z1, z2)  # [batch_size, batch_size, num_conformers]
+
+        if self.norm:
+            z1_abs = z1.norm(dim=2)
+            z2_abs = z2.norm(dim=2)
+            sim_matrix = sim_matrix / torch.einsum('il,ju->ijlu', z1_abs, z2_abs)
+
+        sim_matrix = torch.amax(sim_matrix, dim=(2, 3))  # [batch_size, batch_size]
+        sim_matrix = torch.exp(sim_matrix / self.tau)  # [batch_size, batch_size, num_conformers, num_conformers]
+        pos_sim = torch.diagonal(sim_matrix)  # [batch_size]
+
+        loss = pos_sim / (sim_matrix.sum(dim=1) - pos_sim)
         loss = - torch.log(loss).mean()
 
         if self.variance_reg > 0:
