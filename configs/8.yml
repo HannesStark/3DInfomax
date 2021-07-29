@@ -1,2 +1,67 @@
+experiment_name: 'baseline'
+
+dataset: 'ogbg-molhiv'
+num_epochs: 1000
+batch_size: 96
+log_iterations: 20
+patience: 50
+loss_func: BCEWithLogitsLoss
+required_data:
+  - dgl_graph
+  - raw_features
+  - positional_encoding
+  - targets
+metrics:
+  - rsquared
+  - mean_predictor_loss
+  - pearsonr
+collate_function: pna_transformer_collate
+
+optimizer: AdamW
+optimizer_params:
+  lr: 1.0e-4
+
+scheduler_step_per_batch: False
+lr_scheduler: WarmUpWrapper
+lr_scheduler_params:
+  warmup_steps: [20000]
+  # parameters of scheduler to run after warmup
+  wrapped_scheduler: ReduceLROnPlateau
+  cooldown: 20
+  factor: 0.6
+  patience: 25
+  min_lr: 1.0e-6
+  threshold: 1.0e-4
+  mode: 'min'
+  verbose: True
+
+
+model_type: 'PNATransformer'
+model_parameters:
+  target_dim: 1
+  hidden_dim: 128
+  nhead: 32
+  dim_feedforward: 512
+  dropout: 0.0
+  propagation_depth: 10
+  readout_batchnorm: True
+  readout_hidden_dim: 128
+  readout_layers: 2
+  mid_batch_norm: True
+  last_batch_norm: True
+  aggregators:
+    - mean
+    - max
+    - min
+    - std
+  scalers:
+    - identity
+    - amplification
+    - attenuation
+  pretrans_layers: 2
+  posttrans_layers: 2
+  residual: True
+
+
 # continue training from checkpoint:
-checkpoint: runs/PNA_qmugs_KLDivergenceMultiplePositives_123_23-07_07-46-26/last_checkpoint.pt
+#checkpoint: runs/PNAReadout_2_layer_03-04_15-29-07/last_checkpoint.pt

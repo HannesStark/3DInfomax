@@ -17,9 +17,9 @@ metrics:
   - pearsonr
 collate_function: pna_transformer_collate
 
-optimizer: Adam
+optimizer: AdamW
 optimizer_params:
-  lr: 2.0e-4
+  lr: 1.0e-4
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
