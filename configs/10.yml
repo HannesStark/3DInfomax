@@ -1,6 +1,6 @@
 experiment_name: 'baseline'
 
-dataset: geom_drugs_geomol
+dataset: geom_qm9_geomol
 num_epochs: 250
 batch_size: 16
 trainer: geomol
