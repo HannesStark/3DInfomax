@@ -1,109 +1,68 @@
-experiment_name: 'NTXent'
+experiment_name: 'baseline'
 
-num_epochs: 1000
-batch_size: 500
-log_iterations: 50
-patience: 35
-loss_func: NTXent
-loss_params:
-  tau: 0.1
+dataset: geom_qm9_geomol
+num_epochs: 250
+batch_size: 16
+trainer: geomol
+log_iterations: 10
+patience: 30
+loss_func: MSELoss
 num_train: 50000
-
 required_data:
-  - mol_graph
-  - complete_graph3d
-metrics:
-  - positive_similarity
-  - negative_similarity
-  - contrastive_accuracy
-  - true_negative_rate
-  - true_positive_rate
-  - uniformity
-  - alignment
-  - batch_variance
-  - dimension_covariance
-main_metric: loss
-collate_function: contrastive_graphs_with_mask_collate
+  - pyg_multiple_conformers
+collate_function: pyg_graph_only_collate
+num_conformers: 10
 
 optimizer: Adam
 optimizer_params:
-  lr: 8.0e-5
-
+  lr: 1.0e-3
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
   warmup_steps: [700]
+  interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
-  cooldown: 20
-  factor: 0.6
-  patience: 25
-  min_lr: 1.0e-6
-  threshold: 1.0e-4
+  factor: 0.7
+  patience: 5
+  min_lr: 1.0e-5
   mode: 'min'
   verbose: True
 
 
 
 # Model parameters
-model_type: 'PNASelfAttentionReadout'
+model_type: 'GeoMol'
 model_parameters:
-  target_dim: 256
-  hidden_dim: 200
-  nhead: 4
-  dim_feedforward: 256
-  mid_batch_norm: True
-  last_batch_norm: True
-  readout_batchnorm: True
-  # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
-  batch_norm_momentum: 0.93
-  readout_hidden_dim: 200
-  readout_layers: 2
-  dropout: 0.0
-  propagation_depth: 7
-  aggregators:
-    - mean
-    - max
-    - min
-    - std
-  scalers:
-    - identity
-    - amplification
-    - attenuation
-  readout_aggregators:
-    - min
-    - max
-    - mean
-  pretrans_layers: 2
-  posttrans_layers: 1
-  residual: True
-
-# Model parameters
-model3d_type: 'Net3D'
-model3d_parameters:
-  target_dim: 256
-  hidden_dim: 20
-  hidden_edge_dim: 20
-  node_wise_output_layers: 0
-  message_net_layers: 1
-  update_net_layers: 1
-  reduce_func: 'mean'
-  fourier_encodings: 4
-  propagation_depth: 1
-  dropout: 0.0
-  batch_norm: True
-  readout_batchnorm: True
-  # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
-  batch_norm_momentum: 0.93
-  readout_hidden_dim: 20
-  readout_layers: 1
-  readout_aggregators:
-    - min
-    - max
-    - mean
-
-
+  hyperparams:
+    alpha_mlp:
+      n_layers: 2
+    c_mlp:
+      n_layers: 1
+    coord_pred:
+      n_layers: 2
+    d_mlp:
+      n_layers: 1
+    encoder:
+      n_head: 2
+    global_transformer: false
+    gnn1:
+      depth: 3
+      n_layers: 2
+    gnn2:
+      depth: 3
+      n_layers: 2
+    h_mol_mlp:
+      n_layers: 1
+    loss_type: ot_emd
+    model_dim: 50
+    n_model_confs: 10
+    n_true_confs: 10
+    random_alpha: false
+    random_vec_dim: 10
+    random_vec_std: 5.0
+    teacher_force: false
 
 
 
