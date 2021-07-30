@@ -26,28 +26,6 @@ chirality = {ChiralType.CHI_TETRAHEDRAL_CW: -1.,
 
 
 class GeomolDrugsDataset(Dataset):
-    """The GEOM Drugs Dataset using drugs_crude.msgpack as input from https://github.com/learningmatter-mit/geom
-    Attributes
-    ----------
-    return_types: list
-        A list with which types of data should be loaded and returened by getitems. Possible options are
-        ['mol_graph', 'raw_features', 'coordinates', 'mol_id', 'targets', 'one_hot_bond_types', 'edge_indices', 'smiles', 'atomic_number_long']
-        and the default is ['mol_graph', 'targets']
-    target_tasks: list
-        A list specifying which targets should be included in the returend targets, if targets are returned
-        options are ['A', 'B', 'C', 'mu', 'alpha', 'homo', 'lumo', 'gap', 'r2', 'zpve', 'u0', 'u298', 'h298', 'g298', 'cv', 'u0_atom', 'u298_atom', 'h298_atom', 'g298_atom']
-        and default is ['mu', 'alpha', 'homo', 'lumo', 'gap', 'r2', 'zpve', 'u0', 'u298', 'h298', 'g298', 'cv']
-        which is the stuff that is commonly predicted by papers like DimeNet, Equivariant GNNs, Spherical message passing
-        The returned targets will be in the order specified by this list
-    features:
-        possible features are ['standard_normal_noise', 'implicit-valence','degree','hybridization','chirality','mass','electronegativity','aromatic-bond','formal-charge','radical-electron','in-ring','atomic-number', 'pos-enc', 'vec1', 'vec2', 'vec3', 'vec-1', 'vec-2', 'vec-3', 'inv_vec1', 'inv_vec2', 'inv_vec3', 'inv_vec-1', 'inv_vec-2', 'inv_vec-3']
-
-    features3d:
-        possible features are ['standard_normal_noise', 'implicit-valence','degree','hybridization','chirality','mass','electronegativity','aromatic-bond','formal-charge','radical-electron','in-ring','atomic-number', 'pos-enc', 'vec1', 'vec2', 'vec3', 'vec-1', 'vec-2', 'vec-3', 'inv_vec1', 'inv_vec2', 'inv_vec3', 'inv_vec-1', 'inv_vec-2', 'inv_vec-3']
-    e_features:
-        possible are ['bond-type-onehot','stereo','conjugated','in-ring-edges']
-
-    """
 
     def __init__(self, return_types: list = None, target_tasks: list = None, normalize: bool = True, device='cuda:0',
                  num_conformers=1, **kwargs):
@@ -76,12 +54,17 @@ class GeomolDrugsDataset(Dataset):
         self.e_features_tensor = data_dict['edge_features']
 
         self.coordinates = data_dict['coordinates'][:, :3]
-        if 'conformations' in self.return_types or 'complete_graph_random_conformer' in self.return_types:
-            self.conformations = data_dict['coordinates']
+        if 'conformations' in self.return_types or 'complete_graph_random_conformer' in self.return_types or 'pyg_multiple_conformers' in self.return_types:
+            self.conformations = data_dict['coordinates'][:, :self.num_conformers*3]
             self.conformer_categorical = torch.distributions.Categorical(logits=torch.ones(self.num_conformers))
         self.edge_indices = data_dict['edge_indices']
 
-        self.meta_dict = {k: data_dict[k] for k in ('smiles', 'edge_slices', 'atom_slices', 'n_atoms')}
+        self.meta_dict = {k: data_dict[k] for k in (
+            'smiles', 'edge_slices', 'atom_slices', 'n_atoms', 'neighbors_list', 'neighbors_slices', 'atoms_with_neighbors_slices', 'neighbors_idx')}
+
+        self.pos_masks = data_dict['pos_masks']
+        self.chiral_tags = data_dict['chiral_tags']
+
         if 'san_graph' in self.return_types:
             self.eig_vals = data_dict['eig_vals']
             self.eig_vecs = data_dict['eig_vecs']
@@ -199,6 +182,14 @@ class GeomolDrugsDataset(Dataset):
                 return conformer_graphs
         elif return_type == 'mol_graph':
             return self.get_graph(idx, e_start, e_end, n_atoms, start)
+        elif return_type == 'neighbors':
+            slices = self.meta_dict['neighbors_slices'][start: start + n_atoms]
+            neighbors = []
+            for i, slice in enumerate(slices[:-1]):
+                neighbors.append(self.meta_dict['neighbors_list'][slice: slices[i + 1]])
+            return neighbors
+        elif return_type == 'dict_neighbors':
+            return self.meta_dict['neighbor_dicts'][idx]
         elif return_type == 'complete_graph':  # complete graph without self loops
             g = self.get_complete_graph(idx, n_atoms, start)
 
@@ -260,12 +251,24 @@ class GeomolDrugsDataset(Dataset):
             R_i = self.coordinates[start: start + n_atoms].to(self.device)
             z_i = self.features_tensor[start: start + n_atoms].to(self.device)
             return torch_geometric.data.Data(pos=R_i, z=z_i, edge_attr=edge_features, edge_index=edge_indices)
-        elif return_type == 'geomol_graph':
+        elif return_type == 'pyg_multiple_conformers':
             edge_features = self.e_features_tensor[e_start: e_end].to(self.device)
             edge_indices = self.edge_indices[:, e_start: e_end].to(self.device)
-            R_i = self.coordinates[start: start + n_atoms].to(self.device)
-            z_i = self.features_tensor[start: start + n_atoms].to(self.device)
-            return torch_geometric.data.Data(pos=R_i, z=z_i, edge_attr=edge_features, edge_index=edge_indices)
+            pos = self.conformations[start: start + n_atoms].to(self.device).split(3, dim=1)
+            pos = torch.stack(pos,dim=1)
+            features = self.features_tensor[start: start + n_atoms].to(self.device)
+            pos_mask = self.pos_masks[idx].to(self.device)
+            chiral_tag = self.chiral_tags[start: start + n_atoms].to(self.device)
+            atoms_with_neighbors_start = self.meta_dict['atoms_with_neighbors_slices'][idx]
+            atoms_with_neighbors_end = self.meta_dict['atoms_with_neighbors_slices'][
+                                           idx + 1] + 1  # second +1 because the slices have a 0 appended to the beginning
+            neighbor_slices = self.meta_dict['neighbors_slices'][atoms_with_neighbors_start:atoms_with_neighbors_end]
+            neighbors_idx = self.meta_dict['neighbors_idx'][atoms_with_neighbors_start:atoms_with_neighbors_end]
+            neighbors = {}
+            for i, neighbor_slice in enumerate(neighbor_slices[:-1]):
+                neighbors[neighbors_idx[i].item()] = self.meta_dict['neighbors_list'][neighbor_slice: neighbor_slices[i + 1]].to(self.device)
+            return torch_geometric.data.Data(x=features, pos=pos, edge_attr=edge_features, edge_index=edge_indices,
+                                             pos_mask=pos_mask, chiral_tag=chiral_tag, neighbors=neighbors)
         elif return_type == 'raw_features':
             return self.features_tensor[start: start + n_atoms]
         elif return_type == 'coordinates':
@@ -289,7 +292,9 @@ class GeomolDrugsDataset(Dataset):
         atom_slices = [0]
         edge_slices = [0]
         neighbors_slices = [0]
+        neighbors_idx = []
         all_neighbors_list = []
+        atoms_with_neighbors_slices = [0]
         total_eigvecs = []
         total_eigvals = []
         all_pos_masks = []
@@ -304,9 +309,11 @@ class GeomolDrugsDataset(Dataset):
 
         coordinates = []
         smiles_list = []
+        total_atoms_with_neighbors = 0
         total_neighbors = 0
         total_atoms = 0
         total_edges = 0
+
         avg_degree = 0  # average degree in the dataset
         for smiles, sub_dic in tqdm(list(summary.items())):
             pickle_path = os.path.join(self.directory, sub_dic.get("pickle_path", ""))
@@ -358,17 +365,24 @@ class GeomolDrugsDataset(Dataset):
                     confs_coords.extend([confs_coords[0]] * (10 - len(confs_coords)))
 
                 chiral_tag = []
-                neighbors_per_mol = []
+                neighbors_list = []
                 atom_features_list = []
+                neighbor_dict = {}
                 for i, atom in enumerate(correct_mol.GetAtoms()):
                     atom_features_list.append(atom_to_feature_vector(atom))
                     n_ids = [n.GetIdx() for n in atom.GetNeighbors()]
                     if len(n_ids) > 1:
                         total_neighbors += len(n_ids)
+                        neighbor_dict[i] = torch.tensor(n_ids)
                         neighbors_slices.append(total_neighbors)
-                        neighbors_per_mol.append(torch.tensor(n_ids, dtype=torch.long))
+                        neighbors_list.append(torch.tensor(n_ids, dtype=torch.long))
+                        neighbors_idx.append(i)
                     chiral_tag.append(chirality[atom.GetChiralTag()])
-                all_neighbors_list.append(torch.cat(neighbors_per_mol, dim=0))
+                all_neighbors_list.append(torch.cat(neighbors_list, dim=0))
+                total_atoms_with_neighbors += len(neighbors_list)
+                atoms_with_neighbors_slices.append(
+                    total_atoms_with_neighbors)  # we need this additionally because uusing atom_slices for slicing wont work since we only include the atoms with more than 1 neighbor
+
                 all_atom_chiral_tags.append(torch.tensor(chiral_tag, dtype=torch.float))
                 all_atom_features.append(torch.tensor(atom_features_list, dtype=torch.long))
                 adj = GetAdjacencyMatrix(correct_mol, useBO=False, force=True)
@@ -444,12 +458,18 @@ class GeomolDrugsDataset(Dataset):
                      'coordinates': torch.cat(coordinates, dim=0).float(),
                      'targets': targets,
                      'neighbors_list': torch.cat(all_neighbors_list, dim=0),
+                     'neighbors_idx': torch.tensor(neighbors_idx, dtype=torch.long),
                      # very long tensor with neighbors for each atom indexed by neighbors_slices
-                     'neighbors_slices': torch.tensor(neighbors_slices, dtype=torch.long),  # n_atoms
+                     'neighbors_slices': torch.tensor(neighbors_slices, dtype=torch.long),
+                     # n_atoms times num_neighbors where num_neighbors changes for each atom. Slice out of this with atoms_with_neighbors_slices
+                     'atoms_with_neighbors_slices': torch.tensor(atoms_with_neighbors_slices, dtype=torch.long),
+                     # n_atoms
                      'chiral_tags': torch.cat(all_atom_chiral_tags, dim=0),
                      'pos_masks': torch.stack(all_pos_masks, dim=0),
                      'avg_degree': avg_degree / len(n_atoms_list)
                      }
+
+
         data_dict.update(targets)
         if not os.path.exists(os.path.join(self.directory, 'processed')):
             os.mkdir(os.path.join(self.directory, 'processed'))

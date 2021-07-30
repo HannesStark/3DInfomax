@@ -153,11 +153,6 @@ class GeoMol(nn.Module):
                     loss += torch.sum(ot_mat_attached * molecule_loss[:n_true_confs_batch[i], :, i])
 
             loss_dict = self.run_writer_ot_emd(ot_mat_list, n_true_confs_batch)
-            ic(loss / cost_mat_detach.shape[0])
-            if torch.isnan(loss / cost_mat_detach.shape[0]):
-                print('i')
-                pass
-            ic(np.max(np.abs(cost_mat_i)) + cost_mat_i)
             return loss / cost_mat_detach.shape[0], loss_dict
 
     def assign_neighborhoods(self, x, edge_index, edge_attr, batch, data):
