@@ -1,13 +1,14 @@
-experiment_name: 'NTXentMaximumSimilarity'
+experiment_name: 'MaximumSimilarityMSE_variance_reg01'
 
 dataset: drugs
 num_epochs: 1000
 batch_size: 500
 log_iterations: 50
 patience: 35
-loss_func: NTXentMaximumSimilarity
+loss_func: MaximumSimilarityMSE
 loss_params:
   tau: 0.1
+  variance_reg: 0.1
 num_train: 120000
 
 required_data:
