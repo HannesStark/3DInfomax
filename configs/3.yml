@@ -1,6 +1,6 @@
-experiment_name: 'tune_geom_drugs_geomol_NTXentMultiplePositives'
+experiment_name: 'tune_NTXentMaximumSimilarity'
 
-pretrain_checkpoint: runs/PNA_geom_drugs_geomol_NTXentMultiplePositives_123_28-07_13-58-16/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_drugs_NTXentMaximumSimilarity_123_29-07_11-08-24/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:

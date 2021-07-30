@@ -1,28 +1,22 @@
 experiment_name: 'baseline'
 
 
-
-num_epochs: 1000
-batch_size: 128
+dataset: geom_qm9_geomol
+num_epochs: 250
+batch_size: 16
 trainer: geomol
-log_iterations: 30
+log_iterations: 10
 patience: 30
-loss_func: L1Loss
+loss_func: MSELoss
 num_train: 50000
 required_data:
-  - pytorch_geometric_graph
-  - targets
-metrics:
-  - mae_denormalized
-  - pearsonr
-  - rsquared
-  - qm9_properties
-collate_function: pytorch_geometric_collate
+  - pyg_multiple_conformers
+collate_function: pyg_graph_only_collate
+num_conformers: 10
 
 optimizer: Adam
 optimizer_params:
-  lr: 7.0e-5
-  weight_decay: 1.0e-11
+  lr: 1.0e-3
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
@@ -31,16 +25,16 @@ lr_scheduler_params:
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
-  factor: 0.5
-  patience: 25
-  min_lr: 1.0e-6
+  factor: 0.7
+  patience: 5
+  min_lr: 1.0e-5
   mode: 'min'
   verbose: True
 
 
 
 # Model parameters
-model_type: 'Geomol'
+model_type: 'GeoMol'
 model_parameters:
   hyperparams:
     alpha_mlp:
@@ -70,8 +64,6 @@ model_parameters:
     random_vec_dim: 10
     random_vec_std: 5.0
     teacher_force: false
-  num_edge_features: 4
-  num_node_features: 44
 
 
 
