@@ -749,7 +749,7 @@ class NTXentMinimumMatching(_Loss):
         return loss
 
 
-class NTXentMaximumSimilarity(_Loss):
+class MaximumSimilarityMSE(_Loss):
     '''
         Normalized Temperature-scaled Cross Entropy Loss from SimCLR paper
         Args:
@@ -759,12 +759,13 @@ class NTXentMaximumSimilarity(_Loss):
         '''
 
     def __init__(self, norm: bool = True, tau: float = 0.5, uniformity_reg=0, variance_reg=0, covariance_reg=0) -> None:
-        super(NTXentMaximumSimilarity, self).__init__()
+        super(MaximumSimilarityMSE, self).__init__()
         self.norm = norm
         self.tau = tau
         self.uniformity_reg = uniformity_reg
         self.variance_reg = variance_reg
         self.covariance_reg = covariance_reg
+        self.mse_loss = torch.nn.MSELoss(reduction='none')
 
     def forward(self, z1, z2, **kwargs) -> Tensor:
         '''
@@ -775,11 +776,12 @@ class NTXentMaximumSimilarity(_Loss):
         _, metric_dim = z2.size()
         z1 = z1.view(batch_size, -1, metric_dim)  # [batch_size, num_conformers, metric_dim]
         z2 = z2.view(batch_size, -1, metric_dim)  # [batch_size, num_conformers, metric_dim]
+        _, num_conformers, _ = z1.size()
 
-        z1 = z1[:,:,None,:]  # [batch_size, num_conformers, num_conformers, metric_dim]
-        z2 = z2[:,None,:,:]  # [batch_size, num_conformers, num_conformers, metric_dim]
-        loss = F.mse_loss(z1,z2)
-
+        z1 = z1[:,:,None,:].expand(-1,-1,num_conformers,-1)  # [batch_size, num_conformers, num_conformers, metric_dim]
+        z2 = z2[:,None,:,:].expand(-1,num_conformers,-1,-1)   # [batch_size, num_conformers, num_conformers, metric_dim]
+        loss = self.mse_loss(z1,z2).mean(dim=-1) # [batch_size, num_conformers, num_conformers]
+        loss = torch.amin(loss, dim=(1, 2)).mean()
 
         if self.variance_reg > 0:
             loss += self.variance_reg * (std_loss(z1) + std_loss(z2))

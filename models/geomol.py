@@ -19,7 +19,7 @@ DEBUG_NEIGHBORHOOD_PAIRS = False
 
 
 class GeoMol(nn.Module):
-    def __init__(self, hyperparams, **kwargs):
+    def __init__(self, hyperparams,device, **kwargs):
         super(GeoMol, self).__init__()
 
         self.model_dim = hyperparams['model_dim']
@@ -31,7 +31,7 @@ class GeoMol(nn.Module):
         self.random_alpha = hyperparams['random_alpha']
         self.n_true_confs = hyperparams['n_true_confs']
         self.n_model_confs = hyperparams['n_model_confs']
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = device
 
         self.gnn = GeomolGNNOGBFeat(random_vec_dim=self.random_vec_dim,
                                     n_model_confs=self.n_model_confs,
@@ -72,11 +72,6 @@ class GeoMol(nn.Module):
         self.angle_loss = []
         self.dihedral_loss = []
         self.three_hop_loss = []
-        self.one_hop_loss_write = 0
-        self.two_hop_loss_write = 0
-        self.angle_loss_write = 0
-        self.three_hop_loss_write = 0
-        self.dihedral_loss_write = 0
 
     def forward(self, data, ignore_neighbors=False, inference=False, n_model_confs=None):
 
@@ -157,8 +152,13 @@ class GeoMol(nn.Module):
                     ot_mat_list.append(ot_mat_attached)
                     loss += torch.sum(ot_mat_attached * molecule_loss[:n_true_confs_batch[i], :, i])
 
-            self.run_writer_ot_emd(ot_mat_list, n_true_confs_batch)
-            return loss / cost_mat_detach.shape[0]
+            loss_dict = self.run_writer_ot_emd(ot_mat_list, n_true_confs_batch)
+            ic(loss / cost_mat_detach.shape[0])
+            if torch.isnan(loss / cost_mat_detach.shape[0]):
+                print('i')
+                pass
+            ic(np.max(np.abs(cost_mat_i)) + cost_mat_i)
+            return loss / cost_mat_detach.shape[0], loss_dict
 
     def assign_neighborhoods(self, x, edge_index, edge_attr, batch, data):
         """
@@ -837,39 +837,45 @@ class GeoMol(nn.Module):
         three_hop_loss = torch.stack(self.three_hop_loss).view(self.n_true_confs, self.n_model_confs, -1)
         dihedral_loss = torch.stack(self.dihedral_loss).view(self.n_true_confs, self.n_model_confs, -1)
 
-        self.one_hop_loss_write = 0
-        self.two_hop_loss_write = 0
-        self.angle_loss_write = 0
-        self.three_hop_loss_write = 0
-        self.dihedral_loss_write = 0
+        one_hop_loss_write = 0
+        two_hop_loss_write = 0
+        angle_loss_write = 0
+        three_hop_loss_write = 0
+        dihedral_loss_write = 0
 
         for i, ot_mat in enumerate(ot_mat_list):
 
             if self.teacher_force:
-                self.one_hop_loss_write += torch.sum(
+                one_hop_loss_write += torch.sum(
                     ot_mat * one_hop_loss[:n_true_confs_batch[i], :n_true_confs_batch[i], i]) / len(ot_mat_list)
-                self.two_hop_loss_write += torch.sum(
+                two_hop_loss_write += torch.sum(
                     ot_mat * two_hop_loss[:n_true_confs_batch[i], :n_true_confs_batch[i], i]) / len(ot_mat_list)
-                self.angle_loss_write += torch.sum(
+                angle_loss_write += torch.sum(
                     ot_mat * angle_loss[:n_true_confs_batch[i], :n_true_confs_batch[i], i]) / len(ot_mat_list)
-                self.three_hop_loss_write += torch.sum(
+                three_hop_loss_write += torch.sum(
                     ot_mat * three_hop_loss[:n_true_confs_batch[i], :n_true_confs_batch[i], i]) / len(ot_mat_list)
-                self.dihedral_loss_write += torch.sum(
+                dihedral_loss_write += torch.sum(
                     ot_mat * dihedral_loss[:n_true_confs_batch[i], :n_true_confs_batch[i], i]) / len(ot_mat_list)
             else:
-                self.one_hop_loss_write += torch.sum(ot_mat * one_hop_loss[:n_true_confs_batch[i], :, i]) / len(
+                one_hop_loss_write += torch.sum(ot_mat * one_hop_loss[:n_true_confs_batch[i], :, i]) / len(
                     ot_mat_list)
-                self.two_hop_loss_write += torch.sum(ot_mat * two_hop_loss[:n_true_confs_batch[i], :, i]) / len(
+                two_hop_loss_write += torch.sum(ot_mat * two_hop_loss[:n_true_confs_batch[i], :, i]) / len(
                     ot_mat_list)
-                self.angle_loss_write += torch.sum(ot_mat * angle_loss[:n_true_confs_batch[i], :, i]) / len(ot_mat_list)
-                self.three_hop_loss_write += torch.sum(ot_mat * three_hop_loss[:n_true_confs_batch[i], :, i]) / len(
+                angle_loss_write += torch.sum(ot_mat * angle_loss[:n_true_confs_batch[i], :, i]) / len(ot_mat_list)
+                three_hop_loss_write += torch.sum(ot_mat * three_hop_loss[:n_true_confs_batch[i], :, i]) / len(
                     ot_mat_list)
-                self.dihedral_loss_write += torch.sum(ot_mat * dihedral_loss[:n_true_confs_batch[i], :, i]) / len(
+                dihedral_loss_write += torch.sum(ot_mat * dihedral_loss[:n_true_confs_batch[i], :, i]) / len(
                     ot_mat_list)
-
+        loss_dict = {'one_hop_loss': one_hop_loss_write.item(),
+                'two_hop_loss': two_hop_loss_write.item(),
+                'bond_angle_loss': angle_loss_write.item(),
+                'three_hop_loss': three_hop_loss_write.item(),
+                'torsion_angle_loss': dihedral_loss_write.item()}
         # reset
         self.one_hop_loss = []
         self.two_hop_loss = []
         self.angle_loss = []
         self.dihedral_loss = []
         self.three_hop_loss = []
+
+        return loss_dict
