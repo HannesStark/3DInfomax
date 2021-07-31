@@ -1,10 +1,7 @@
 import argparse
 import os
-from itertools import chain
 
 from icecream import install
-from ogb.graphproppred import DglGraphPropPredDataset, collate_dgl
-from ogb.graphproppred.mol_encoder import AtomEncoder
 
 from commons.utils import seed_all, get_random_indices, TENSORBOARD_FUNCTIONS
 from datasets.ZINC_dataset import ZINCDataset
@@ -41,7 +38,6 @@ seaborn.set_theme()
 
 from trainer.self_supervised_trainer import SelfSupervisedTrainer
 
-import torch
 import yaml
 from datasets.custom_collate import *  # do not remove
 from models import *  # do not remove

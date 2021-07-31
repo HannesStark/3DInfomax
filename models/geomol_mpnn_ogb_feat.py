@@ -27,7 +27,7 @@ class GeomolGNNOGBFeat(nn.Module):
         self.update = GeomolMetaLayer(EdgeModel(hidden_dim, n_layers, batch_norm_momentum=batch_norm_momentum),
                                       GeomolNodeModel(hidden_dim, n_layers, batch_norm_momentum=batch_norm_momentum))
 
-    def forward(self, x, edge_index, edge_attr, rand_x, rand_edge):
+    def forward(self, x, edge_index, edge_attr, rand_x, rand_edge, **kwargs):
         x = self.atom_encoder(x)
         edge_attr = self.bond_encoder(edge_attr)
         x = x.unsqueeze(1).repeat(1, self.n_model_confs, 1)

@@ -19,7 +19,7 @@ DEBUG_NEIGHBORHOOD_PAIRS = False
 
 
 class GeoMol(nn.Module):
-    def __init__(self, hyperparams,device, **kwargs):
+    def __init__(self, hyperparams, device, **kwargs):
         super(GeoMol, self).__init__()
 
         self.model_dim = hyperparams['model_dim']
@@ -32,15 +32,13 @@ class GeoMol(nn.Module):
         self.n_true_confs = hyperparams['n_true_confs']
         self.n_model_confs = hyperparams['n_model_confs']
         self.device = device
-
-        self.gnn = GeomolGNNOGBFeat(random_vec_dim=self.random_vec_dim,
-                                    n_model_confs=self.n_model_confs,
-                                    hidden_dim=self.model_dim, depth=hyperparams['gnn1']['depth'],
-                                    n_layers=hyperparams['gnn1']['n_layers'])
-        self.gnn2 = GeomolGNNOGBFeat(random_vec_dim=self.random_vec_dim,
-                                     n_model_confs=self.n_model_confs,
-                                     hidden_dim=self.model_dim, depth=hyperparams['gnn2']['depth'],
-                                     n_layers=hyperparams['gnn2']['n_layers'])
+        gnn_kwargs = {'random_vec_dim': self.random_vec_dim,
+                      'n_model_confs': self.n_model_confs,
+                      'hidden_dim': self.model_dim,
+                      'depth': hyperparams['gnn1']['depth'],
+                      'n_layers': hyperparams['gnn1']['n_layers']}
+        self.gnn = GeomolGNNOGBFeat(**gnn_kwargs)
+        self.gnn2 = GeomolGNNOGBFeat(**gnn_kwargs)
         if hyperparams['global_transformer']:
             self.global_embed = TransformerEncoderLayer(d_model=self.model_dim, nhead=1,
                                                         dim_feedforward=self.model_dim * 2,
@@ -66,15 +64,13 @@ class GeoMol(nn.Module):
 
         self.loss = torch.nn.MSELoss(reduction='none')
 
-
         self.one_hop_loss = []
         self.two_hop_loss = []
         self.angle_loss = []
         self.dihedral_loss = []
         self.three_hop_loss = []
 
-    def forward(self, data, ignore_neighbors=False):
-
+    def forward(self, data, ignore_neighbors=False, dgl_graph=None):
 
         x, edge_index, edge_attr, pos, batch, pos_mask, chiral_tag = \
             data.x, data.edge_index, data.edge_attr, data.pos, data.batch, data.pos_mask, data.chiral_tag
@@ -91,7 +87,7 @@ class GeoMol(nn.Module):
         true_stats = [tuple([stat[i].squeeze(-1) for stat in split_true_stats]) for i in range(self.n_true_confs)]
 
         # calculate predicted model stats
-        batched_model_stats = self.generate_model_prediction(x, edge_index, edge_attr, batch, chiral_tag)
+        batched_model_stats = self.generate_model_prediction(x, edge_index, edge_attr, batch, chiral_tag, dgl_graph)
 
         # split into individual confs and create list of tuples
         split_model_stats = [stat.split(1, dim=-1) for stat in batched_model_stats]
@@ -173,7 +169,7 @@ class GeoMol(nn.Module):
             self.x_to_h_map[a] = i
             self.neighbor_mask[i, 0:len(n)] = 1
             self.leaf_hydrogens[a] = self.leaf_hydrogens[a] * True if self.leaf_hydrogens[a].sum() > 1 else \
-            self.leaf_hydrogens[a] * False
+                self.leaf_hydrogens[a] * False
             self.neighborhood_to_mol_map[i] = batch[a]
 
         # maps which atom in (x,y) corresponds to the same atom in (y,x) for each dihedral pair
@@ -202,7 +198,7 @@ class GeoMol(nn.Module):
                                        self.dihedral_y_mask[~self.y_map_to_neighbor_x.bool()].view(-1, 1, 3)).view(-1,
                                                                                                                    9)
 
-    def embed(self, x, edge_index, edge_attr, batch):
+    def embed(self, x, edge_index, edge_attr, batch, dgl_graph):
 
         rand_dist = torch.distributions.normal.Normal(loc=0, scale=self.random_vec_std)
         # rand_dist = torch.distributions.uniform.Uniform(torch.tensor([0.0]), torch.tensor([1.0]))
@@ -211,10 +207,9 @@ class GeoMol(nn.Module):
         rand_edge = rand_dist.sample([edge_attr.size(0), self.n_model_confs, self.random_vec_dim]).squeeze(-1).to(
             self.device)  # added squeeze
 
-
         # gnn
-        x1, _ = self.gnn(x, edge_index, edge_attr, rand_x, rand_edge)
-        x2, _ = self.gnn2(x, edge_index, edge_attr, rand_x, rand_edge)
+        x1, _ = self.gnn(x, edge_index, edge_attr, rand_x, rand_edge, dgl_graph=dgl_graph)
+        x2, _ = self.gnn2(x, edge_index, edge_attr, rand_x, rand_edge, dgl_graph=dgl_graph)
 
         if self.global_transformer:
 
@@ -290,7 +285,7 @@ class GeoMol(nn.Module):
             self.model_local_coords = self.true_local_coords[:, 0]
         else:
             self.model_local_coords = unit_normals / (
-                        torch.linalg.norm(unit_normals, dim=-1, keepdim=True) + 1e-10) * d_preds
+                    torch.linalg.norm(unit_normals, dim=-1, keepdim=True) + 1e-10) * d_preds
 
         # calculate local stats
         model_one_hop, model_two_hop, model_angles = batch_local_stats_from_coords(self.model_local_coords,
@@ -341,19 +336,19 @@ class GeoMol(nn.Module):
         # bond distance loss
         model_one_hop_perms = model_one_hop.unsqueeze(1).repeat(1, 6, 1)
         one_hop_loss_perm = self.loss(true_one_hop, model_one_hop_perms).sum(dim=-1) / (
-                    true_one_hop.bool().sum(dim=-1) + 1e-10)
+                true_one_hop.bool().sum(dim=-1) + 1e-10)
         one_hop_loss = scatter(one_hop_loss_perm.min(dim=-1).values, self.neighborhood_to_mol_map, reduce="mean")
 
         # two-hop distance loss
         model_two_hop_perms = model_two_hop.unsqueeze(1).repeat(1, 6, 1, 1)
         two_hop_loss_perm = self.loss(true_two_hop, model_two_hop_perms).sum(dim=[-1, -2]) / (
-                    torch.sum(true_two_hop > 1e-8, dim=[-1, -2]) + 1e-10)
+                torch.sum(true_two_hop > 1e-8, dim=[-1, -2]) + 1e-10)
         two_hop_loss = scatter(two_hop_loss_perm.min(dim=-1).values, self.neighborhood_to_mol_map, reduce="mean")
 
         # bending angles loss
         model_angles_perms = model_angles.unsqueeze(1).repeat(1, 6, 1)
         angle_loss_perm = torch.sum(von_Mises_loss(true_angles, model_angles_perms) * true_angles.bool(), dim=-1) / (
-                    true_angles.bool().sum(dim=-1) + 1e-10)
+                true_angles.bool().sum(dim=-1) + 1e-10)
         angle_loss = scatter(angle_loss_perm.max(dim=-1).values, self.neighborhood_to_mol_map, reduce="mean")
 
         return one_hop_loss, two_hop_loss, angle_loss
@@ -528,7 +523,7 @@ class GeoMol(nn.Module):
         # three-hop distance loss
         model_three_hop_perms = model_three_hop.unsqueeze(-1).repeat(1, 1, 6)
         three_hop_loss_perms = self.loss(true_three_hop, model_three_hop_perms).sum(dim=-2) / (
-                    self.dihedral_mask.sum(dim=-1, keepdim=True) + 1e-10)
+                self.dihedral_mask.sum(dim=-1, keepdim=True) + 1e-10)
         three_hop_loss = scatter(three_hop_loss_perms.min(dim=-1).values, self.neighborhood_pairs_to_mol_map,
                                  reduce="mean")
 
@@ -699,7 +694,7 @@ class GeoMol(nn.Module):
 
         return true_one_hop, true_two_hop, true_angles, true_dihedrals, true_three_hop
 
-    def generate_model_prediction(self, x, edge_index, edge_attr, batch, chiral_tag):
+    def generate_model_prediction(self, x, edge_index, edge_attr, batch, chiral_tag, dgl_graph):
         """
         Run one forward pass of the model to predict stats
 
@@ -711,7 +706,7 @@ class GeoMol(nn.Module):
         """
 
         # embed inputs
-        x1, x2, h_mol = self.embed(x, edge_index, edge_attr, batch)
+        x1, x2, h_mol = self.embed(x, edge_index, edge_attr, batch, dgl_graph)
 
         # calculate stats (distance, angles, torsions)
         stats = self.batch_model_stats(x1, x2, batch, h_mol, chiral_tag)
@@ -856,10 +851,10 @@ class GeoMol(nn.Module):
                 dihedral_loss_write += torch.sum(ot_mat * dihedral_loss[:n_true_confs_batch[i], :, i]) / len(
                     ot_mat_list)
         loss_dict = {'one_hop_loss': one_hop_loss_write.item(),
-                'two_hop_loss': two_hop_loss_write.item(),
-                'bond_angle_loss': angle_loss_write.item(),
-                'three_hop_loss': three_hop_loss_write.item(),
-                'torsion_angle_loss': dihedral_loss_write.item()}
+                     'two_hop_loss': two_hop_loss_write.item(),
+                     'bond_angle_loss': angle_loss_write.item(),
+                     'three_hop_loss': three_hop_loss_write.item(),
+                     'torsion_angle_loss': dihedral_loss_write.item()}
         # reset
         self.one_hop_loss = []
         self.two_hop_loss = []
