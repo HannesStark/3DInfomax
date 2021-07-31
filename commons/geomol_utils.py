@@ -21,7 +21,7 @@ angle_combos = torch.LongTensor([[0, 1],
 
 def get_neighbor_ids(data):
     """
-    Takes the edge indices and returns dictionary mapping atom index to neighbor indices
+    Turns neighbors dicts into the correct indices for the batched graph
     Note: this only includes atoms with degree > 1
     """
     # start, end = edge_index

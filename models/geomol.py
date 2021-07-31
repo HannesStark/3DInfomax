@@ -73,13 +73,8 @@ class GeoMol(nn.Module):
         self.dihedral_loss = []
         self.three_hop_loss = []
 
-    def forward(self, data, ignore_neighbors=False, inference=False, n_model_confs=None):
+    def forward(self, data, ignore_neighbors=False):
 
-        if inference:
-            self.n_model_confs = n_model_confs
-            self.assign_neighborhoods(data.x, data.edge_index, data.edge_attr, data.batch, data)
-            self.generate_model_prediction(data.x, data.edge_index, data.edge_attr, data.batch, data.chiral_tag)
-            return
 
         x, edge_index, edge_attr, pos, batch, pos_mask, chiral_tag = \
             data.x, data.edge_index, data.edge_attr, data.pos, data.batch, data.pos_mask, data.chiral_tag
@@ -159,7 +154,6 @@ class GeoMol(nn.Module):
         """
         Initialize neighbors, dihedral pairs, masks, mapping tensors, etc.
         """
-
         self.neighbors = get_neighbor_ids(data)
         self.leaf_hydrogens = get_leaf_hydrogens(self.neighbors, x)
         self.dihedral_pairs = get_dihedral_pairs(edge_index, self.neighbors, data)

@@ -56,6 +56,7 @@ class GeomolGeomQM9Datset(Dataset):
         self.coordinates = data_dict['coordinates'][:, :3]
         if 'conformations' in self.return_types or 'complete_graph_random_conformer' in self.return_types or 'pyg_multiple_conformers' in self.return_types:
             self.conformations = data_dict['coordinates'][:, :self.num_conformers*3]
+            self.conformations = torch.stack(self.conformations.split(3, dim=1), dim=1)
             self.conformer_categorical = torch.distributions.Categorical(logits=torch.ones(self.num_conformers))
         self.edge_indices = data_dict['edge_indices']
 
@@ -254,8 +255,7 @@ class GeomolGeomQM9Datset(Dataset):
         elif return_type == 'pyg_multiple_conformers':
             edge_features = self.e_features_tensor[e_start: e_end].to(self.device)
             edge_indices = self.edge_indices[:, e_start: e_end].to(self.device)
-            pos = self.conformations[start: start + n_atoms].to(self.device).split(3, dim=1)
-            pos = torch.stack(pos,dim=1)
+            pos = self.conformations[start: start + n_atoms]
             features = self.features_tensor[start: start + n_atoms].to(self.device)
             pos_mask = self.pos_masks[idx].to(self.device)
             chiral_tag = self.chiral_tags[start: start + n_atoms].to(self.device)
@@ -268,7 +268,7 @@ class GeomolGeomQM9Datset(Dataset):
             for i, neighbor_slice in enumerate(neighbor_slices[:-1]):
                 neighbors[neighbors_idx[i].item()] = self.meta_dict['neighbors_list'][neighbor_slice: neighbor_slices[i + 1]].to(self.device)
             return torch_geometric.data.Data(x=features, pos=pos, edge_attr=edge_features, edge_index=edge_indices,
-                                             pos_mask=pos_mask, chiral_tag=chiral_tag, neighbors=neighbors)
+                                             pos_mask=pos_mask, chiral_tag=chiral_tag, neighbors=neighbors).clone()
         elif return_type == 'raw_features':
             return self.features_tensor[start: start + n_atoms]
         elif return_type == 'coordinates':
