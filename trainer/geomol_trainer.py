@@ -25,7 +25,7 @@ class GeomolTrainer(Trainer):
             self.optim.step()
             self.after_optim_step()  # overwrite this function to do stuff before zeroing out grads
             self.optim_steps += 1
-        return loss
+        return loss.item()
 
     def predict(self, data_loader, epoch: int, optim: torch.optim.Optimizer = None,
                 return_predictions: bool = False):
@@ -37,29 +37,25 @@ class GeomolTrainer(Trainer):
             batch = move_to_device(list(batch), self.device)
             loss = self.process_batch(batch, optim, epoch)
             with torch.no_grad():
-
                 if self.optim_steps % self.args.log_iterations == 0 and optim != None:
-                    loss_dict = {
-                        'bond_angle_loss': self.model.one_hop_loss_write.item(),
-                        'one_hop_loss': self.model.two_hop_loss_write.item(),
-                        'three_hop_loss': self.model.angle_loss_write.item(),
-                        'torsion_angle_loss': self.model.dihedral_loss_write.item(),
-                        'two_hop_loss': self.model.three_hop_loss_write.item(),
-                    }
-                    loss_dict[type(self.loss_func).__name__] = loss.item()
-                    self.tensorboard_log(loss_dict, data_split='train', step=self.optim_steps, epoch=epoch)
+                    total_metrics['one_hop_loss'] += self.model.one_hop_loss_write.item()
+                    total_metrics['two_hop_loss'] += self.model.two_hop_loss_write.item()
+                    total_metrics['bond_angle_loss'] += self.model.angle_loss_write.item()
+                    total_metrics['torsion_angle_loss'] += self.model.dihedral_loss_write.item()
+                    total_metrics['three_hop_loss'] += self.model.three_hop_loss_write.item()
+                    total_metrics[type(self.loss_func).__name__] += loss
+                    self.tensorboard_log(total_metrics, data_split='train', step=self.optim_steps, epoch=epoch)
                     print('[Epoch %d; Iter %5d/%5d] %s: loss: %.7f' % (
-                        epoch, i + 1, len(data_loader), 'train', loss.item()))
+                        epoch, i + 1, len(data_loader), 'train', total_metrics[type(self.loss_func).__name__]))
+                    total_metrics = {k: 0 for k in total_metrics.keys()}
                 if optim == None and self.val_per_batch:  # during validation or testing when we want to average metrics over all the data in that dataloader
-                    loss_dict = {
-                        'bond_angle_loss': self.model.one_hop_loss_write.item(),
-                        'one_hop_loss': self.model.two_hop_loss_write.item(),
-                        'three_hop_loss': self.model.angle_loss_write.item(),
-                        'torsion_angle_loss': self.model.dihedral_loss_write.item(),
-                        'two_hop_loss': self.model.three_hop_loss_write.item(),
-                    }
-                    loss_dict[type(self.loss_func).__name__] = loss.item()
-                    for key, value in loss_dict.items():
+                    total_metrics['one_hop_loss'] += self.model.one_hop_loss_write.item()
+                    total_metrics['two_hop_loss'] += self.model.two_hop_loss_write.item()
+                    total_metrics['bond_angle_loss'] += self.model.angle_loss_write.item()
+                    total_metrics['torsion_angle_loss'] += self.model.dihedral_loss_write.item()
+                    total_metrics['three_hop_loss'] += self.model.three_hop_loss_write.item()
+                    total_metrics[type(self.loss_func).__name__] += loss
+                    for key, value in total_metrics.items():
                         total_metrics[key] += value
                 if optim == None and not self.val_per_batch:
                     epoch_loss += loss.item()
@@ -70,3 +66,13 @@ class GeomolTrainer(Trainer):
             else:
                 total_metrics[type(self.loss_func).__name__] = epoch_loss / len(data_loader)
             return total_metrics
+
+    def tensorboard_log(self, metrics, data_split: str, epoch: int, step: int, log_hparam: bool = False):
+        metrics['epoch'] = epoch
+        for i, param_group in enumerate(self.optim.param_groups):
+            metrics[f'lr_param_group_{i}'] = param_group['lr']
+        logs = {}
+        for key, metric in metrics.items():
+            metric_name = f'{key}/{data_split}'
+            logs[metric_name] = metric
+            self.writer.add_scalar(metric_name, metric, step)
