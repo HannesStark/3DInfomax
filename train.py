@@ -26,8 +26,8 @@ from datasets.qmugs_dataset import QMugsDataset
 from models.geomol_mpnn import GeomolGNNWrapper
 from trainer.byol_trainer import BYOLTrainer
 from trainer.byol_wrapper import BYOLwrapper
-#import faulthandler
-#faulthandler.enable()
+import faulthandler
+faulthandler.enable()
 import seaborn
 
 from trainer.geomol_trainer import GeomolTrainer
