@@ -253,12 +253,12 @@ class GeomolGeomQM9Datset(Dataset):
             z_i = self.features_tensor[start: start + n_atoms].to(self.device)
             return torch_geometric.data.Data(pos=R_i, z=z_i, edge_attr=edge_features, edge_index=edge_indices)
         elif return_type == 'pyg_multiple_conformers':
-            edge_features = self.e_features_tensor[e_start: e_end].to(self.device)
-            edge_indices = self.edge_indices[:, e_start: e_end].to(self.device)
+            edge_features = self.e_features_tensor[e_start: e_end]
+            edge_indices = self.edge_indices[:, e_start: e_end]
             pos = self.conformations[start: start + n_atoms]
-            features = self.features_tensor[start: start + n_atoms].to(self.device)
-            pos_mask = self.pos_masks[idx].to(self.device)
-            chiral_tag = self.chiral_tags[start: start + n_atoms].to(self.device)
+            features = self.features_tensor[start: start + n_atoms]
+            pos_mask = self.pos_masks[idx]
+            chiral_tag = self.chiral_tags[start: start + n_atoms]
             atoms_with_neighbors_start = self.meta_dict['atoms_with_neighbors_slices'][idx]
             atoms_with_neighbors_end = self.meta_dict['atoms_with_neighbors_slices'][
                                            idx + 1] + 1  # second +1 because the slices have a 0 appended to the beginning
@@ -266,9 +266,9 @@ class GeomolGeomQM9Datset(Dataset):
             neighbors_idx = self.meta_dict['neighbors_idx'][atoms_with_neighbors_start:atoms_with_neighbors_end]
             neighbors = {}
             for i, neighbor_slice in enumerate(neighbor_slices[:-1]):
-                neighbors[neighbors_idx[i].item()] = self.meta_dict['neighbors_list'][neighbor_slice: neighbor_slices[i + 1]].to(self.device)
+                neighbors[neighbors_idx[i].item()] = self.meta_dict['neighbors_list'][neighbor_slice: neighbor_slices[i + 1]]
             return torch_geometric.data.Data(x=features, pos=pos, edge_attr=edge_features, edge_index=edge_indices,
-                                             pos_mask=pos_mask, chiral_tag=chiral_tag, neighbors=neighbors).clone()
+                                             pos_mask=pos_mask, chiral_tag=chiral_tag, neighbors=neighbors)
         elif return_type == 'raw_features':
             return self.features_tensor[start: start + n_atoms]
         elif return_type == 'coordinates':

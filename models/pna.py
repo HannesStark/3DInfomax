@@ -136,40 +136,6 @@ class PNA(nn.Module):
         readout = torch.cat(readouts_to_cat, dim=-1)
         return self.output(readout)
 
-class RandPNAGNN(nn.Module):
-    def __init__(self, random_vec_dim, n_model_confs, hidden_dim, aggregators: List[str], scalers: List[str],
-                 residual: bool = True, pairwise_distances: bool = False, activation: Union[Callable, str] = "relu",
-                 last_activation: Union[Callable, str] = "none", mid_batch_norm: bool = False,
-                 last_batch_norm: bool = False, batch_norm_momentum=0.1, propagation_depth: int = 5,
-                 dropout: float = 0.0, posttrans_layers: int = 1, pretrans_layers: int = 1, **kwargs):
-        super(RandPNAGNN, self).__init__()
-        self.mp_layers = nn.ModuleList()
-        self.random_vec_dim = random_vec_dim
-        self.n_model_confs = n_model_confs
-        for _ in range(propagation_depth):
-            self.mp_layers.append(
-                PNALayer(in_dim=hidden_dim, out_dim=int(hidden_dim), in_dim_edges=hidden_dim, aggregators=aggregators,
-                         scalers=scalers, pairwise_distances=pairwise_distances, residual=residual, dropout=dropout,
-                         activation=activation, last_activation=last_activation, mid_batch_norm=mid_batch_norm,
-                         last_batch_norm=last_batch_norm, avg_d={"log": 1.0}, posttrans_layers=posttrans_layers,
-                         pretrans_layers=pretrans_layers, batch_norm_momentum=batch_norm_momentum
-                         ),
-
-                )
-        self.atom_encoder = AtomEncoder(emb_dim=hidden_dim- self.random_vec_dim)
-        self.bond_encoder = BondEncoder(emb_dim=hidden_dim- self.random_vec_dim)
-
-    def forward(self, graph: dgl.DGLGraph, rand_x, rand_edge):
-        graph.ndata['feat'] = self.atom_encoder(graph.ndata['feat'])
-        graph.edata['feat'] = self.bond_encoder(graph.edata['feat'])
-        #graph_batch =
-        #x = x.unsqueeze(1).repeat(1, self.n_model_confs, 1)
-        #edge_attr = edge_attr.unsqueeze(1).repeat(1, self.n_model_confs, 1)
-        #x = torch.cat([x, rand_x], dim=-1)
-        #edge_attr = torch.cat([edge_attr, rand_edge], dim=-1)
-
-        for mp_layer in self.mp_layers:
-            mp_layer(graph)
 
 class PNAGNN(nn.Module):
     def __init__(self, node_dim, edge_dim, hidden_dim, aggregators: List[str], scalers: List[str],
@@ -201,7 +167,7 @@ class PNAGNN(nn.Module):
                          pretrans_layers=pretrans_layers, batch_norm_momentum=batch_norm_momentum
                          ),
 
-                )
+            )
         self.atom_encoder = AtomEncoder(emb_dim=hidden_dim)
         self.bond_encoder = BondEncoder(emb_dim=hidden_dim)
 
@@ -236,7 +202,7 @@ class PNALayer(nn.Module):
             layers=pretrans_layers, mid_activation=activation, dropout=dropout, last_activation=last_activation,
             batch_norm_momentum=batch_norm_momentum
 
-            )
+        )
         self.posttrans = MLP(in_dim=(len(self.aggregators) * len(self.scalers) + 1) * in_dim, hidden_size=out_dim,
                              out_dim=out_dim, layers=posttrans_layers, mid_activation=activation,
                              last_activation=last_activation, dropout=dropout, mid_batch_norm=mid_batch_norm,

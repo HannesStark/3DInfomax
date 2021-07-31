@@ -9,9 +9,9 @@ class GeomolTrainer(Trainer):
         super(GeomolTrainer, self).__init__(**kwargs)
 
     def forward_pass(self, batch, epoch):
-        graphs = tuple(batch)[0]
-        loss = self.model(graphs) if epoch > 1 else self.model(graphs,
-                                                               ignore_neighbors=True)  # foward the rest of the batch to the model
+        data = tuple(batch)
+        loss = self.model(*data) if epoch > 1 else self.model(*data,
+                                                              ignore_neighbors=True)  # foward the rest of the batch to the model
         return loss
 
     def process_batch(self, batch, optim, epoch):
@@ -38,15 +38,28 @@ class GeomolTrainer(Trainer):
             loss = self.process_batch(batch, optim, epoch)
             with torch.no_grad():
                 if self.optim_steps % self.args.log_iterations == 0 and optim != None:
+                    total_metrics['one_hop_loss'] += self.model.one_hop_loss_write.item()
+                    total_metrics['two_hop_loss'] += self.model.two_hop_loss_write.item()
+                    total_metrics['bond_angle_loss'] += self.model.angle_loss_write.item()
+                    total_metrics['torsion_angle_loss'] += self.model.dihedral_loss_write.item()
+                    total_metrics['three_hop_loss'] += self.model.three_hop_loss_write.item()
+                    total_metrics[type(self.loss_func).__name__] += loss
+                    self.tensorboard_log(total_metrics, data_split='train', step=self.optim_steps, epoch=epoch)
                     print('[Epoch %d; Iter %5d/%5d] %s: loss: %.7f' % (
                         epoch, i + 1, len(data_loader), 'train', total_metrics[type(self.loss_func).__name__]))
                     total_metrics = {k: 0 for k in total_metrics.keys()}
                 if optim == None and self.val_per_batch:  # during validation or testing when we want to average metrics over all the data in that dataloader
-
+                    total_metrics['one_hop_loss'] += self.model.one_hop_loss_write.item()
+                    total_metrics['two_hop_loss'] += self.model.two_hop_loss_write.item()
+                    total_metrics['bond_angle_loss'] += self.model.angle_loss_write.item()
+                    total_metrics['torsion_angle_loss'] += self.model.dihedral_loss_write.item()
+                    total_metrics['three_hop_loss'] += self.model.three_hop_loss_write.item()
+                    total_metrics[type(self.loss_func).__name__] += loss
                     for key, value in total_metrics.items():
                         total_metrics[key] += value
                 if optim == None and not self.val_per_batch:
-                    pass
+                    epoch_loss += loss.item()
+
         if optim == None:
             if self.val_per_batch:
                 total_metrics = {k: v / len(data_loader) for k, v in total_metrics.items()}

@@ -20,6 +20,12 @@ def pytorch_geometric_collate(batch: List[Tuple]):
     batched_graph = torch_geometric.data.batch.Batch.from_data_list(graphs)
     return [batched_graph], torch.stack(targets).float()
 
+def geomol_dgl_collate(batch: List[Tuple]):
+    graphs = [item[0] for item in batch]
+    dgl_graphs = [item[1] for item in batch]
+    batched_graph = torch_geometric.data.batch.Batch.from_data_list(graphs)
+    return [batched_graph, dgl.batch(dgl_graphs)]
+
 def pyg_graph_only_collate(batch: List[Tuple]):
     graphs = [item[0] for item in batch]
     batched_graph = torch_geometric.data.batch.Batch.from_data_list(graphs)

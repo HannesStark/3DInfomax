@@ -2,7 +2,6 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from torch.nn import TransformerEncoderLayer
-import torch_geometric as tg
 from torch_geometric.nn import global_add_pool
 from torch_scatter import scatter
 
@@ -12,7 +11,7 @@ from itertools import permutations
 import numpy as np
 import ot
 
-from models import *
+from models.pna_gnn_random import PNAGNNRandom
 from models.geomol_mpnn import GeomolGNN, GeomolMLP
 from models.geomol_mpnn_ogb_feat import GeomolGNNOGBFeat
 
@@ -67,8 +66,8 @@ class GeoMol(nn.Module):
         self.dihedral_loss = []
         self.three_hop_loss = []
 
-    def forward(self, data, ignore_neighbors=False, dgl_graph=None):
-
+    def forward(self, data, dgl_graph=None, ignore_neighbors=False):
+        data = data.to(self.device)
         x, edge_index, edge_attr, pos, batch, pos_mask, chiral_tag = \
             data.x, data.edge_index, data.edge_attr, data.pos, data.batch, data.pos_mask, data.chiral_tag
 
@@ -84,7 +83,7 @@ class GeoMol(nn.Module):
         true_stats = [tuple([stat[i].squeeze(-1) for stat in split_true_stats]) for i in range(self.n_true_confs)]
 
         # calculate predicted model stats
-        batched_model_stats = self.generate_model_prediction(x, edge_index, edge_attr, batch, chiral_tag, dgl_graph)
+        batched_model_stats = self.generate_model_prediction(x, edge_index, edge_attr, batch, chiral_tag, dgl_graph=dgl_graph)
 
         # split into individual confs and create list of tuples
         split_model_stats = [stat.split(1, dim=-1) for stat in batched_model_stats]
@@ -204,9 +203,13 @@ class GeoMol(nn.Module):
         rand_edge = rand_dist.sample([edge_attr.size(0), self.n_model_confs, self.random_vec_dim]).squeeze(-1).to(
             self.device)  # added squeeze
 
+        if dgl_graph:
+            dgl_graph_clone = dgl_graph.clone()
+        else:
+            dgl_graph_clone = None
         # gnn
-        x1, _ = self.gnn(x, edge_index, edge_attr, rand_x, rand_edge, dgl_graph=dgl_graph)
-        x2, _ = self.gnn2(x, edge_index, edge_attr, rand_x, rand_edge, dgl_graph=dgl_graph)
+        x1, _ = self.gnn(x=x, edge_index=edge_index, edge_attr=edge_attr, rand_x=rand_x, rand_edge=rand_edge, dgl_graph=dgl_graph)
+        x2, _ = self.gnn2(x=x, edge_index=edge_index, edge_attr=edge_attr, rand_x=rand_x, rand_edge=rand_edge, dgl_graph=dgl_graph_clone)
 
         if self.global_transformer:
 
@@ -703,7 +706,7 @@ class GeoMol(nn.Module):
         """
 
         # embed inputs
-        x1, x2, h_mol = self.embed(x, edge_index, edge_attr, batch, dgl_graph)
+        x1, x2, h_mol = self.embed(x, edge_index, edge_attr, batch, dgl_graph=dgl_graph)
 
         # calculate stats (distance, angles, torsions)
         stats = self.batch_model_stats(x1, x2, batch, h_mol, chiral_tag)
