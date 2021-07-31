@@ -1,13 +1,13 @@
-experiment_name: 'baseline'
+experiment_name: 'GeomolGNNOGBFeat_10000'
 
-dataset: geom_qm9_geomol
+dataset: geom_drugs_geomol
 num_epochs: 250
 batch_size: 16
 trainer: geomol
 log_iterations: 10
 patience: 30
 loss_func: MSELoss
-num_train: 50000
+num_train: 10000
 required_data:
   - pyg_multiple_conformers
 collate_function: pyg_graph_only_collate
@@ -35,6 +35,11 @@ lr_scheduler_params:
 # Model parameters
 model_type: 'GeoMol'
 model_parameters:
+  gnn_model: GeomolGNNOGBFeat
+  gnn_params:
+    depth: 3
+    n_layers: 2
+
   hyperparams:
     alpha_mlp:
       n_layers: 2
@@ -47,12 +52,6 @@ model_parameters:
     encoder:
       n_head: 2
     global_transformer: false
-    gnn1:
-      depth: 3
-      n_layers: 2
-    gnn2:
-      depth: 3
-      n_layers: 2
     h_mol_mlp:
       n_layers: 1
     loss_type: ot_emd

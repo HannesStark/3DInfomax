@@ -26,8 +26,8 @@ from datasets.qmugs_dataset import QMugsDataset
 from models.geomol_mpnn import GeomolGNNWrapper
 from trainer.byol_trainer import BYOLTrainer
 from trainer.byol_wrapper import BYOLwrapper
-import faulthandler
-faulthandler.enable()
+#import faulthandler
+#faulthandler.enable()
 import seaborn
 
 from trainer.geomol_trainer import GeomolTrainer
@@ -371,7 +371,10 @@ def train_geom(args, device, metrics_dict):
     elif args.dataset == 'geom_drugs_geomol':
         model_idx = all_idx[:160000]
     test_idx = all_idx[len(model_idx): len(model_idx) + int(0.05 * len(all_data))]
-    val_idx = all_idx[len(model_idx) + len(test_idx):]
+    if args.dataset == 'geom_drugs_geomol' or args.dataset == 'geom_qm9_geomol':
+        val_idx = all_idx[max(len(model_idx) + len(test_idx), len(all_data) - 1000):]
+    else:
+        val_idx = all_idx[len(model_idx) + len(test_idx):]
     train_idx = model_idx[:args.num_train]
     # for debugging purposes:
     # test_idx = all_idx[len(model_idx): len(model_idx) + 200]

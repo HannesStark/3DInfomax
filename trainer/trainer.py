@@ -122,7 +122,7 @@ class Trainer():
             self.optim_steps += 1
         return loss, predictions.detach(), targets.detach()
 
-    def predict(self, data_loader: DataLoader, epoch: int = 0, optim: torch.optim.Optimizer = None,
+    def predict(self, data_loader: DataLoader, epoch: int, optim: torch.optim.Optimizer = None,
                 return_predictions: bool = False) -> Union[
         Dict, Tuple[float, Union[torch.Tensor, None], Union[torch.Tensor, None]]]:
         total_metrics = {k: 0 for k in

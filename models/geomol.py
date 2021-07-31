@@ -12,6 +12,7 @@ from itertools import permutations
 import numpy as np
 import ot
 
+from models import *
 from models.geomol_mpnn import GeomolGNN, GeomolMLP
 from models.geomol_mpnn_ogb_feat import GeomolGNNOGBFeat
 
@@ -19,7 +20,7 @@ DEBUG_NEIGHBORHOOD_PAIRS = False
 
 
 class GeoMol(nn.Module):
-    def __init__(self, hyperparams, device, **kwargs):
+    def __init__(self, hyperparams,gnn_model, gnn_params, device, **kwargs):
         super(GeoMol, self).__init__()
 
         self.model_dim = hyperparams['model_dim']
@@ -32,13 +33,9 @@ class GeoMol(nn.Module):
         self.n_true_confs = hyperparams['n_true_confs']
         self.n_model_confs = hyperparams['n_model_confs']
         self.device = device
-        gnn_kwargs = {'random_vec_dim': self.random_vec_dim,
-                      'n_model_confs': self.n_model_confs,
-                      'hidden_dim': self.model_dim,
-                      'depth': hyperparams['gnn1']['depth'],
-                      'n_layers': hyperparams['gnn1']['n_layers']}
-        self.gnn = GeomolGNNOGBFeat(**gnn_kwargs)
-        self.gnn2 = GeomolGNNOGBFeat(**gnn_kwargs)
+
+        self.gnn = globals()[gnn_model](hidden_dim=self.model_dim, random_vec_dim= self.random_vec_dim, n_model_confs=self.n_model_confs,**gnn_params)
+        self.gnn2 = globals()[gnn_model](hidden_dim=self.model_dim, random_vec_dim= self.random_vec_dim, n_model_confs=self.n_model_confs,**gnn_params)
         if hyperparams['global_transformer']:
             self.global_embed = TransformerEncoderLayer(d_model=self.model_dim, nhead=1,
                                                         dim_feedforward=self.model_dim * 2,
@@ -143,8 +140,8 @@ class GeoMol(nn.Module):
                     ot_mat_list.append(ot_mat_attached)
                     loss += torch.sum(ot_mat_attached * molecule_loss[:n_true_confs_batch[i], :, i])
 
-            loss_dict = self.run_writer_ot_emd(ot_mat_list, n_true_confs_batch)
-            return loss / cost_mat_detach.shape[0], loss_dict
+            self.run_writer_ot_emd(ot_mat_list, n_true_confs_batch)
+            return loss / cost_mat_detach.shape[0]
 
     def assign_neighborhoods(self, x, edge_index, edge_attr, batch, data):
         """
@@ -821,45 +818,39 @@ class GeoMol(nn.Module):
         three_hop_loss = torch.stack(self.three_hop_loss).view(self.n_true_confs, self.n_model_confs, -1)
         dihedral_loss = torch.stack(self.dihedral_loss).view(self.n_true_confs, self.n_model_confs, -1)
 
-        one_hop_loss_write = 0
-        two_hop_loss_write = 0
-        angle_loss_write = 0
-        three_hop_loss_write = 0
-        dihedral_loss_write = 0
+        self.one_hop_loss_write = 0
+        self.two_hop_loss_write = 0
+        self.angle_loss_write = 0
+        self.three_hop_loss_write = 0
+        self.dihedral_loss_write = 0
 
         for i, ot_mat in enumerate(ot_mat_list):
 
             if self.teacher_force:
-                one_hop_loss_write += torch.sum(
+                self.one_hop_loss_write += torch.sum(
                     ot_mat * one_hop_loss[:n_true_confs_batch[i], :n_true_confs_batch[i], i]) / len(ot_mat_list)
-                two_hop_loss_write += torch.sum(
+                self.two_hop_loss_write += torch.sum(
                     ot_mat * two_hop_loss[:n_true_confs_batch[i], :n_true_confs_batch[i], i]) / len(ot_mat_list)
-                angle_loss_write += torch.sum(
+                self.angle_loss_write += torch.sum(
                     ot_mat * angle_loss[:n_true_confs_batch[i], :n_true_confs_batch[i], i]) / len(ot_mat_list)
-                three_hop_loss_write += torch.sum(
+                self.three_hop_loss_write += torch.sum(
                     ot_mat * three_hop_loss[:n_true_confs_batch[i], :n_true_confs_batch[i], i]) / len(ot_mat_list)
-                dihedral_loss_write += torch.sum(
+                self.dihedral_loss_write += torch.sum(
                     ot_mat * dihedral_loss[:n_true_confs_batch[i], :n_true_confs_batch[i], i]) / len(ot_mat_list)
             else:
-                one_hop_loss_write += torch.sum(ot_mat * one_hop_loss[:n_true_confs_batch[i], :, i]) / len(
+                self.one_hop_loss_write += torch.sum(ot_mat * one_hop_loss[:n_true_confs_batch[i], :, i]) / len(
                     ot_mat_list)
-                two_hop_loss_write += torch.sum(ot_mat * two_hop_loss[:n_true_confs_batch[i], :, i]) / len(
+                self.two_hop_loss_write += torch.sum(ot_mat * two_hop_loss[:n_true_confs_batch[i], :, i]) / len(
                     ot_mat_list)
-                angle_loss_write += torch.sum(ot_mat * angle_loss[:n_true_confs_batch[i], :, i]) / len(ot_mat_list)
-                three_hop_loss_write += torch.sum(ot_mat * three_hop_loss[:n_true_confs_batch[i], :, i]) / len(
+                self.angle_loss_write += torch.sum(ot_mat * angle_loss[:n_true_confs_batch[i], :, i]) / len(ot_mat_list)
+                self.three_hop_loss_write += torch.sum(ot_mat * three_hop_loss[:n_true_confs_batch[i], :, i]) / len(
                     ot_mat_list)
-                dihedral_loss_write += torch.sum(ot_mat * dihedral_loss[:n_true_confs_batch[i], :, i]) / len(
+                self.dihedral_loss_write += torch.sum(ot_mat * dihedral_loss[:n_true_confs_batch[i], :, i]) / len(
                     ot_mat_list)
-        loss_dict = {'one_hop_loss': one_hop_loss_write.item(),
-                     'two_hop_loss': two_hop_loss_write.item(),
-                     'bond_angle_loss': angle_loss_write.item(),
-                     'three_hop_loss': three_hop_loss_write.item(),
-                     'torsion_angle_loss': dihedral_loss_write.item()}
+
         # reset
         self.one_hop_loss = []
         self.two_hop_loss = []
         self.angle_loss = []
         self.dihedral_loss = []
         self.three_hop_loss = []
-
-        return loss_dict
