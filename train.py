@@ -1,8 +1,6 @@
 import argparse
 import os
 
-from icecream import install
-
 from commons.utils import seed_all, get_random_indices, TENSORBOARD_FUNCTIONS
 from datasets.ZINC_dataset import ZINCDataset
 from datasets.bace_geomol_feat import BACEGeomol
@@ -13,10 +11,11 @@ from datasets.bbbp_geomol_featurization_of_qm9 import BBBPGeomolQM9Featurization
 from datasets.bbbp_geomol_random_split import BBBPGeomolRandom
 from datasets.esol_geomol_feat import ESOLGeomol
 from datasets.esol_geomol_featurization_of_qm9 import ESOLGeomolQM9Featurization
+from datasets.file_loader_geomol_qm9 import FileLoader
 from datasets.geom_drugs_dataset import GEOMDrugs
 from datasets.geom_qm9_dataset import GEOMqm9
 from datasets.geomol_drugs_dataset import GeomolDrugsDataset
-from datasets.geomol_geom_qm9_dataset import GeomolGeomQM9Dataset
+from datasets.geomol_geom_qm9_dataset import GeomolGeomQM9Datset
 from datasets.lipo_geomol_feat import LIPOGeomol
 from datasets.lipo_geomol_featurization_of_qm9 import LIPOGeomolQM9Featurization
 from datasets.ogbg_dataset_extension import OGBGDatasetExtension
@@ -28,14 +27,11 @@ from trainer.byol_trainer import BYOLTrainer
 from trainer.byol_wrapper import BYOLwrapper
 import faulthandler
 faulthandler.enable()
-import seaborn
 
 from trainer.geomol_trainer import GeomolTrainer
 from trainer.philosophy_trainer import PhilosophyTrainer
 from trainer.self_supervised_alternating_trainer import SelfSupervisedAlternatingTrainer
 
-install()
-seaborn.set_theme()
 
 from trainer.self_supervised_trainer import SelfSupervisedTrainer
 
@@ -100,7 +96,10 @@ def get_trainer(args, model, data, device, metrics):
 
 
 def load_model(args, data, device):
-    if isinstance(data[0][0], dgl.DGLGraph):
+    if isinstance(data[0], torch_geometric.data.Data):
+        node_dim = 0
+        edge_dim = 0
+    elif isinstance(data[0][0], dgl.DGLGraph):
         node_dim = data[0][0].ndata['feat'].shape[1]
         try:
             edge_dim = data[0][0].edata['feat'].shape[1] if args.use_e_features else 0
@@ -175,7 +174,7 @@ def train(args):
         train_zinc(args, device, metrics_dict)
     elif args.dataset == 'qmugs':
         train_geom(args, device, metrics_dict)
-    elif args.dataset == 'drugs' or args.dataset == 'geom_qm9' or args.dataset == 'geom_qm9_geomol' or args.dataset == 'geom_drugs_geomol':
+    elif args.dataset == 'drugs' or args.dataset == 'geom_qm9' or args.dataset == 'geom_qm9_geomol' or args.dataset == 'geom_drugs_geomol' or args.dataset =='file_loader_geomol':
         train_geom(args, device, metrics_dict)
     elif args.dataset == 'qm9_geomol':
         train_geomol_qm9(args, device, metrics_dict)
@@ -355,9 +354,11 @@ def train_geom(args, device, metrics_dict):
     elif args.dataset == 'qmugs':
         dataset = QMugsDataset
     elif args.dataset == 'geom_qm9_geomol':
-        dataset = GeomolGeomQM9Dataset
+        dataset = GeomolGeomQM9Datset
     elif args.dataset == 'geom_drugs_geomol':
         dataset = GeomolDrugsDataset
+    elif args.dataset == 'file_loader_geomol':
+        dataset = FileLoader
     all_data = dataset(return_types=args.required_data, target_tasks=args.targets, device=device, num_conformers=args.num_conformers)
     all_idx = get_random_indices(len(all_data), args.seed_data)
     if args.dataset == 'drugs':
@@ -366,6 +367,8 @@ def train_geom(args, device, metrics_dict):
         model_idx = all_idx[:100000]
     elif args.dataset == 'qmugs':
         model_idx = all_idx[:620000]
+    elif args.dataset == 'file_loader_geomol':
+        model_idx = all_idx[:8000]
     elif args.dataset == 'geom_qm9_geomol':
         model_idx = all_idx[:80000] # 107962 molecules in all_data
     elif args.dataset == 'geom_drugs_geomol':

@@ -1,3 +1,4 @@
+from ogb.utils.features import atom_to_feature_vector, bond_to_feature_vector
 from rdkit import Chem
 from rdkit.Chem.rdchem import HybridizationType
 from rdkit.Chem.rdchem import BondType as BT
@@ -37,13 +38,13 @@ def one_k_encoding(value, choices):
 
 
 class FileLoader(Dataset):
-    def __init__(self, root, split_path, mode, transform=None, pre_transform=None, max_confs=10):
+    def __init__(self, root='dataset/GEOM/qm9', split_path='C:/Users/HannesStark/projects/GeoMol/data/QM9/splits', mode= 'train', transform=None, pre_transform=None, max_confs=10, **kwargs):
         super(FileLoader, self).__init__(root, transform, pre_transform)
 
         self.root = root
         print(self.root)
         self.split_idx = 0 if mode == 'train' else 1 if mode == 'val' else 2
-        self.split = np.load(split_path, allow_pickle=True)[self.split_idx]
+        self.split = np.arange(20000)
         self.bonds = {BT.SINGLE: 0, BT.DOUBLE: 1, BT.TRIPLE: 2, BT.AROMATIC: 3}
 
         # try:
@@ -117,37 +118,16 @@ class FileLoader(Dataset):
         if k == 0:
             return None
 
-        type_idx = []
         atomic_number = []
         atom_features = []
         chiral_tag = []
         neighbor_dict = {}
         ring = correct_mol.GetRingInfo()
         for i, atom in enumerate(correct_mol.GetAtoms()):
-            type_idx.append(self.types[atom.GetSymbol()])
             n_ids = [n.GetIdx() for n in atom.GetNeighbors()]
             if len(n_ids) > 1:
                 neighbor_dict[i] = torch.tensor(n_ids)
-            chiral_tag.append(chirality[atom.GetChiralTag()])
-            atomic_number.append(atom.GetAtomicNum())
-            atom_features.extend([atom.GetAtomicNum(),
-                                  1 if atom.GetIsAromatic() else 0])
-            atom_features.extend(one_k_encoding(atom.GetDegree(), [0, 1, 2, 3, 4, 5, 6]))
-            atom_features.extend(one_k_encoding(atom.GetHybridization(), [
-                                    Chem.rdchem.HybridizationType.SP,
-                                    Chem.rdchem.HybridizationType.SP2,
-                                    Chem.rdchem.HybridizationType.SP3,
-                                    Chem.rdchem.HybridizationType.SP3D,
-                                    Chem.rdchem.HybridizationType.SP3D2]))
-            atom_features.extend(one_k_encoding(atom.GetImplicitValence(), [0, 1, 2, 3, 4, 5, 6]))
-            atom_features.extend(one_k_encoding(atom.GetFormalCharge(), [-1, 0, 1]))
-            atom_features.extend([int(ring.IsAtomInRingOfSize(i, 3)),
-                                  int(ring.IsAtomInRingOfSize(i, 4)),
-                                  int(ring.IsAtomInRingOfSize(i, 5)),
-                                  int(ring.IsAtomInRingOfSize(i, 6)),
-                                  int(ring.IsAtomInRingOfSize(i, 7)),
-                                  int(ring.IsAtomInRingOfSize(i, 8))])
-            atom_features.extend(one_k_encoding(int(ring.NumAtomRings(i)), [0, 1, 2, 3]))
+            atom_features.append(torch.tensor(atom_to_feature_vector(atom),dtype=torch.long))
 
         z = torch.tensor(atomic_number, dtype=torch.long)
         chiral_tag = torch.tensor(chiral_tag, dtype=torch.float)
@@ -158,10 +138,7 @@ class FileLoader(Dataset):
             row += [start, end]
             col += [end, start]
             edge_type += 2 * [self.bonds[bond.GetBondType()]]
-            bt = tuple(sorted([bond.GetBeginAtom().GetAtomicNum(), bond.GetEndAtom().GetAtomicNum()])), bond.GetBondTypeAsDouble()
-            bond_features += 2 * [int(bond.IsInRing()),
-                                  int(bond.GetIsConjugated()),
-                                  int(bond.GetIsAromatic())]
+            bond_features.append(torch.tensor(bond_to_feature_vector(bond),dtype=torch.long))
 
         edge_index = torch.tensor([row, col], dtype=torch.long)
         edge_type = torch.tensor(edge_type, dtype=torch.long)
@@ -170,17 +147,10 @@ class FileLoader(Dataset):
 
         perm = (edge_index[0] * N + edge_index[1]).argsort()
         edge_index = edge_index[:, perm]
-        edge_type = edge_type[perm]
         # edge_attr = torch.cat([edge_attr[perm], bond_features], dim=-1)
         edge_attr = edge_attr[perm]
 
-        row, col = edge_index
-        hs = (z == 1).to(torch.float)
-        num_hs = scatter(hs[row], col, dim_size=N).tolist()
-
-        x1 = F.one_hot(torch.tensor(type_idx), num_classes=len(self.types))
-        x2 = torch.tensor(atom_features).view(N, -1)
-        x = torch.cat([x1.to(torch.float), x2], dim=-1)
+        x = torch.stack(atom_features, 0)
 
         data = Data(x=x, z=z, pos=[pos], edge_index=edge_index, edge_attr=edge_attr, neighbors=neighbor_dict,
                     chiral_tag=chiral_tag, name=name, boltzmann_weight=conf['boltzmannweight'],

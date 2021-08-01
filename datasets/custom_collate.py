@@ -31,6 +31,10 @@ def pyg_graph_only_collate(batch: List[Tuple]):
     batched_graph = torch_geometric.data.batch.Batch.from_data_list(graphs)
     return [batched_graph]
 
+def pyg_graph_only_collate_with_pyg_dataset(batch: List[Tuple]):
+    batched_graph = torch_geometric.data.batch.Batch.from_data_list(batch)
+    return [batched_graph]
+
 def s_norm_graph_collate(batch: List[Tuple]):
     graphs, targets = map(list, zip(*batch))
     tab_sizes_n = [graphs[i].number_of_nodes() for i in range(len(graphs))]

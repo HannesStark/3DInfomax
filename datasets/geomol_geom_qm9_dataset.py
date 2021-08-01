@@ -13,7 +13,7 @@ from rdkit import Chem
 from rdkit.Chem.rdchem import ChiralType
 
 from rdkit.Chem.rdmolops import GetAdjacencyMatrix
-from torch_geometric.data import Dataset
+from torch.utils.data import Dataset
 from tqdm import tqdm
 import torch.nn.functional as F
 from scipy.constants import physical_constants
@@ -25,11 +25,10 @@ chirality = {ChiralType.CHI_TETRAHEDRAL_CW: -1.,
              ChiralType.CHI_OTHER: 0}
 
 
-class GeomolGeomQM9Dataset(Dataset):
+class GeomolGeomQM9Datset(Dataset):
 
     def __init__(self, return_types: list = None, target_tasks: list = None, normalize: bool = True, device='cuda:0',
                  num_conformers=1, **kwargs):
-        super(GeomolGeomQM9Dataset, self).__init__(root='dataset/GEOM', transform=None, pre_transform=None)
 
         self.target_types = ['ensembleenergy', 'ensembleentropy', 'ensemblefreeenergy', 'lowestenergy', 'poplowestpct',
                              'temperature', 'uniqueconfs']
@@ -89,14 +88,10 @@ class GeomolGeomQM9Dataset(Dataset):
             self.targets_mean = self.targets_mean.to(device)
             self.targets_std = self.targets_std.to(device)
 
-    def len(self):
+    def __len__(self):
         return len(self.meta_dict['smiles'])
 
-    @property
-    def processed_file_names(self):
-        return ['geomol_geom_qm9_processed.pt']
-
-    def get(self, idx):
+    def __getitem__(self, idx):
         """
 
         Parameters
