@@ -184,10 +184,10 @@ class QM9Dataset(Dataset):
         self.dist_embedder = dist_emb(num_radial=6).to(device)
         self.dist_embedding = dist_embedding
 
-    def __len__(self):
+    def len(self):
         return len(self.meta_dict['mol_id'])
 
-    def __getitem__(self, idx):
+    def get(self, idx):
         """
 
         Parameters

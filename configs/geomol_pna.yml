@@ -13,6 +13,7 @@ required_data:
   - mol_graph
 collate_function: geomol_dgl_collate
 num_conformers: 10
+main_metric: loss
 
 optimizer: Adam
 optimizer_params:
