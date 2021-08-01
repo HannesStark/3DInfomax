@@ -61,14 +61,10 @@ class GeomolGeomQM9Datset(Dataset):
         self.edge_indices = data_dict['edge_indices']
 
         self.meta_dict = {k: data_dict[k] for k in (
-            'smiles', 'edge_slices', 'atom_slices', 'n_atoms', 'neighbors_list', 'neighbors_slices', 'atoms_with_neighbors_slices', 'neighbors_idx')}
+            'smiles', 'edge_slices', 'atom_slices', 'n_atoms', 'neighbor_dicts')}
 
         self.pos_masks = data_dict['pos_masks']
         self.chiral_tags = data_dict['chiral_tags']
-
-        if 'san_graph' in self.return_types:
-            self.eig_vals = data_dict['eig_vals']
-            self.eig_vecs = data_dict['eig_vecs']
 
         self.mol_graphs = {}
         self.pairwise = {}  # for memoization
@@ -220,32 +216,6 @@ class GeomolGeomQM9Datset(Dataset):
             g = self.get_mol_complete_graph(idx, e_start, e_end, n_atoms, start)
             g.edges['bond'].data['feat'] = self.e_features_tensor[e_start: e_end].to(self.device)
             return g
-        elif return_type == 'san_graph':
-            g = self.get_complete_graph(idx, n_atoms, start)
-            eig_vals = self.eig_vals[idx].to(self.device)
-            sign_flip = torch.rand(eig_vals.shape[0], device=self.device)
-            sign_flip[sign_flip >= 0.5] = 1.0
-            sign_flip[sign_flip < 0.5] = -1.0
-            eig_vecs = self.eig_vecs[start: start + n_atoms].to(self.device) * sign_flip.unsqueeze(0)
-            eig_vals = eig_vals.unsqueeze(0).repeat(n_atoms, 1)
-            g.ndata['pos_enc'] = torch.stack([eig_vals, eig_vecs], dim=-1)
-
-            e_features = self.e_features_tensor[e_start: e_end].to(self.device)
-            g.edata['feat'] = torch.zeros(g.number_of_edges(), e_features.shape[1], dtype=torch.float32,
-                                          device=self.device)
-            g.edata['real'] = torch.zeros(g.number_of_edges(), dtype=torch.long, device=self.device)
-            edge_indices = self.edge_indices[:, e_start: e_end].to(self.device)
-            g.edges[edge_indices[0], edge_indices[1]].data['feat'] = e_features
-            g.edges[edge_indices[0], edge_indices[1]].data['real'] = torch.ones(e_features.shape[0], dtype=torch.long,
-                                                                                device=self.device)  # This indicates real edges
-            return g
-        elif return_type == 'se3Transformer_graph' or return_type == 'se3Transformer_graph3d':
-            g = self.get_graph(idx, e_start, e_end, n_atoms, start)
-            g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2, dim=-1).unsqueeze(
-                -1)
-            if self.e_features_tensor != None and return_type == 'se3Transformer_graph':
-                g.edata['feat'] = self.e_features_tensor[e_start: e_end].to(self.device)
-            return g
         elif return_type == 'pytorch_geometric_graph':
             edge_features = self.e_features_tensor[e_start: e_end].to(self.device)
             edge_indices = self.edge_indices[:, e_start: e_end].to(self.device)
@@ -259,14 +229,7 @@ class GeomolGeomQM9Datset(Dataset):
             features = self.features_tensor[start: start + n_atoms]
             pos_mask = self.pos_masks[idx]
             chiral_tag = self.chiral_tags[start: start + n_atoms]
-            atoms_with_neighbors_start = self.meta_dict['atoms_with_neighbors_slices'][idx]
-            atoms_with_neighbors_end = self.meta_dict['atoms_with_neighbors_slices'][
-                                           idx + 1] + 1  # second +1 because the slices have a 0 appended to the beginning
-            neighbor_slices = self.meta_dict['neighbors_slices'][atoms_with_neighbors_start:atoms_with_neighbors_end]
-            neighbors_idx = self.meta_dict['neighbors_idx'][atoms_with_neighbors_start:atoms_with_neighbors_end]
-            neighbors = {}
-            for i, neighbor_slice in enumerate(neighbor_slices[:-1]):
-                neighbors[neighbors_idx[i].item()] = self.meta_dict['neighbors_list'][neighbor_slice: neighbor_slices[i + 1]]
+            neighbors = self.meta_dict[idx]
             return torch_geometric.data.Data(x=features, pos=pos, edge_attr=edge_features, edge_index=edge_indices,
                                              pos_mask=pos_mask, chiral_tag=chiral_tag, neighbors=neighbors)
         elif return_type == 'raw_features':
@@ -291,10 +254,7 @@ class GeomolGeomQM9Datset(Dataset):
 
         atom_slices = [0]
         edge_slices = [0]
-        neighbors_slices = [0]
-        neighbors_idx = []
-        all_neighbors_list = []
-        atoms_with_neighbors_slices = [0]
+        neighbor_dicts = []
         total_eigvecs = []
         total_eigvals = []
         all_pos_masks = []
@@ -309,8 +269,6 @@ class GeomolGeomQM9Datset(Dataset):
 
         coordinates = []
         smiles_list = []
-        total_atoms_with_neighbors = 0
-        total_neighbors = 0
         total_atoms = 0
         total_edges = 0
 
@@ -365,23 +323,15 @@ class GeomolGeomQM9Datset(Dataset):
                     confs_coords.extend([confs_coords[0]] * (10 - len(confs_coords)))
 
                 chiral_tag = []
-                neighbors_list = []
                 atom_features_list = []
                 neighbor_dict = {}
                 for i, atom in enumerate(correct_mol.GetAtoms()):
                     atom_features_list.append(atom_to_feature_vector(atom))
                     n_ids = [n.GetIdx() for n in atom.GetNeighbors()]
                     if len(n_ids) > 1:
-                        total_neighbors += len(n_ids)
                         neighbor_dict[i] = torch.tensor(n_ids)
-                        neighbors_slices.append(total_neighbors)
-                        neighbors_list.append(torch.tensor(n_ids, dtype=torch.long))
-                        neighbors_idx.append(i)
                     chiral_tag.append(chirality[atom.GetChiralTag()])
-                all_neighbors_list.append(torch.cat(neighbors_list, dim=0))
-                total_atoms_with_neighbors += len(neighbors_list)
-                atoms_with_neighbors_slices.append(
-                    total_atoms_with_neighbors)  # we need this additionally because uusing atom_slices for slicing wont work since we only include the atoms with more than 1 neighbor
+                neighbor_dicts.append(neighbor_dict)
 
                 all_atom_chiral_tags.append(torch.tensor(chiral_tag, dtype=torch.float))
                 all_atom_features.append(torch.tensor(atom_features_list, dtype=torch.long))
@@ -457,13 +407,7 @@ class GeomolGeomQM9Datset(Dataset):
                      'edge_indices': torch.cat(edge_indices, dim=1),
                      'coordinates': torch.cat(coordinates, dim=0).float(),
                      'targets': targets,
-                     'neighbors_list': torch.cat(all_neighbors_list, dim=0),
-                     'neighbors_idx': torch.tensor(neighbors_idx, dtype=torch.long),
-                     # very long tensor with neighbors for each atom indexed by neighbors_slices
-                     'neighbors_slices': torch.tensor(neighbors_slices, dtype=torch.long),
-                     # n_atoms times num_neighbors where num_neighbors changes for each atom. Slice out of this with atoms_with_neighbors_slices
-                     'atoms_with_neighbors_slices': torch.tensor(atoms_with_neighbors_slices, dtype=torch.long),
-                     # n_atoms
+                     'neighbor_dicts': neighbor_dicts,
                      'chiral_tags': torch.cat(all_atom_chiral_tags, dim=0),
                      'pos_masks': torch.stack(all_pos_masks, dim=0),
                      'avg_degree': avg_degree / len(n_atoms_list)
