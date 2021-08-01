@@ -229,7 +229,7 @@ class GeomolGeomQM9Datset(Dataset):
             features = self.features_tensor[start: start + n_atoms]
             pos_mask = self.pos_masks[idx]
             chiral_tag = self.chiral_tags[start: start + n_atoms]
-            neighbors = self.meta_dict[idx]
+            neighbors = self.meta_dict['neighbor_dicts'][idx]
             return torch_geometric.data.Data(x=features, pos=pos, edge_attr=edge_features, edge_index=edge_indices,
                                              pos_mask=pos_mask, chiral_tag=chiral_tag, neighbors=neighbors)
         elif return_type == 'raw_features':

@@ -1,6 +1,6 @@
 experiment_name: 'baseline'
 
-dataset: geom_qm9_geomol
+dataset: file_loader_geomol
 num_epochs: 250
 batch_size: 16
 trainer: geomol
@@ -10,7 +10,7 @@ loss_func: MSELoss
 num_train: 10000
 required_data:
   - pyg_multiple_conformers
-collate_function: pyg_graph_only_collate
+collate_function: pyg_graph_only_collate_with_pyg_dataset
 num_conformers: 10
 main_metric: loss
 

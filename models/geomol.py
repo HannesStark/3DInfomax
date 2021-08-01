@@ -71,6 +71,9 @@ class GeoMol(nn.Module):
         x, edge_index, edge_attr, pos, batch, pos_mask, chiral_tag = \
             data.x, data.edge_index, data.edge_attr, data.pos, data.batch, data.pos_mask, data.chiral_tag
 
+        if isinstance(pos, list):
+            pos = torch.cat([torch.cat([p[0][i] for p in pos]).unsqueeze(1) for i in range(self.n_true_confs)], dim=1)
+
         # assign neighborhoods
         self.assign_neighborhoods(x, edge_index, edge_attr, batch, data)
 

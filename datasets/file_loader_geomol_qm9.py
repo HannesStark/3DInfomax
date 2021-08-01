@@ -122,11 +122,11 @@ class FileLoader(Dataset):
         atom_features = []
         chiral_tag = []
         neighbor_dict = {}
-        ring = correct_mol.GetRingInfo()
         for i, atom in enumerate(correct_mol.GetAtoms()):
             n_ids = [n.GetIdx() for n in atom.GetNeighbors()]
             if len(n_ids) > 1:
                 neighbor_dict[i] = torch.tensor(n_ids)
+            chiral_tag.append(chirality[atom.GetChiralTag()])
             atom_features.append(torch.tensor(atom_to_feature_vector(atom),dtype=torch.long))
 
         z = torch.tensor(atomic_number, dtype=torch.long)
@@ -138,16 +138,15 @@ class FileLoader(Dataset):
             row += [start, end]
             col += [end, start]
             edge_type += 2 * [self.bonds[bond.GetBondType()]]
-            bond_features.append(torch.tensor(bond_to_feature_vector(bond),dtype=torch.long))
+            bond_feature = torch.tensor(bond_to_feature_vector(bond), dtype=torch.long)
+            bond_features.append(bond_feature)
+            bond_features.append(bond_feature)
 
         edge_index = torch.tensor([row, col], dtype=torch.long)
-        edge_type = torch.tensor(edge_type, dtype=torch.long)
-        edge_attr = F.one_hot(edge_type, num_classes=len(self.bonds)).to(torch.float)
-        # bond_features = torch.tensor(bond_features, dtype=torch.float).view(len(bond_type), -1)
+        edge_attr = torch.stack(bond_features,dim=0)
 
         perm = (edge_index[0] * N + edge_index[1]).argsort()
         edge_index = edge_index[:, perm]
-        # edge_attr = torch.cat([edge_attr[perm], bond_features], dim=-1)
         edge_attr = edge_attr[perm]
 
         x = torch.stack(atom_features, 0)
