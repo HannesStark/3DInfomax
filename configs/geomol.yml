@@ -7,7 +7,7 @@ trainer: geomol
 log_iterations: 10
 patience: 30
 loss_func: MSELoss
-num_train: 10000
+num_train: 100
 required_data:
   - pyg_multiple_conformers
 collate_function: pyg_graph_only_collate

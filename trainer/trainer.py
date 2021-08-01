@@ -4,7 +4,6 @@ import os
 import shutil
 from typing import Tuple, Dict, Callable, Union
 
-import dgl
 import pyaml
 import torch
 import numpy as np
@@ -54,15 +53,12 @@ class Trainer():
             self.start_epoch = 1
             self.optim_steps = 0
             self.best_val_score = -np.inf if self.main_metric_goal == 'max' else np.inf  # running score to decide whether or not a new model should be saved
-            #self.writer = SummaryWriter(
-            #    '{}/{}_{}_{}_{}_{}'.format(args.logdir, args.model_type, args.dataset, args.experiment_name, args.seed,
-            #                            datetime.now().strftime('%d-%m_%H-%M-%S')))
-            self.logdir = '{}/{}_{}_{}_{}_{}'.format(args.logdir, args.model_type, args.dataset, args.experiment_name, args.seed,
-                                        datetime.now().strftime('%d-%m_%H-%M-%S'))
-            os.mkdir(self.logdir)
+            self.writer = SummaryWriter(
+                '{}/{}_{}_{}_{}_{}'.format(args.logdir, args.model_type, args.dataset, args.experiment_name, args.seed,
+                                        datetime.now().strftime('%d-%m_%H-%M-%S')))
             shutil.copyfile(self.args.config.name,
-                            os.path.join(self.logdir, os.path.basename(self.args.config.name)))
-        print('Log directory: ', self.logdir)
+                            os.path.join(self.writer.log_dir, os.path.basename(self.args.config.name)))
+        print('Log directory: ', self.writer.log_dir)
         self.hparams = copy.copy(args).__dict__
         for key, value in flatten_dict(self.hparams).items():
             print(f'{key}: {value}')
@@ -106,7 +102,7 @@ class Trainer():
                     break
 
         # evaluate on best checkpoint
-        checkpoint = torch.load(os.path.join(self.logdir, 'best_checkpoint.pt'), map_location=self.device)
+        checkpoint = torch.load(os.path.join(self.writer.log_dir, 'best_checkpoint.pt'), map_location=self.device)
         self.model.load_state_dict(checkpoint['model_state_dict'])
         self.evaluation(val_loader, data_split='val_best_checkpoint')
 
@@ -165,8 +161,8 @@ class Trainer():
             return total_metrics
 
     def after_optim_step(self):
-        #if self.optim_steps % self.args.log_iterations == 0:
-        #    tensorboard_gradient_magnitude(self.optim, self.writer, self.optim_steps)
+        if self.optim_steps % self.args.log_iterations == 0:
+            tensorboard_gradient_magnitude(self.optim, self.writer, self.optim_steps)
         if self.lr_scheduler != None and (self.scheduler_step_per_batch or (isinstance(self.lr_scheduler,
                                                                                        WarmUpWrapper) and self.lr_scheduler.total_warmup_steps > self.lr_scheduler._step)):  # step per batch if that is what we want to do or if we are using a warmup schedule and are still in the warmup period
             self.step_schedulers()
@@ -206,7 +202,7 @@ class Trainer():
         self.model.eval()
         metrics = self.predict(data_loader)
 
-        with open(os.path.join(self.logdir, 'evaluation_' + data_split + '.txt'), 'w') as file:
+        with open(os.path.join(self.writer.log_dir, 'evaluation_' + data_split + '.txt'), 'w') as file:
             print('Statistics on ', data_split)
             for key, value in metrics.items():
                 file.write(f'{key}: {value}\n')
@@ -248,7 +244,7 @@ class Trainer():
         """
         Saves checkpoint of model in the logdir of the summarywriter in the used rundi
         """
-        run_dir = self.logdir
+        run_dir = self.writer.log_dir
         self.save_model_state(epoch, checkpoint_name)
         train_args = copy.copy(self.args)
         # when loading from a checkpoint the config entry is a string. Otherwise it is a file object
@@ -272,4 +268,4 @@ class Trainer():
             'model_state_dict': self.model.state_dict(),
             'optimizer_state_dict': self.optim.state_dict(),
             'scheduler_state_dict': None if self.lr_scheduler == None else self.lr_scheduler.state_dict()
-        }, os.path.join(self.logdir, checkpoint_name))
+        }, os.path.join(self.writer.log_dir, checkpoint_name))

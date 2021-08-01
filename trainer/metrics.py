@@ -4,13 +4,11 @@ from typing import Union
 import torch
 from ogb.graphproppred import Evaluator
 from torch import Tensor
-from torch.distributed import reduce
 from torch.nn import functional as F
 import torch.nn as nn
-import numpy as np
 
 
-from commons.losses import cov_loss, std_loss, uniformity_loss
+from commons.losses import cov_loss, uniformity_loss
 from datasets.geom_drugs_dataset import GEOMDrugs
 from datasets.qm9_dataset import QM9Dataset
 
