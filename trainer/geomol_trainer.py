@@ -68,11 +68,4 @@ class GeomolTrainer(Trainer):
             return total_metrics
 
     def tensorboard_log(self, metrics, data_split: str, epoch: int, step: int, log_hparam: bool = False):
-        metrics['epoch'] = epoch
-        for i, param_group in enumerate(self.optim.param_groups):
-            metrics[f'lr_param_group_{i}'] = param_group['lr']
-        logs = {}
-        for key, metric in metrics.items():
-            metric_name = f'{key}/{data_split}'
-            logs[metric_name] = metric
-            self.writer.add_scalar(metric_name, metric, step)
+        pass
