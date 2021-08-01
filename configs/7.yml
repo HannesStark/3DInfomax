@@ -10,7 +10,8 @@ loss_func: MSELoss
 num_train: 10000
 required_data:
   - pyg_multiple_conformers
-collate_function: pyg_graph_only_collate_with_pyg_dataset
+  - mol_graph
+collate_function: geomol_dgl_collate
 num_conformers: 10
 main_metric: loss
 
