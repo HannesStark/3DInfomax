@@ -12,6 +12,7 @@ required_data:
   - pyg_multiple_conformers
 collate_function: pyg_graph_only_collate
 num_conformers: 10
+main_metric: loss
 
 optimizer: Adam
 optimizer_params:
