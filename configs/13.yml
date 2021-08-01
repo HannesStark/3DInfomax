@@ -1,28 +1,31 @@
-experiment_name: 'MaximumSimilarityMSE_variance_reg01'
+experiment_name: 'NTXentMultiplePositives'
 
-dataset: drugs
+dataset: qmugs
 num_epochs: 1000
 batch_size: 500
 log_iterations: 50
 patience: 35
-loss_func: MaximumSimilarityMSE
+loss_func: NTXentMultiplePositives
 loss_params:
   tau: 0.1
-  variance_reg: 0.1
-num_train: 120000
+num_train: 270000
 
 required_data:
   - mol_graph
   - conformations
 metrics:
+  - positive_similarity
+  - negative_similarity
+  - contrastive_accuracy
+  - true_negative_rate
+  - true_positive_rate
   - uniformity
-  - positive_similarity_multiple_positives_separate2d
-  - negative_similarity_multiple_positives_separate2d
+  - alignment
   - batch_variance
   - dimension_covariance
 main_metric: loss
-collate_function: conformer_collate
-num_conformers: 5
+collate_function: contrastive_collate
+num_conformers: 3
 
 optimizer: Adam
 optimizer_params:
@@ -45,10 +48,11 @@ lr_scheduler_params:
 
 
 
+
 # Model parameters
 model_type: 'PNA'
 model_parameters:
-  target_dim: 1280
+  target_dim: 256
   hidden_dim: 200
   mid_batch_norm: True
   last_batch_norm: True
@@ -58,7 +62,7 @@ model_parameters:
   readout_hidden_dim: 256
   readout_layers: 2
   dropout: 0.0
-  propagation_depth: 7
+  propagation_depth: 5
   aggregators:
     - mean
     - max
@@ -75,6 +79,7 @@ model_parameters:
   pretrans_layers: 2
   posttrans_layers: 1
   residual: True
+
 
 # Model parameters
 model3d_type: 'Net3D'

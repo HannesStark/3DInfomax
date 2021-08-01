@@ -1,6 +1,6 @@
 experiment_name: 'NTXentMultiplePositives'
 
-dataset: geom_drugs_geomol
+dataset: drugs
 num_epochs: 1000
 batch_size: 500
 log_iterations: 50
@@ -8,7 +8,7 @@ patience: 35
 loss_func: NTXentMultiplePositives
 loss_params:
   tau: 0.1
-num_train: 120000
+num_train: 270000
 
 required_data:
   - mol_graph
@@ -59,10 +59,10 @@ model_parameters:
   readout_batchnorm: True
   # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
   batch_norm_momentum: 0.93
-  readout_hidden_dim: 200
+  readout_hidden_dim: 256
   readout_layers: 2
   dropout: 0.0
-  propagation_depth: 7
+  propagation_depth: 5
   aggregators:
     - mean
     - max
@@ -76,7 +76,7 @@ model_parameters:
     - min
     - max
     - mean
-  pretrans_layers: 2
+  pretrans_layers: 1
   posttrans_layers: 1
   residual: True
 

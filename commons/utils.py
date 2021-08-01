@@ -1,7 +1,10 @@
+import os
 import random
 from argparse import Namespace
 from collections import MutableMapping
 from typing import Dict, Any
+import matplotlib.pyplot as plt
+import sklearn
 
 import torch
 import numpy as np
@@ -107,15 +110,15 @@ def fourier_encode_dist(x, num_encodings=4, include_self=True):
     return x.squeeze()
 
 
-#def tensorboard_singular_value_plot(predictions, targets, writer: SummaryWriter, step, data_split):
-#    u, s, v = torch.pca_lowrank(predictions.detach().cpu(), q=min(predictions.shape))
-#    fig, ax = plt.subplots()
-#    s = 100 * s / s.sum()
-#    ax.plot(s.numpy())
-#    writer.add_figure(f'singular_values/{data_split}', figure=fig, global_step=step)
-#    fig, ax = plt.subplots()
-#    ax.plot(np.cumsum(s.numpy()))
-#    writer.add_figure(f'singular_values_cumsum/{data_split}', figure=fig, global_step=step)
+def tensorboard_singular_value_plot(predictions, targets, writer: SummaryWriter, step, data_split):
+    u, s, v = torch.pca_lowrank(predictions.detach().cpu(), q=min(predictions.shape))
+    fig, ax = plt.subplots()
+    s = 100 * s / s.sum()
+    ax.plot(s.numpy())
+    writer.add_figure(f'singular_values/{data_split}', figure=fig, global_step=step)
+    fig, ax = plt.subplots()
+    ax.plot(np.cumsum(s.numpy()))
+    writer.add_figure(f'singular_values_cumsum/{data_split}', figure=fig, global_step=step)
 
 
 def tensorboard_gradient_magnitude(optimizer: torch.optim.Optimizer, writer: SummaryWriter, step, param_groups=[0]):
@@ -130,7 +133,7 @@ def tensorboard_gradient_magnitude(optimizer: torch.optim.Optimizer, writer: Sum
 
 
 TENSORBOARD_FUNCTIONS = {
-    #'singular_values': tensorboard_singular_value_plot
+    'singular_values': tensorboard_singular_value_plot
 }
 
 def move_to_device(element, device):
