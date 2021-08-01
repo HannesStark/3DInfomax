@@ -1,4 +1,4 @@
-experiment_name: 'NTXentMultiplePositives'
+experiment_name: 'NTXentMultiplePositives_5layers_1pretrains'
 
 dataset: qmugs
 num_epochs: 1000
