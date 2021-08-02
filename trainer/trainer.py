@@ -200,7 +200,7 @@ class Trainer():
 
     def evaluation(self, data_loader: DataLoader, data_split: str = ''):
         self.model.eval()
-        metrics = self.predict(data_loader)
+        metrics = self.predict(data_loader, epoch=2)
 
         with open(os.path.join(self.writer.log_dir, 'evaluation_' + data_split + '.txt'), 'w') as file:
             print('Statistics on ', data_split)

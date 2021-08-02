@@ -23,7 +23,7 @@ class QM9Geom(Dataset):
 
     The dataset can return these types of data and you choose them via the return_types parameter
 
-    - class 0 : mol_graph
+    - class 0 : dgl_graph
     - class 1 : raw_features: [n_atoms, 10]  10 features for each atom of the molecule (1 hot encoded atomic number, hybridization type, aromatic ...)
     - class 2 : coordinates: [n_atoms, 3] 3D coordinates of each atom
     - class 3 : mol_id: single number, id of molecule
@@ -83,8 +83,8 @@ class QM9Geom(Dataset):
     ----------
     return_types: list
         A list with which types of data should be loaded and returened by getitems. Possible options are
-        ['mol_graph', 'complete_graph', 'raw_features', 'coordinates', 'mol_id', 'targets', 'one_hot_bond_types', 'edge_indices', 'smiles', 'atomic_number_long']
-        and the default is ['mol_graph', 'targets']
+        ['dgl_graph', 'complete_graph', 'raw_features', 'coordinates', 'mol_id', 'targets', 'one_hot_bond_types', 'edge_indices', 'smiles', 'atomic_number_long']
+        and the default is ['dgl_graph', 'targets']
     features: list
        A list specifying which features should be included in the returned graphs or raw features
        options are ['atom_one_hot', 'atomic_number_long', 'hybridizations', 'is_aromatic', 'constant_ones']
@@ -107,8 +107,8 @@ class QM9Geom(Dataset):
     ----------
     return_types: list
         A list with which types of data should be loaded and returened by getitems. Possible options are
-        ['mol_graph', 'raw_features', 'coordinates', 'mol_id', 'targets', 'one_hot_bond_types', 'edge_indices', 'smiles', 'atomic_number_long']
-        and the default is ['mol_graph', 'targets']
+        ['dgl_graph', 'raw_features', 'coordinates', 'mol_id', 'targets', 'one_hot_bond_types', 'edge_indices', 'smiles', 'atomic_number_long']
+        and the default is ['dgl_graph', 'targets']
     target_tasks: list
         A list specifying which targets should be included in the returend targets, if targets are returned
         options are ['A', 'B', 'C', 'mu', 'alpha', 'homo', 'lumo', 'gap', 'r2', 'zpve', 'u0', 'u298', 'h298', 'g298', 'cv', 'u0_atom', 'u298_atom', 'h298_atom', 'g298_atom']
@@ -127,7 +127,7 @@ class QM9Geom(Dataset):
 
     Examples
     --------
-    >>> dataset = QM9Geom(return_types=['mol_graph', 'targets', 'coordinates'])
+    >>> dataset = QM9Geom(return_types=['dgl_graph', 'targets', 'coordinates'])
 
     The dataset instance is an iterable
 
@@ -145,7 +145,7 @@ class QM9Geom(Dataset):
                  target_tasks: list = None,
                  normalize: bool = True, device='cuda:0', dist_embedding: bool = False, num_radial: int = 6,
                  prefetch_graphs=True, transform=None, **kwargs):
-        self.return_type_options = ['mol_graph', 'complete_graph', 'mol_graph3d', 'complete_graph3d', 'san_graph',
+        self.return_type_options = ['dgl_graph', 'complete_graph', 'dgl_graph3d', 'complete_graph3d', 'san_graph',
                                     'mol_complete_graph',
                                     'se3Transformer_graph', 'se3Transformer_graph3d',
                                     'pairwise_distances', 'pairwise_distances_squared',
@@ -188,7 +188,7 @@ class QM9Geom(Dataset):
                                 'g298_atom': hartree2eV}
 
         if return_types == None:  # set default
-            self.return_types: list = ['mol_graph', 'targets']
+            self.return_types: list = ['dgl_graph', 'targets']
         else:
             self.return_types: list = return_types
         for return_type in self.return_types:
@@ -246,15 +246,15 @@ class QM9Geom(Dataset):
             self.smiles = pd.read_csv(os.path.join(self.qm9_directory, self.raw_qm9_file))['smiles']
         self.prefetch_graphs = prefetch_graphs
         if self.prefetch_graphs and any(return_type in self.return_types for return_type in
-                                        ['mol_graph', 'mol_graph3d', 'se3Transformer_graph', 'se3Transformer_graph3d']):
+                                        ['dgl_graph', 'dgl_graph3d', 'se3Transformer_graph', 'se3Transformer_graph3d']):
             print(
                 'Load molecular graphs into memory (set prefetch_graphs to False to load them on the fly => slower training)')
-            self.mol_graphs = []
+            self.dgl_graphs = []
             for idx in tqdm(range(len(self.meta_dict['edge_slices']) - 1)):
                 e_start = self.meta_dict['edge_slices'][idx]
                 e_end = self.meta_dict['edge_slices'][idx + 1]
                 edge_indices = self.edge_indices[:, e_start: e_end]
-                self.mol_graphs.append(dgl.graph((edge_indices[0], edge_indices[1])))
+                self.dgl_graphs.append(dgl.graph((edge_indices[0], edge_indices[1])))
         if self.prefetch_graphs and (
                 'complete_graph' in self.return_types or 'complete_graph3d' in self.return_types or 'san_graph' in self.return_types):
             print(
@@ -332,7 +332,7 @@ class QM9Geom(Dataset):
 
     def get_graph(self, idx, e_start, e_end):
         if self.prefetch_graphs:
-            g = self.mol_graphs[idx]
+            g = self.dgl_graphs[idx]
         else:
             edge_indices = self.edge_indices[:, e_start: e_end]
             g = dgl.graph((edge_indices[0], edge_indices[1]))
@@ -359,7 +359,7 @@ class QM9Geom(Dataset):
         return g
 
     def data_by_type(self, idx, return_type, e_start, e_end, pairwise_start, start, n_atoms):
-        if return_type == 'mol_graph':
+        if return_type == 'dgl_graph':
             g = self.get_graph(idx, e_start, e_end).to(self.device)
             g.ndata['f'] = self.features_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
@@ -368,7 +368,7 @@ class QM9Geom(Dataset):
             if self.pos_dir:
                 g.ndata['pos_dir'] = self.pos_enc[start: start + n_atoms].to(self.device)
             return g
-        elif return_type == 'mol_graph3d':
+        elif return_type == 'dgl_graph3d':
             g = self.get_graph(idx, e_start, e_end).to(self.device)
             g.ndata['f'] = self.features3d_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)

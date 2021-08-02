@@ -11,7 +11,7 @@ loss_params:
 num_train: 120000
 
 required_data:
-  - mol_graph
+  - dgl_graph
   - conformations
 metrics:
   - conformer_3d_variance

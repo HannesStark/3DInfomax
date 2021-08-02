@@ -22,7 +22,7 @@ class GeoMol(nn.Module):
     def __init__(self, hyperparams,gnn_model, gnn_params, device, **kwargs):
         super(GeoMol, self).__init__()
 
-        self.model_dim = hyperparams['model_dim']
+        self.hidden_dim = hyperparams['hidden_dim']
         self.random_vec_dim = hyperparams['random_vec_dim']
         self.random_vec_std = hyperparams['random_vec_std']
         self.global_transformer = hyperparams['global_transformer']
@@ -33,30 +33,30 @@ class GeoMol(nn.Module):
         self.n_model_confs = hyperparams['n_model_confs']
         self.device = device
 
-        self.gnn = globals()[gnn_model](hidden_dim=self.model_dim, random_vec_dim= self.random_vec_dim, n_model_confs=self.n_model_confs,**gnn_params)
-        self.gnn2 = globals()[gnn_model](hidden_dim=self.model_dim, random_vec_dim= self.random_vec_dim, n_model_confs=self.n_model_confs,**gnn_params)
+        self.gnn = globals()[gnn_model](hidden_dim=self.hidden_dim, random_vec_dim= self.random_vec_dim, n_model_confs=self.n_model_confs, pretrain_mode=True,**gnn_params)
+        self.gnn2 = globals()[gnn_model](hidden_dim=self.hidden_dim, random_vec_dim= self.random_vec_dim, n_model_confs=self.n_model_confs, pretrain_mode=True,**gnn_params)
         if hyperparams['global_transformer']:
-            self.global_embed = TransformerEncoderLayer(d_model=self.model_dim, nhead=1,
-                                                        dim_feedforward=self.model_dim * 2,
+            self.global_embed = TransformerEncoderLayer(d_model=self.hidden_dim, nhead=1,
+                                                        dim_feedforward=self.hidden_dim * 2,
                                                         dropout=0.0, activation='relu')
-        self.encoder = TransformerEncoderLayer(d_model=self.model_dim * 2,
+        self.encoder = TransformerEncoderLayer(d_model=self.hidden_dim * 2,
                                                nhead=hyperparams['encoder']['n_head'],
-                                               dim_feedforward=self.model_dim * 3,
+                                               dim_feedforward=self.hidden_dim * 3,
                                                dropout=0.0, activation='relu')
 
-        self.coord_pred = GeomolMLP(in_dim=self.model_dim * 2, out_dim=3,
+        self.coord_pred = GeomolMLP(in_dim=self.hidden_dim * 2, out_dim=3,
                                     num_layers=hyperparams['coord_pred']['n_layers'])
-        self.d_mlp = GeomolMLP(in_dim=self.model_dim * 2, out_dim=1, num_layers=hyperparams['d_mlp']['n_layers'])
+        self.d_mlp = GeomolMLP(in_dim=self.hidden_dim * 2, out_dim=1, num_layers=hyperparams['d_mlp']['n_layers'])
 
-        self.h_mol_mlp = GeomolMLP(in_dim=self.model_dim, out_dim=self.model_dim,
+        self.h_mol_mlp = GeomolMLP(in_dim=self.hidden_dim, out_dim=self.hidden_dim,
                                    num_layers=hyperparams['h_mol_mlp']['n_layers'])
         if self.random_alpha:
-            self.alpha_mlp = GeomolMLP(in_dim=self.model_dim * 3 + self.random_vec_dim, out_dim=1,
+            self.alpha_mlp = GeomolMLP(in_dim=self.hidden_dim * 3 + self.random_vec_dim, out_dim=1,
                                        num_layers=hyperparams['alpha_mlp']['n_layers'])
         else:
-            self.alpha_mlp = GeomolMLP(in_dim=self.model_dim * 3, out_dim=1,
+            self.alpha_mlp = GeomolMLP(in_dim=self.hidden_dim * 3, out_dim=1,
                                        num_layers=hyperparams['alpha_mlp']['n_layers'])
-        self.c_mlp = GeomolMLP(in_dim=self.model_dim * 4, out_dim=1, num_layers=hyperparams['c_mlp']['n_layers'])
+        self.c_mlp = GeomolMLP(in_dim=self.hidden_dim * 4, out_dim=1, num_layers=hyperparams['c_mlp']['n_layers'])
 
         self.loss = torch.nn.MSELoss(reduction='none')
 
@@ -220,7 +220,7 @@ class GeoMol(nn.Module):
             n_max = batch.bincount().max()
             x_transformer, x_mask = tg.utils.to_dense_batch(x2, batch)
 
-            x_transformer = x_transformer.permute(1, 0, 2, 3).reshape(n_max, -1, self.model_dim)
+            x_transformer = x_transformer.permute(1, 0, 2, 3).reshape(n_max, -1, self.hidden_dim)
             x_transformer_mask = x_mask.unsqueeze(1).repeat(1, self.n_model_confs, 1).view(-1, n_max)
 
             x_global = self.global_embed(x_transformer, src_key_padding_mask=~x_transformer_mask).view(
@@ -240,8 +240,8 @@ class GeoMol(nn.Module):
 
     def model_local_stats(self, x, chiral_tag):
 
-        n_h = torch.zeros([self.n_neighborhoods, 4, self.n_model_confs, self.model_dim]).to(self.device)
-        x_h = torch.zeros([self.n_neighborhoods, self.n_model_confs, self.model_dim]).to(self.device)
+        n_h = torch.zeros([self.n_neighborhoods, 4, self.n_model_confs, self.hidden_dim]).to(self.device)
+        x_h = torch.zeros([self.n_neighborhoods, self.n_model_confs, self.hidden_dim]).to(self.device)
 
         for i, (a, n) in enumerate(self.neighbors.items()):
             n_h[i, 0:len(n), :] = x[n]
@@ -253,12 +253,12 @@ class GeoMol(nn.Module):
 
         # prepare inputs for transformer
         h_ = h.permute(1, 0, 2, 3).reshape(4, self.n_neighborhoods * self.n_model_confs,
-                                           self.model_dim * 2)  # CHECK RESHAPE OP
+                                           self.hidden_dim * 2)  # CHECK RESHAPE OP
         h_mask = self.neighbor_mask.bool().unsqueeze(1).repeat(1, self.n_model_confs, 1).view(
             self.n_neighborhoods * self.n_model_confs, 4)
 
         h_new = self.encoder(h_, src_key_padding_mask=~h_mask).view(4, self.n_neighborhoods, self.n_model_confs,
-                                                                    self.model_dim * 2).permute(1, 0, 2, 3) \
+                                                                    self.hidden_dim * 2).permute(1, 0, 2, 3) \
                 * self.neighbor_mask.unsqueeze(-1).unsqueeze(-1)
         unit_normals = self.coord_pred(h_new) * self.neighbor_mask.unsqueeze(-1).unsqueeze(-1)
 
@@ -361,20 +361,20 @@ class GeoMol(nn.Module):
         Compute dihedral angles and three-hop distances for model conformers. Each stat has size 9 for the second
         dimension since there are 9 possible permuations between sets of neighbors (X and Y have max 3 neighbors each).
 
-        :param x: atom representations (n_atoms, n_model_confs, model_dim/2)
+        :param x: atom representations (n_atoms, n_model_confs, hidden_dim/2)
         :param batch: mapping of atom to molecule (n_atoms)
-        :param h_mol: molecule representations (n_batch, n_model_confs, model_dim/2)
+        :param h_mol: molecule representations (n_batch, n_model_confs, hidden_dim/2)
         :return: tuple of true stats (dihedral and three-hop), each with size (n_dihedral_pairs, 9, n_true_confs)
         """
 
         dihedral_x_neighbors = torch.zeros([self.n_dihedral_pairs, 4, self.n_model_confs, 3]).to(self.device)
-        dihedral_x_node_reps = torch.zeros([self.n_dihedral_pairs, self.n_model_confs, self.model_dim]).to(self.device)
-        dihedral_x_neighbor_reps = torch.zeros([self.n_dihedral_pairs, 4, self.n_model_confs, self.model_dim]).to(
+        dihedral_x_node_reps = torch.zeros([self.n_dihedral_pairs, self.n_model_confs, self.hidden_dim]).to(self.device)
+        dihedral_x_neighbor_reps = torch.zeros([self.n_dihedral_pairs, 4, self.n_model_confs, self.hidden_dim]).to(
             self.device)
 
         dihedral_y_neighbors = torch.zeros([self.n_dihedral_pairs, 4, self.n_model_confs, 3]).to(self.device)
-        dihedral_y_node_reps = torch.zeros([self.n_dihedral_pairs, self.n_model_confs, self.model_dim]).to(self.device)
-        dihedral_y_neighbor_reps = torch.zeros([self.n_dihedral_pairs, 4, self.n_model_confs, self.model_dim]).to(
+        dihedral_y_node_reps = torch.zeros([self.n_dihedral_pairs, self.n_model_confs, self.hidden_dim]).to(self.device)
+        dihedral_y_neighbor_reps = torch.zeros([self.n_dihedral_pairs, 4, self.n_model_confs, self.hidden_dim]).to(
             self.device)
 
         for i, (s, e) in enumerate(self.dihedral_pairs.t()):
@@ -538,11 +538,11 @@ class GeoMol(nn.Module):
         respectively, rotating X by H_alpha, and finally flipping and translating Y along the x-axis
 
         :param dihedral_node_reps: tuple of embedded X and Y atom representations, each of size
-            (n_dihedral_pairs, n_model_confs, model_dim/2)
+            (n_dihedral_pairs, n_model_confs, hidden_dim/2)
         :param dihedral_neighbors: tuple of predicted neighbor local coordinates for X and Y, each of size
             (n_dihedral_pairs, 4, n_model_confs, 3)
         :param batch: mapping of atom to molecule (n_atoms)
-        :param h_mol: embedded molecule representations (n_batch, n_model_confs, model_dim/2)
+        :param h_mol: embedded molecule representations (n_batch, n_model_confs, hidden_dim/2)
         :return: tuple of aligned coordinates
             q_Z_prime (n_dihedral_pairs, 3, n_model_confs, 3)
             p_T_alpha (n_dihedral_pairs, 3, n_model_confs, 3)
@@ -551,9 +551,9 @@ class GeoMol(nn.Module):
         """
 
         # unpack
-        dihedral_x_node_reps, dihedral_y_node_reps = dihedral_node_reps  # (n_dihedral_pairs, n_model_confs, model_dim/2)
+        dihedral_x_node_reps, dihedral_y_node_reps = dihedral_node_reps  # (n_dihedral_pairs, n_model_confs, hidden_dim/2)
         dihedral_x_neighbors, dihedral_y_neighbors = dihedral_neighbors  # (n_dihedral_pairs, 4, n_model_confs, 3)
-        dihedral_x_neighbor_reps, dihedral_y_neighbor_reps = dihedral_neighbor_reps  # (n_dihedral_pairs, 4, n_model_confs, model_dim/2)
+        dihedral_x_neighbor_reps, dihedral_y_neighbor_reps = dihedral_neighbor_reps  # (n_dihedral_pairs, 4, n_model_confs, hidden_dim/2)
 
         # calculate rotation matrix
         Hx = rotation_matrix_v2(dihedral_x_neighbors, self.dihedral_x_mask, self.x_map_to_neighbor_y)
@@ -578,7 +578,7 @@ class GeoMol(nn.Module):
             1)  # broadcast over not coordinates
 
         # calculate alpha
-        dihedral_h_mol = h_mol[batch[self.dihedral_pairs[0]]]  # (n_dihedral_pairs, n_model_confs. model_dim/2)
+        dihedral_h_mol = h_mol[batch[self.dihedral_pairs[0]]]  # (n_dihedral_pairs, n_model_confs. hidden_dim/2)
 
         # more stochasticity!
         if self.random_alpha:
@@ -607,9 +607,9 @@ class GeoMol(nn.Module):
 
         # get c coefficients
         p_reps = dihedral_x_neighbor_reps[~self.x_map_to_neighbor_y.bool()].view(-1, 3, self.n_model_confs,
-                                                                                 self.model_dim)
+                                                                                 self.hidden_dim)
         q_reps = dihedral_y_neighbor_reps[~self.y_map_to_neighbor_x.bool()].view(-1, 3, self.n_model_confs,
-                                                                                 self.model_dim)
+                                                                                 self.hidden_dim)
         cx_reps = dihedral_x_node_reps.unsqueeze(1).repeat(1, 9, 1, 1)
         cy_reps = dihedral_y_node_reps.unsqueeze(1).repeat(1, 9, 1, 1)
         self.c_ij = self.c_mlp(torch.cat([p_reps[:, pT_idx], cx_reps, q_reps[:, qZ_idx], cy_reps], dim=-1)) + \
@@ -673,9 +673,9 @@ class GeoMol(nn.Module):
         """
         Converts input atom and molecular representations to model predictions of distances, angles, and torsions
 
-        :param x: atom representations (n_atoms, n_model_confs, model_dim/2)
+        :param x: atom representations (n_atoms, n_model_confs, hidden_dim/2)
         :param batch: mapping of atom to molecule (n_atoms)
-        :param h_mol: molecule representations (n_batch, n_model_confs, model_dim/2)
+        :param h_mol: molecule representations (n_batch, n_model_confs, hidden_dim/2)
         :return:
         """
 
@@ -701,9 +701,9 @@ class GeoMol(nn.Module):
         """
         Run one forward pass of the model to predict stats
 
-        :param x: atom representations (n_atoms, n_model_confs, model_dim/2)
+        :param x: atom representations (n_atoms, n_model_confs, hidden_dim/2)
         :param edge_index: directed mapping of atom indices to each other to indicate bonds (2, n_bonds)
-        :param edge_attr: bond representations (n_bonds, n_model_confs, model_dim/2)
+        :param edge_attr: bond representations (n_bonds, n_model_confs, hidden_dim/2)
         :param batch: mapping of atom to molecule (n_atoms)
         :return: tuple of model stat tensors (len 5)
         """

@@ -55,8 +55,7 @@ class GeomolTrainer(Trainer):
                     total_metrics['torsion_angle_loss'] += self.model.dihedral_loss_write.item()
                     total_metrics['three_hop_loss'] += self.model.three_hop_loss_write.item()
                     total_metrics[type(self.loss_func).__name__] += loss
-                    for key, value in total_metrics.items():
-                        total_metrics[key] += value
+
                 if optim == None and not self.val_per_batch:
                     epoch_loss += loss.item()
 
@@ -67,5 +66,3 @@ class GeomolTrainer(Trainer):
                 total_metrics[type(self.loss_func).__name__] = epoch_loss / len(data_loader)
             return total_metrics
 
-    def tensorboard_log(self, metrics, data_split: str, epoch: int, step: int, log_hparam: bool = False):
-        pass

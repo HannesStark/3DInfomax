@@ -70,7 +70,7 @@ class GeomolGeomQM9Datset(Dataset):
             self.eig_vals = data_dict['eig_vals']
             self.eig_vecs = data_dict['eig_vecs']
 
-        self.mol_graphs = {}
+        self.dgl_graphs = {}
         self.pairwise = {}  # for memoization
         self.complete_graphs = {}
         self.mol_complete_graphs = {}
@@ -124,15 +124,15 @@ class GeomolGeomQM9Datset(Dataset):
             return src, dst
 
     def get_graph(self, idx, e_start, e_end, n_atoms, start):
-        if idx in self.mol_graphs:
-            return self.mol_graphs[idx].to(self.device)
+        if idx in self.dgl_graphs:
+            return self.dgl_graphs[idx].to(self.device)
         else:
             edge_indices = self.edge_indices[:, e_start: e_end]
             g = dgl.graph((edge_indices[0], edge_indices[1]), num_nodes=n_atoms, device=self.device)
             g.ndata['feat'] = self.features_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
             g.edata['feat'] = self.e_features_tensor[e_start: e_end].to(self.device)
-            self.mol_graphs[idx] = g.to('cpu')
+            self.dgl_graphs[idx] = g.to('cpu')
             return g
 
     def get_complete_graph(self, idx, n_atoms, start):
@@ -181,7 +181,7 @@ class GeomolGeomQM9Datset(Dataset):
                 conformer_graphs = dgl.batch(conformer_graphs)
                 self.conformer_graphs[idx] = conformer_graphs.to('cpu')
                 return conformer_graphs
-        elif return_type == 'mol_graph':
+        elif return_type == 'dgl_graph':
             return self.get_graph(idx, e_start, e_end, n_atoms, start)
         elif return_type == 'neighbors':
             slices = self.meta_dict['neighbors_slices'][start: start + n_atoms]
@@ -267,8 +267,8 @@ class GeomolGeomQM9Datset(Dataset):
             neighbors = {}
             for i, neighbor_slice in enumerate(neighbor_slices[:-1]):
                 neighbors[neighbors_idx[i].item()] = self.meta_dict['neighbors_list'][neighbor_slice: neighbor_slices[i + 1]]
-            return torch_geometric.data.Data(x=copy.deepcopy(features), pos=copy.deepcopy(pos), edge_attr=copy.deepcopy(edge_features), edge_index=copy.deepcopy(edge_indices),
-                                             pos_mask=copy.deepcopy(pos_mask), chiral_tag=copy.deepcopy(chiral_tag), neighbors=copy.deepcopy(neighbors))
+            return torch_geometric.data.Data(x=features, pos=pos, edge_attr=edge_features, edge_index=edge_indices,
+                                             pos_mask=pos_mask, chiral_tag=chiral_tag, neighbors=neighbors)
         elif return_type == 'raw_features':
             return self.features_tensor[start: start + n_atoms]
         elif return_type == 'coordinates':

@@ -13,7 +13,7 @@ from datasets.bbbp_geomol_featurization_of_qm9 import BBBPGeomolQM9Featurization
 from datasets.bbbp_geomol_random_split import BBBPGeomolRandom
 from datasets.esol_geomol_feat import ESOLGeomol
 from datasets.esol_geomol_featurization_of_qm9 import ESOLGeomolQM9Featurization
-from datasets.file_loader_geomol_qm9 import FileLoader
+from datasets.file_loader_geomol_qm9 import FileLoaderQM9
 from datasets.geom_drugs_dataset import GEOMDrugs
 from datasets.geom_qm9_dataset import GEOMqm9
 from datasets.geomol_drugs_dataset import GeomolDrugsDataset
@@ -21,6 +21,7 @@ from datasets.geomol_geom_qm9_dataset import GeomolGeomQM9Datset
 from datasets.lipo_geomol_feat import LIPOGeomol
 from datasets.lipo_geomol_featurization_of_qm9 import LIPOGeomolQM9Featurization
 from datasets.ogbg_dataset_extension import OGBGDatasetExtension
+from datasets.pyg_geomol_geom_qm9 import PyGGeomolGeomQM9
 
 from datasets.qm9_geomol_featurization import QM9GeomolFeaturization
 from datasets.qmugs_dataset import QMugsDataset
@@ -28,6 +29,7 @@ from models.geomol_mpnn import GeomolGNNWrapper
 from trainer.byol_trainer import BYOLTrainer
 from trainer.byol_wrapper import BYOLwrapper
 import faulthandler
+
 faulthandler.enable()
 import seaborn
 
@@ -60,6 +62,79 @@ from trainer.metrics import QM9DenormalizedL1, QM9DenormalizedL2, \
     Conformer2DVariance, Conformer3DVariance
 from trainer.trainer import Trainer
 
+def parse_arguments():
+    p = argparse.ArgumentParser()
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/fine_tune_geomol_pna.yml')
+    p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
+    p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
+    p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
+    p.add_argument('--batch_size', type=int, default=1024, help='samples that will be processed in parallel')
+    p.add_argument('--patience', type=int, default=20, help='stop training after no improvement in this many epochs')
+    p.add_argument('--minimum_epochs', type=int, default=0, help='minimum numer of epochs to run')
+    p.add_argument('--dataset', type=str, default='qm9', help='[qm9, zinc, drugs, geom_qm9, molhiv]')
+    p.add_argument('--num_train', type=int, default=-1, help='n samples of the model samples to use for train')
+    p.add_argument('--seed', type=int, default=123, help='seed for reproducibility')
+    p.add_argument('--seed_data', type=int, default=123, help='if you want to use a different seed for the datasplit')
+    p.add_argument('--loss_func', type=str, default='MSELoss', help='Class name of torch.nn like [MSELoss, L1Loss]')
+    p.add_argument('--loss_params', type=dict, default={}, help='parameters with keywords of the chosen loss function')
+    p.add_argument('--critic_loss', type=str, default='MSELoss', help='Class name of torch.nn like [MSELoss, L1Loss]')
+    p.add_argument('--critic_loss_params', type=dict, default={},
+                   help='parameters with keywords of the chosen loss function')
+    p.add_argument('--optimizer', type=str, default='Adam', help='Class name of torch.optim like [Adam, SGD, AdamW]')
+    p.add_argument('--optimizer_params', type=dict, help='parameters with keywords of the chosen optimizer like lr')
+    p.add_argument('--lr_scheduler', type=str,
+                   help='Class name of torch.optim.lr_scheduler like [CosineAnnealingLR, ExponentialLR, LambdaLR]')
+    p.add_argument('--lr_scheduler_params', type=dict, help='parameters with keywords of the chosen lr_scheduler')
+    p.add_argument('--scheduler_step_per_batch', default=True, type=bool,
+                   help='step every batch if true step every epoch otherwise')
+    p.add_argument('--log_iterations', type=int, default=-1,
+                   help='log every log_iterations iterations (-1 for only logging after each epoch)')
+    p.add_argument('--expensive_log_iterations', type=int, default=100,
+                   help='frequency with which to do expensive logging operations')
+    p.add_argument('--eval_per_epochs', type=int, default=0,
+                   help='frequency with which to do run the function run_eval_per_epoch that can do some expensive calculations on the val set or sth like that. If this is zero, then the function will never be called')
+    p.add_argument('--linear_probing_samples', type=int, default=500,
+                   help='number of samples to use for linear probing in the run_eval_per_epoch function of the self supervised trainer')
+    p.add_argument('--num_conformers', type=int, default=3,
+                   help='number of conformers to use if we are using multiple conformers on the 3d side')
+    p.add_argument('--metrics', default=[], help='tensorboard metrics [mae, mae_denormalized, qm9_properties ...]')
+    p.add_argument('--main_metric', default='mae_denormalized', help='for early stopping etc.')
+    p.add_argument('--main_metric_goal', type=str, default='min', help='controls early stopping. [max, min]')
+    p.add_argument('--val_per_batch', type=bool, default=True,
+                   help='run evaluation every batch and then average over the eval results. When running the molhiv benchmark for example, this needs to be Fale because we need to evaluate on all val data at once since the metric is rocauc')
+    p.add_argument('--tensorboard_functions', default=[], help='choices of the TENSORBOARD_FUNCTIONS in utils')
+    p.add_argument('--checkpoint', type=str, help='path to directory that contains a checkpoint to continue training')
+    p.add_argument('--pretrain_checkpoint', type=str, help='Specify path to finetune from a pretrained checkpoint')
+    p.add_argument('--transfer_layers', default=[],
+                   help='strings contained in the keys of the weights that are transferred')
+    p.add_argument('--exclude_from_transfer', default=[],
+                   help='parameters that usually should not be transferred like batchnorm params')
+    p.add_argument('--transferred_lr', type=float, default=None, help='set to use a different LR for transfer layers')
+
+    p.add_argument('--required_data', default=[],
+                   help='what will be included in a batch like [dgl_graph, targets, dgl_graph3d]')
+    p.add_argument('--collate_function', default='graph_collate', help='the collate function to use for DataLoader')
+    p.add_argument('--collate_params', type=dict, default={},
+                   help='parameters with keywords of the chosen collate function')
+    p.add_argument('--use_e_features', default=True, type=bool, help='ignore edge features if set to False')
+    p.add_argument('--targets', default=[], help='properties that should be predicted')
+    p.add_argument('--device', type=str, default='cuda', help='What device to train on: cuda or cpu')
+
+    p.add_argument('--dist_embedding', type=bool, default=False, help='add dist embedding to complete graphs edges')
+    p.add_argument('--num_radial', type=int, default=6, help='number of frequencies for distance embedding')
+
+    p.add_argument('--model_type', type=str, default='MPNN', help='Classname of one of the models in the models dir')
+    p.add_argument('--model_parameters', type=dict, help='dictionary of model parameters')
+
+    p.add_argument('--model3d_type', type=str, default=None, help='Classname of one of the models in the models dir')
+    p.add_argument('--model3d_parameters', type=dict, help='dictionary of model parameters')
+    p.add_argument('--critic_type', type=str, default=None, help='Classname of one of the models in the models dir')
+    p.add_argument('--critic_parameters', type=dict, help='dictionary of model parameters')
+    p.add_argument('--trainer', type=str, default='contrastive', help='[contrastive, byol, alternating, philosophy]')
+    p.add_argument('--train_sampler', type=str, default=None, help='any of pytorchs samplers or a custom sampler')
+
+    p.add_argument('--eval_on_test', type=bool, default=True, help='runs evaluation on test set if true')
+    return p.parse_args()
 
 def get_trainer(args, model, data, device, metrics):
     tensorboard_functions = {function: TENSORBOARD_FUNCTIONS[function] for function in args.tensorboard_functions}
@@ -101,22 +176,8 @@ def get_trainer(args, model, data, device, metrics):
 
 
 def load_model(args, data, device):
-    if isinstance(data[0], torch_geometric.data.Data):
-        node_dim = 0
-        edge_dim = 0
-    elif isinstance(data[0][0], dgl.DGLGraph):
-        node_dim = data[0][0].ndata['feat'].shape[1]
-        try:
-            edge_dim = data[0][0].edata['feat'].shape[1] if args.use_e_features else 0
-        except:
-            edge_dim = data[0][0].edges['bond'].data['feat'].shape[1] if args.use_e_features else 0
-    elif isinstance(data[0][0], torch_geometric.data.Data):
-        node_dim, edge_dim = 0, 0
-    else:
-        node_dim = data[0][0].shape[1]
-        edge_dim = 0
-    model = globals()[args.model_type](node_dim=node_dim, edge_dim=edge_dim,
-                                       avg_d=data.avg_degree if hasattr(data, 'avg_degree') else 1, device=device,
+
+    model = globals()[args.model_type](avg_d=data.avg_degree if hasattr(data, 'avg_degree') else 1, device=device,
                                        **args.model_parameters)
     if args.pretrain_checkpoint:
         # get arguments used during pretraining
@@ -127,7 +188,7 @@ def load_model(args, data, device):
         checkpoint = torch.load(args.pretrain_checkpoint, map_location=device)
         # get all the weights that have something from 'args.transfer_layers' in their keys name
         # but only if they do not contain 'teacher' and remove 'student.' which we need for loading from BYOLWrapper
-        pretrained_gnn_dict = {k.replace('student.', ''): v for k, v in checkpoint['model_state_dict'].items() if any(
+        pretrained_gnn_dict = {k.replace('student.', '').replace('gnn.','node_gnn.').replace('gnn2.','node_gnn.'): v for k, v in checkpoint['model_state_dict'].items() if any(
             transfer_layer in k for transfer_layer in args.transfer_layers) and 'teacher' not in k and not any(
             to_exclude in k for to_exclude in args.exclude_from_transfer)}
         model_state_dict = model.state_dict()
@@ -179,7 +240,7 @@ def train(args):
         train_zinc(args, device, metrics_dict)
     elif args.dataset == 'qmugs':
         train_geom(args, device, metrics_dict)
-    elif args.dataset == 'drugs' or args.dataset == 'geom_qm9' or args.dataset == 'geom_qm9_geomol' or args.dataset == 'geom_drugs_geomol' or args.dataset =='file_loader_geomol':
+    elif args.dataset == 'drugs' or args.dataset == 'geom_qm9' or args.dataset == 'geom_qm9_geomol' or args.dataset == 'geom_drugs_geomol' or args.dataset == 'file_loader_geomol' or args.dataset == 'pyg_geomol_geom_qm9':
         train_geom(args, device, metrics_dict)
     elif args.dataset == 'qm9_geomol':
         train_geomol_qm9(args, device, metrics_dict)
@@ -350,11 +411,9 @@ def train_zinc(args, device, metrics_dict):
 
 
 def train_geom(args, device, metrics_dict):
-    dataset = GEOMDrugs \
-
     if args.dataset == 'drugs':
         dataset = GEOMDrugs
-    elif args.dataset =='geom_qm9':
+    elif args.dataset == 'geom_qm9':
         dataset = GEOMqm9
     elif args.dataset == 'qmugs':
         dataset = QMugsDataset
@@ -363,23 +422,26 @@ def train_geom(args, device, metrics_dict):
     elif args.dataset == 'geom_drugs_geomol':
         dataset = GeomolDrugsDataset
     elif args.dataset == 'file_loader_geomol':
-        dataset = FileLoader
-    all_data = dataset(return_types=args.required_data, target_tasks=args.targets, device=device, num_conformers=args.num_conformers)
+        dataset = FileLoaderQM9
+    elif args.dataset == 'pyg_geomol_geom_qm9':
+        dataset = PyGGeomolGeomQM9
+    all_data = dataset(return_types=args.required_data, target_tasks=args.targets, device=device,
+                       num_conformers=args.num_conformers)
     all_idx = get_random_indices(len(all_data), args.seed_data)
     if args.dataset == 'drugs':
         model_idx = all_idx[:240000]
-    elif args.dataset =='geom_qm9':
+    elif args.dataset == 'geom_qm9':
         model_idx = all_idx[:100000]
     elif args.dataset == 'qmugs':
         model_idx = all_idx[:620000]
     elif args.dataset == 'file_loader_geomol':
         model_idx = all_idx[:8000]
-    elif args.dataset == 'geom_qm9_geomol':
-        model_idx = all_idx[:80000] # 107962 molecules in all_data
+    elif args.dataset == 'geom_qm9_geomol' or args.dataset == 'pyg_geomol_geom_qm9':
+        model_idx = all_idx[:80000]  # 107962 molecules in all_data
     elif args.dataset == 'geom_drugs_geomol':
         model_idx = all_idx[:160000]
     test_idx = all_idx[len(model_idx): len(model_idx) + int(0.05 * len(all_data))]
-    if args.dataset == 'geom_drugs_geomol' or args.dataset == 'geom_qm9_geomol':
+    if args.dataset == 'geom_drugs_geomol' or args.dataset == 'geom_qm9_geomol' or args.dataset == 'pyg_geomol_geom_qm9' or args.dataset == 'file_loader_geomol':
         val_idx = all_idx[max(len(model_idx) + len(test_idx), len(all_data) - 1000):]
     else:
         val_idx = all_idx[len(model_idx) + len(test_idx):]
@@ -462,80 +524,9 @@ def train_qm9(args, device, metrics_dict):
         trainer.evaluation(test_loader, data_split='test')
 
 
-def parse_arguments():
-    p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/7.yml')
-    p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
-    p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
-    p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
-    p.add_argument('--batch_size', type=int, default=1024, help='samples that will be processed in parallel')
-    p.add_argument('--patience', type=int, default=20, help='stop training after no improvement in this many epochs')
-    p.add_argument('--minimum_epochs', type=int, default=0, help='minimum numer of epochs to run')
-    p.add_argument('--dataset', type=str, default='qm9', help='[qm9, zinc, drugs, geom_qm9, molhiv]')
-    p.add_argument('--num_train', type=int, default=-1, help='n samples of the model samples to use for train')
-    p.add_argument('--seed', type=int, default=123, help='seed for reproducibility')
-    p.add_argument('--seed_data', type=int, default=123, help='if you want to use a different seed for the datasplit')
-    p.add_argument('--loss_func', type=str, default='MSELoss', help='Class name of torch.nn like [MSELoss, L1Loss]')
-    p.add_argument('--loss_params', type=dict, default={}, help='parameters with keywords of the chosen loss function')
-    p.add_argument('--critic_loss', type=str, default='MSELoss', help='Class name of torch.nn like [MSELoss, L1Loss]')
-    p.add_argument('--critic_loss_params', type=dict, default={},
-                   help='parameters with keywords of the chosen loss function')
-    p.add_argument('--optimizer', type=str, default='Adam', help='Class name of torch.optim like [Adam, SGD, AdamW]')
-    p.add_argument('--optimizer_params', type=dict, help='parameters with keywords of the chosen optimizer like lr')
-    p.add_argument('--lr_scheduler', type=str,
-                   help='Class name of torch.optim.lr_scheduler like [CosineAnnealingLR, ExponentialLR, LambdaLR]')
-    p.add_argument('--lr_scheduler_params', type=dict, help='parameters with keywords of the chosen lr_scheduler')
-    p.add_argument('--scheduler_step_per_batch', default=True, type=bool,
-                   help='step every batch if true step every epoch otherwise')
-    p.add_argument('--log_iterations', type=int, default=-1,
-                   help='log every log_iterations iterations (-1 for only logging after each epoch)')
-    p.add_argument('--expensive_log_iterations', type=int, default=100,
-                   help='frequency with which to do expensive logging operations')
-    p.add_argument('--eval_per_epochs', type=int, default=0,
-                   help='frequency with which to do run the function run_eval_per_epoch that can do some expensive calculations on the val set or sth like that. If this is zero, then the function will never be called')
-    p.add_argument('--linear_probing_samples', type=int, default=500,
-                   help='number of samples to use for linear probing in the run_eval_per_epoch function of the self supervised trainer')
-    p.add_argument('--num_conformers', type=int, default=3,help='number of conformers to use if we are using multiple conformers on the 3d side')
-    p.add_argument('--metrics', default=[], help='tensorboard metrics [mae, mae_denormalized, qm9_properties ...]')
-    p.add_argument('--main_metric', default='mae_denormalized', help='for early stopping etc.')
-    p.add_argument('--main_metric_goal', type=str, default='min', help='controls early stopping. [max, min]')
-    p.add_argument('--val_per_batch', type=bool, default=True,
-                   help='run evaluation every batch and then average over the eval results. When running the molhiv benchmark for example, this needs to be Fale because we need to evaluate on all val data at once since the metric is rocauc')
-    p.add_argument('--tensorboard_functions', default=[], help='choices of the TENSORBOARD_FUNCTIONS in utils')
-    p.add_argument('--checkpoint', type=str, help='path to directory that contains a checkpoint to continue training')
-    p.add_argument('--pretrain_checkpoint', type=str, help='Specify path to finetune from a pretrained checkpoint')
-    p.add_argument('--transfer_layers', default=[],
-                   help='strings contained in the keys of the weights that are transferred')
-    p.add_argument('--exclude_from_transfer', default=[],
-                   help='parameters that usually should not be transferred like batchnorm params')
-    p.add_argument('--transferred_lr', type=float, default=None, help='set to use a different LR for transfer layers')
 
-    p.add_argument('--required_data', default=[],
-                   help='what will be included in a batch like [mol_graph, targets, mol_graph3d]')
-    p.add_argument('--collate_function', default='graph_collate', help='the collate function to use for DataLoader')
-    p.add_argument('--collate_params', type=dict, default={},
-                   help='parameters with keywords of the chosen collate function')
-    p.add_argument('--use_e_features', default=True, type=bool, help='ignore edge features if set to False')
-    p.add_argument('--targets', default=[], help='properties that should be predicted')
-    p.add_argument('--device', type=str, default='cuda', help='What device to train on: cuda or cpu')
-
-    p.add_argument('--dist_embedding', type=bool, default=False, help='add dist embedding to complete graphs edges')
-    p.add_argument('--num_radial', type=int, default=6, help='number of frequencies for distance embedding')
-
-    p.add_argument('--model_type', type=str, default='MPNN', help='Classname of one of the models in the models dir')
-    p.add_argument('--model_parameters', type=dict, help='dictionary of model parameters')
-
-    p.add_argument('--model3d_type', type=str, default=None, help='Classname of one of the models in the models dir')
-    p.add_argument('--model3d_parameters', type=dict, help='dictionary of model parameters')
-    p.add_argument('--critic_type', type=str, default=None, help='Classname of one of the models in the models dir')
-    p.add_argument('--critic_parameters', type=dict, help='dictionary of model parameters')
-    p.add_argument('--trainer', type=str, default='contrastive', help='[contrastive, byol, alternating, philosophy]')
-    p.add_argument('--train_sampler', type=str, default=None, help='any of pytorchs samplers or a custom sampler')
-
-    p.add_argument('--eval_on_test', type=bool, default=True, help='runs evaluation on test set if true')
-
-    args = p.parse_args()
-
+def get_arguments():
+    args = parse_arguments()
     if args.config:
         config_dict = yaml.load(args.config, Loader=yaml.FullLoader)
         arg_dict = args.__dict__
@@ -563,4 +554,4 @@ def parse_arguments():
 
 
 if __name__ == '__main__':
-    train(parse_arguments())
+    train(get_arguments())

@@ -56,7 +56,7 @@ model_parameters:
     h_mol_mlp:
       n_layers: 1
     loss_type: ot_emd
-    model_dim: 50
+    hidden_dim: 50
     n_model_confs: 10
     n_true_confs: 10
     random_alpha: false

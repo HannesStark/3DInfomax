@@ -11,7 +11,7 @@ loss_params:
 num_train: 500
 
 required_data:
-  - mol_graph
+  - dgl_graph
   - pytorch_geometric_graph
 metrics:
   - positive_similarity

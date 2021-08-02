@@ -24,7 +24,7 @@ e_features:
   - 'conjugated'
   - 'in-ring-edges'
 required_data:
-  - mol_graph
+  - dgl_graph
   - pairwise_indices
   - dist_embedding
 metrics:

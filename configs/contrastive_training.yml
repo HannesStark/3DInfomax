@@ -11,7 +11,7 @@ loss_params:
 num_train: 1200
 
 required_data:
-  - mol_graph
+  - dgl_graph
   - complete_graph3d
 metrics:
   - positive_similarity

@@ -42,8 +42,8 @@ e_features3d:
   - 'conjugated'
   - 'in-ring-edges'
 required_data:
-  - mol_graph
-  - mol_graph3d
+  - dgl_graph
+  - dgl_graph3d
 metrics:
   - positive_similarity
   - negative_similarity

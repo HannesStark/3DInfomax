@@ -13,7 +13,7 @@ loss_params:
 num_train: 120000
 
 required_data:
-  - mol_graph
+  - dgl_graph
   - complete_graph3d
   - conformations
 metrics:

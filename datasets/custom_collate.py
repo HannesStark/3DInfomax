@@ -31,9 +31,6 @@ def pyg_graph_only_collate(batch: List[Tuple]):
     batched_graph = torch_geometric.data.batch.Batch.from_data_list(graphs)
     return [batched_graph]
 
-def pyg_graph_only_collate_with_pyg_dataset(batch: List[Tuple]):
-    batched_graph = torch_geometric.data.batch.Batch.from_data_list(batch)
-    return [batched_graph]
 
 def s_norm_graph_collate(batch: List[Tuple]):
     graphs, targets = map(list, zip(*batch))
@@ -45,29 +42,29 @@ def s_norm_graph_collate(batch: List[Tuple]):
 
 
 def pairwise_distance_collate(batch: List[Tuple]):
-    mol_graphs, pairwise_indices, distances = map(list, zip(*batch))
+    dgl_graphs, pairwise_indices, distances = map(list, zip(*batch))
 
     cumulative_length = 0
     for i, pairwise_index in enumerate(pairwise_indices):
         pairwise_index += cumulative_length
-        cumulative_length += mol_graphs[i].number_of_nodes()
-    batched_mol_graph = dgl.batch(mol_graphs)
+        cumulative_length += dgl_graphs[i].number_of_nodes()
+    batched_dgl_graph = dgl.batch(dgl_graphs)
 
-    n_atoms = batched_mol_graph.batch_num_nodes()
+    n_atoms = batched_dgl_graph.batch_num_nodes()
     # create mask corresponding to the zero padding used for the shorter sequences in the batch.
     # All values corresponding to padding are True and the rest is False.
     mask = torch.arange(n_atoms.max(), device=distances[0].device)[None, :] >= n_atoms[:, None]  # [batch_size, n_atoms]
-    return [batched_mol_graph, torch.cat(pairwise_indices, dim=-1), mask], torch.cat(distances)
+    return [batched_dgl_graph, torch.cat(pairwise_indices, dim=-1), mask], torch.cat(distances)
 
 def contrastive_graphs_with_mask_collate(batch: List[Tuple]):
-    mol_graphs, complete_graph3d = map(list, zip(*batch))
+    dgl_graphs, complete_graph3d = map(list, zip(*batch))
 
-    batched_mol_graph = dgl.batch(mol_graphs)
-    n_atoms = batched_mol_graph.batch_num_nodes()
+    batched_dgl_graph = dgl.batch(dgl_graphs)
+    n_atoms = batched_dgl_graph.batch_num_nodes()
     # create mask corresponding to the zero padding used for the shorter sequences in the batch.
     # All values corresponding to padding are True and the rest is False.
-    mask = torch.arange(n_atoms.max(), device=batched_mol_graph.device)[None, :] >= n_atoms[:, None]  # [batch_size, n_atoms]
-    return [batched_mol_graph, mask], [dgl.batch(complete_graph3d)]
+    mask = torch.arange(n_atoms.max(), device=batched_dgl_graph.device)[None, :] >= n_atoms[:, None]  # [batch_size, n_atoms]
+    return [batched_dgl_graph, mask], [dgl.batch(complete_graph3d)]
 
 
 def s_norm_contrastive_collate(batch: List[Tuple]):

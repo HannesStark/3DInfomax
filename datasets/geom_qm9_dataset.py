@@ -23,8 +23,8 @@ class GEOMqm9(Dataset):
     ----------
     return_types: list
         A list with which types of data should be loaded and returened by getitems. Possible options are
-        ['mol_graph', 'raw_features', 'coordinates', 'mol_id', 'targets', 'one_hot_bond_types', 'edge_indices', 'smiles', 'atomic_number_long']
-        and the default is ['mol_graph', 'targets']
+        ['dgl_graph', 'raw_features', 'coordinates', 'mol_id', 'targets', 'one_hot_bond_types', 'edge_indices', 'smiles', 'atomic_number_long']
+        and the default is ['dgl_graph', 'targets']
     target_tasks: list
         A list specifying which targets should be included in the returend targets, if targets are returned
         options are ['A', 'B', 'C', 'mu', 'alpha', 'homo', 'lumo', 'gap', 'r2', 'zpve', 'u0', 'u298', 'h298', 'g298', 'cv', 'u0_atom', 'u298_atom', 'h298_atom', 'g298_atom']
@@ -83,7 +83,7 @@ class GEOMqm9(Dataset):
             self.eig_vals = data_dict['eig_vals']
             self.eig_vecs = data_dict['eig_vecs']
 
-        self.mol_graphs = {}
+        self.dgl_graphs = {}
         self.pairwise = {}  # for memoization
         self.complete_graphs = {}
         self.mol_complete_graphs = {}
@@ -136,15 +136,15 @@ class GEOMqm9(Dataset):
             return src, dst
 
     def get_graph(self, idx, e_start, e_end, n_atoms, start):
-        if idx in self.mol_graphs:
-            return self.mol_graphs[idx].to(self.device)
+        if idx in self.dgl_graphs:
+            return self.dgl_graphs[idx].to(self.device)
         else:
             edge_indices = self.edge_indices[:, e_start: e_end]
             g = dgl.graph((edge_indices[0], edge_indices[1]), num_nodes=n_atoms, device=self.device)
             g.ndata['feat'] = self.features_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
             g.edata['feat'] = self.e_features_tensor[e_start: e_end].to(self.device)
-            self.mol_graphs[idx] = g.to('cpu')
+            self.dgl_graphs[idx] = g.to('cpu')
             return g
 
     def get_complete_graph(self, idx, n_atoms, start):
@@ -193,7 +193,7 @@ class GEOMqm9(Dataset):
                 conformer_graphs = dgl.batch(conformer_graphs)
                 self.conformer_graphs[idx] = conformer_graphs.to('cpu')
                 return conformer_graphs
-        elif return_type == 'mol_graph':
+        elif return_type == 'dgl_graph':
             return self.get_graph(idx, e_start, e_end, n_atoms, start)
         elif return_type == 'complete_graph':  # complete graph without self loops
             g = self.get_complete_graph(idx, n_atoms, start)

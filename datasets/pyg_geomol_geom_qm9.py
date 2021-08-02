@@ -1,8 +1,6 @@
 import dgl
 from ogb.utils.features import atom_to_feature_vector, bond_to_feature_vector
 from rdkit import Chem
-from rdkit.Chem.rdchem import HybridizationType
-from rdkit.Chem.rdchem import BondType as BT
 from rdkit.Chem.rdchem import ChiralType
 
 import os.path as osp
@@ -12,9 +10,8 @@ import pickle
 import random
 
 import torch
-import torch.nn.functional as F
-from torch_scatter import scatter
-from torch_geometric.data import Dataset, Data, DataLoader
+from torch_geometric.data import Data, InMemoryDataset
+from tqdm import tqdm
 
 dihedral_pattern = Chem.MolFromSmarts('[*]~[*]~[*]~[*]')
 chirality = {ChiralType.CHI_TETRAHEDRAL_CW: -1.,
@@ -38,43 +35,26 @@ def one_k_encoding(value, choices):
     return encoding
 
 
-class FileLoaderQM9(Dataset):
-    def __init__(self, return_types=[], root='dataset/GEOM/qm9', transform=None, pre_transform=None, max_confs=10, **kwargs):
-        super(FileLoaderQM9, self).__init__(root, transform, pre_transform)
-
+class PyGGeomolGeomQM9(InMemoryDataset):
+    def __init__(self, return_types=[], root='dataset/GEOM/qm9', transform=None, pre_transform=None, max_confs = 10, **kwargs):
+        self.max_confs = max_confs
+        super(PyGGeomolGeomQM9, self).__init__(root, transform, pre_transform)
         self.root = root
         self.return_types = return_types
-        self.pickle_files = torch.load(self.processed_paths[0])
-        self.max_confs = max_confs
 
-    def open_pickle(self, mol_path):
-        with open(mol_path, "rb") as f:
-            dic = pickle.load(f)
-        return dic
+        self.data, self.slices = torch.load(self.processed_paths[0])
+        ic(len(self.data))
+
 
     @property
     def processed_file_names(self):
-        return ['valid_files.pt']
-
-    def process(self):
-        valid_files = []
-        for pickle_file in sorted(glob.glob(osp.join(self.root, '*.pickle'))):
-            mol_dic = self.open_pickle(pickle_file)
-            data = self.featurize_mol(mol_dic)
-            if data != None:
-                valid_files.append(pickle_file)
-        torch.save(valid_files, self.processed_paths[0])
-
+        return ['pyg_inmemory_dataset_qm9_processed.pt']
 
     def len(self):
-        return len(self.pickle_files)
+        return len(self.data)
 
     def get(self, idx):
-
-        pickle_file = self.pickle_files[idx]
-        mol_dic = self.open_pickle(pickle_file)
-        data = self.featurize_mol(mol_dic)
-
+        data = self.data[idx]
         if 'dgl_graph' in self.return_types:
             g = dgl.graph((data.edge_index[0], data.edge_index[1]),num_nodes=data.num_nodes)
             g.ndata['feat'] = data.x
@@ -82,6 +62,22 @@ class FileLoaderQM9(Dataset):
             return data, g
         else:
             return (data)
+
+    def open_pickle(self, mol_path):
+        with open(mol_path, "rb") as f:
+            dic = pickle.load(f)
+        return dic
+
+    def process(self):
+        pickle_files = sorted(glob.glob(osp.join(self.root, '*.pickle')))
+        data_list = []
+        for pickle_file in tqdm(pickle_files):
+            mol_dic = self.open_pickle(pickle_file)
+            data = self.featurize_mol(mol_dic)
+            if data != None:
+                data_list.append(data)
+        data, slices = self.collate(data_list)
+        torch.save((data, slices), self.processed_paths[0])
 
     def featurize_mol(self, mol_dic):
         confs = mol_dic['conformers']
@@ -175,6 +171,3 @@ class FileLoaderQM9(Dataset):
                     chiral_tag=chiral_tag, name=name, boltzmann_weight=conf['boltzmannweight'],
                     degeneracy=conf['degeneracy'], mol=correct_mol, pos_mask=pos_mask)
         return data
-
-
-

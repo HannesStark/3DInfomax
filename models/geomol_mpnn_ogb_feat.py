@@ -12,11 +12,12 @@ from models.geomol_mpnn import GeomolMLP, GeomolMetaLayer, EdgeModel, GeomolNode
 
 
 class GeomolGNNOGBFeat(nn.Module):
-    def __init__(self, random_vec_dim, n_model_confs, hidden_dim=300, depth=3, n_layers=2, batch_norm_momentum=0.1, **kwargs):
+    def __init__(self, random_vec_dim, n_model_confs = None, hidden_dim=300, depth=3, n_layers=2, batch_norm_momentum=0.1, pretrain_mode=False, **kwargs):
         super(GeomolGNNOGBFeat, self).__init__()
 
         self.n_model_confs = n_model_confs
         self.depth = depth
+        self.pretrain_mode = pretrain_mode
         self.hidden_dim = hidden_dim
         self.bond_encoder = BondEncoder(hidden_dim)
         self.atom_encoder = AtomEncoder(hidden_dim)
@@ -30,8 +31,9 @@ class GeomolGNNOGBFeat(nn.Module):
     def forward(self, x, edge_index, edge_attr, rand_x, rand_edge, **kwargs):
         x = self.atom_encoder(x)
         edge_attr = self.bond_encoder(edge_attr)
-        x = x.unsqueeze(1).repeat(1, self.n_model_confs, 1)
-        edge_attr = edge_attr.unsqueeze(1).repeat(1, self.n_model_confs, 1)
+        if self.pretrain_mode:
+            x = x.unsqueeze(1).repeat(1, self.n_model_confs, 1)
+            edge_attr = edge_attr.unsqueeze(1).repeat(1, self.n_model_confs, 1)
         x = torch.cat([x, rand_x], dim=-1)
         edge_attr = torch.cat([edge_attr, rand_edge], dim=-1)
 
@@ -43,15 +45,15 @@ class GeomolGNNOGBFeat(nn.Module):
 
 
 class GeomolGNNWrapperOGBFeat(nn.Module):
-    def __init__(self, hidden_dim, target_dim, readout_hidden_dim=None, readout_layers=2, readout_batchnorm=True,
+    def __init__(self, hidden_dim, target_dim, gnn_params, readout_hidden_dim=None, readout_layers=2, readout_batchnorm=True, random_vec_dim = 10, random_vec_std = 1.0,
                  **kwargs):
         super(GeomolGNNWrapperOGBFeat, self).__init__()
 
-        self.random_vec_dim = 10
-        self.random_vec_std = 1.0
+        self.random_vec_dim = random_vec_dim
+        self.random_vec_std = random_vec_std
         if readout_hidden_dim == None:
             readout_hidden_dim = hidden_dim
-        self.node_gnn = GeomolGNNOGBFeat(random_vec_dim=self.random_vec_dim,hidden_dim=hidden_dim, **kwargs)
+        self.node_gnn = GeomolGNNOGBFeat(random_vec_dim=self.random_vec_dim,hidden_dim=hidden_dim, **gnn_params)
         self.output = MLP(in_dim=hidden_dim, hidden_size=readout_hidden_dim,
                           mid_batch_norm=readout_batchnorm, out_dim=target_dim,
                           layers=readout_layers, batch_norm_momentum=0.1)

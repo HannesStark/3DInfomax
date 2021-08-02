@@ -11,7 +11,7 @@ loss_params:
 num_train: 50000
 
 required_data:
-  - mol_graph
+  - dgl_graph
   - conformations
 metrics:
   - positive_similarity_multiple_positives_separate2d

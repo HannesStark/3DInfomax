@@ -27,12 +27,12 @@ class ZINCDataset(Dataset):
         if self.prefetch_graphs:
             print(
                 'Load molecular graphs into memory (set prefetch_graphs to False to load them on the fly => slower training)')
-            self.mol_graphs = []
+            self.dgl_graphs = []
             for idx in tqdm(range(len(self.meta_dict['edge_slices']) - 1)):
                 e_start = self.meta_dict['edge_slices'][idx]
                 e_end = self.meta_dict['edge_slices'][idx + 1]
                 edge_indices = self.edge_indices[:, e_start: e_end]
-                self.mol_graphs.append(dgl.graph((edge_indices[0], edge_indices[1])))
+                self.dgl_graphs.append(dgl.graph((edge_indices[0], edge_indices[1])))
         print('Finish loading data into memory')
 
         self.atomic_number_onehot = data_dict['atomic_number_onehot']
@@ -66,7 +66,7 @@ class ZINCDataset(Dataset):
         end = self.meta_dict['atom_slices'][idx + 1]
 
         if self.prefetch_graphs:
-            g: dgl.DGLGraph = self.mol_graphs[idx].to(self.device)
+            g: dgl.DGLGraph = self.dgl_graphs[idx].to(self.device)
         else:
             edge_indices = self.edge_indices[:, e_start: e_end]
             g = dgl.graph((edge_indices[0], edge_indices[1])).to(self.device)

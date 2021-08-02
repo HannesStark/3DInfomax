@@ -69,7 +69,7 @@ class GeomolDrugsDataset(Dataset):
             self.eig_vals = data_dict['eig_vals']
             self.eig_vecs = data_dict['eig_vecs']
 
-        self.mol_graphs = {}
+        self.dgl_graphs = {}
         self.pairwise = {}  # for memoization
         self.complete_graphs = {}
         self.mol_complete_graphs = {}
@@ -123,15 +123,15 @@ class GeomolDrugsDataset(Dataset):
             return src, dst
 
     def get_graph(self, idx, e_start, e_end, n_atoms, start):
-        if idx in self.mol_graphs:
-            return self.mol_graphs[idx].to(self.device)
+        if idx in self.dgl_graphs:
+            return self.dgl_graphs[idx].to(self.device)
         else:
             edge_indices = self.edge_indices[:, e_start: e_end]
             g = dgl.graph((edge_indices[0], edge_indices[1]), num_nodes=n_atoms, device=self.device)
             g.ndata['feat'] = self.features_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
             g.edata['feat'] = self.e_features_tensor[e_start: e_end].to(self.device)
-            self.mol_graphs[idx] = g.to('cpu')
+            self.dgl_graphs[idx] = g.to('cpu')
             return g
 
     def get_complete_graph(self, idx, n_atoms, start):
@@ -180,7 +180,7 @@ class GeomolDrugsDataset(Dataset):
                 conformer_graphs = dgl.batch(conformer_graphs)
                 self.conformer_graphs[idx] = conformer_graphs.to('cpu')
                 return conformer_graphs
-        elif return_type == 'mol_graph':
+        elif return_type == 'dgl_graph':
             return self.get_graph(idx, e_start, e_end, n_atoms, start)
         elif return_type == 'neighbors':
             slices = self.meta_dict['neighbors_slices'][start: start + n_atoms]

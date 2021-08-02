@@ -7,7 +7,7 @@ patience: 30
 num_train: 50000
 loss_func: L1Loss
 required_data:
-  - mol_graph
+  - dgl_graph
   - pairwise_indices
   - pairwise_distances
 metrics:

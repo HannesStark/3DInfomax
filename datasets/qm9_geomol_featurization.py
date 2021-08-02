@@ -37,7 +37,7 @@ class QM9GeomolFeaturization(Dataset):
                  target_tasks: list = None,
                  normalize: bool = True, device='cuda:0', dist_embedding: bool = False, num_radial: int = 6,
                  prefetch_graphs=True, transform=None, **kwargs):
-        self.return_type_options = ['mol_graph', 'complete_graph', 'mol_graph3d', 'complete_graph3d', 'san_graph',
+        self.return_type_options = ['dgl_graph', 'complete_graph', 'dgl_graph3d', 'complete_graph3d', 'san_graph',
                                     'mol_complete_graph', 'se3Transformer_graph', 'se3Transformer_graph3d',
                                     'pairwise_distances', 'pairwise_distances_squared', 'pairwise_indices',
                                     'raw_features', 'coordinates', 'dist_embedding', 'mol_id', 'targets',
@@ -77,7 +77,7 @@ class QM9GeomolFeaturization(Dataset):
                                 'g298_atom': hartree2eV}
 
         if return_types == None:  # set default
-            self.return_types: list = ['mol_graph', 'targets']
+            self.return_types: list = ['dgl_graph', 'targets']
         else:
             self.return_types: list = return_types
         for return_type in self.return_types:
@@ -115,15 +115,15 @@ class QM9GeomolFeaturization(Dataset):
 
         self.prefetch_graphs = prefetch_graphs
         if self.prefetch_graphs and any(return_type in self.return_types for return_type in
-                                        ['mol_graph', 'mol_graph3d', 'se3Transformer_graph', 'se3Transformer_graph3d']):
+                                        ['dgl_graph', 'dgl_graph3d', 'se3Transformer_graph', 'se3Transformer_graph3d']):
             print(
                 'Load molecular graphs into memory (set prefetch_graphs to False to load them on the fly => slower training)')
-            self.mol_graphs = []
+            self.dgl_graphs = []
             for idx, n_atoms in tqdm(enumerate(self.meta_dict['n_atoms'])):
                 e_start = self.meta_dict['edge_slices'][idx]
                 e_end = self.meta_dict['edge_slices'][idx + 1]
                 edge_indices = self.edge_indices[:, e_start: e_end]
-                self.mol_graphs.append(dgl.graph((edge_indices[0], edge_indices[1]), num_nodes=n_atoms))
+                self.dgl_graphs.append(dgl.graph((edge_indices[0], edge_indices[1]), num_nodes=n_atoms))
         self.pairwise = {}  # for memoization
         if self.prefetch_graphs and (
                 'complete_graph' in self.return_types or 'complete_graph3d' in self.return_types or 'san_graph' in self.return_types):
@@ -199,7 +199,7 @@ class QM9GeomolFeaturization(Dataset):
 
     def get_graph(self, idx, e_start, e_end, n_atoms):
         if self.prefetch_graphs:
-            g = self.mol_graphs[idx]
+            g = self.dgl_graphs[idx]
         else:
             edge_indices = self.edge_indices[:, e_start: e_end]
             g = dgl.graph((edge_indices[0], edge_indices[1]), num_nodes=n_atoms)
@@ -224,13 +224,13 @@ class QM9GeomolFeaturization(Dataset):
         return g
 
     def data_by_type(self, idx, return_type, e_start, e_end, start, n_atoms):
-        if return_type == 'mol_graph':
+        if return_type == 'dgl_graph':
             g = self.get_graph(idx, e_start, e_end, n_atoms).to(self.device)
             g.ndata['feat'] = self.features_tensor[start: start + n_atoms].to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
             g.edata['feat'] = self.e_features_tensor[e_start: e_end].to(self.device)
             return g
-        elif return_type == 'mol_graph3d':
+        elif return_type == 'dgl_graph3d':
             g = self.get_graph(idx, e_start, e_end, n_atoms).to(self.device)
             g.ndata['x'] = self.coordinates[start: start + n_atoms].to(self.device)
             g.ndata['feat'] = self.features_tensor[start: start + n_atoms].to(self.device)

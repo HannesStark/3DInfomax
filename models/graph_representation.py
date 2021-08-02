@@ -21,18 +21,18 @@ class GraphRepresentation(nn.Module):
                                 mid_batch_norm=True, out_dim=target_dim,
                                 layers=2)
 
-    def forward(self, mol_graph: dgl.DGLGraph, pairwise_indices: torch.Tensor):
+    def forward(self, dgl_graph: dgl.DGLGraph, pairwise_indices: torch.Tensor):
         # get embeddings
-        self.gnn(mol_graph)
+        self.gnn(dgl_graph)
 
         # put the embeddings h from the same graph in the batched graph into pairs for the distance net to predict the pairwise distances
-        h = mol_graph.ndata['feat']
+        h = dgl_graph.ndata['feat']
         src_h = torch.index_select(h, dim=0, index=pairwise_indices[0])
         dst_h = torch.index_select(h, dim=0, index=pairwise_indices[1])
         src_dst_h = torch.cat([src_h, dst_h], dim=1)
 
         # for debugging:
-        # x = mol_graph.ndata['x']
+        # x = dgl_graph.ndata['x']
         # src_x = torch.index_select(x, dim=0, index=pairwise_indices[0])
         # dst_x = torch.index_select(x, dim=0, index=pairwise_indices[1])
         # ic(torch.norm(src_x-dst_x, dim=-1))

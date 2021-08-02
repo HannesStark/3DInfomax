@@ -10,8 +10,8 @@ loss_func: MSELoss
 num_train: 10000
 required_data:
   - pyg_multiple_conformers
-  - mol_graph
-collate_function: geomol_dgl_collate
+  - dgl_graph
+collate_function: geomol_dgl_collate_pyg_dataset
 num_conformers: 10
 main_metric: loss
 
@@ -45,7 +45,7 @@ model_parameters:
     # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
     batch_norm_momentum: 0.1
     dropout: 0.0
-    propagation_depth: 7
+    propagation_depth: 5
     aggregators:
       - mean
       - max
@@ -74,7 +74,7 @@ model_parameters:
     h_mol_mlp:
       n_layers: 1
     loss_type: ot_emd
-    model_dim: 50
+    hidden_dim: 70
     n_model_confs: 10
     n_true_confs: 10
     random_alpha: false

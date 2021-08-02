@@ -10,7 +10,7 @@ loss_func: MSELoss
 num_train: 10000
 required_data:
   - pyg_multiple_conformers
-  - mol_graph
+  - dgl_graph
 collate_function: geomol_dgl_collate
 num_conformers: 10
 main_metric: loss
@@ -74,7 +74,7 @@ model_parameters:
     h_mol_mlp:
       n_layers: 1
     loss_type: ot_emd
-    model_dim: 50
+    hidden_dim: 50
     n_model_confs: 10
     n_true_confs: 10
     random_alpha: false
