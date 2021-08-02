@@ -1,6 +1,6 @@
-experiment_name: 'baseline'
+experiment_name: 'GeomolGNN_10000_hidden50'
 
-dataset: file_loader_qm9
+dataset: file_loader_drugs
 num_epochs: 250
 batch_size: 16
 trainer: optimal_transport
@@ -10,7 +10,7 @@ loss_func: MSELoss
 num_train: 10000
 required_data:
   - pyg_multiple_conformers
-collate_function: pyg_graph_only_collate_with_pyg_dataset
+collate_function: pyg_graph_only_collate
 num_conformers: 10
 main_metric: loss
 
@@ -34,7 +34,7 @@ lr_scheduler_params:
 
 
 # Model parameters
-model_type: 'GeoMol'
+model_type: 'OptimalTransportModel'
 model_parameters:
   gnn_model: GeomolGNNOGBFeat
   gnn_params:

@@ -1,6 +1,6 @@
-experiment_name: 'PNAGNNRandom_10000'
+experiment_name: 'PNA_10000_hidden200'
 
-dataset: geom_qm9_geomol
+dataset: file_loader_drugs
 num_epochs: 250
 batch_size: 16
 trainer: optimal_transport
@@ -11,7 +11,7 @@ num_train: 10000
 required_data:
   - pyg_multiple_conformers
   - dgl_graph
-collate_function: geomol_dgl_collate
+collate_function: pyg_and_dgl_graph_collate
 num_conformers: 10
 main_metric: loss
 
@@ -35,7 +35,7 @@ lr_scheduler_params:
 
 
 # Model parameters
-model_type: 'GeoMol'
+model_type: 'OptimalTransportModel'
 model_parameters:
   gnn_model: PNAGNNRandom
   gnn_params:
@@ -74,7 +74,7 @@ model_parameters:
     h_mol_mlp:
       n_layers: 1
     loss_type: ot_emd
-    hidden_dim: 50
+    hidden_dim: 200
     n_model_confs: 10
     n_true_confs: 10
     random_alpha: false
