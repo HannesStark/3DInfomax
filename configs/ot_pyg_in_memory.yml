@@ -3,14 +3,14 @@ experiment_name: 'baseline'
 dataset: ot_pyg_geom_qm9
 num_epochs: 250
 batch_size: 2
-trainer: geomol
+trainer: optimal_transport
 log_iterations: 10
 patience: 30
 loss_func: MSELoss
 num_train: 20
 required_data:
   - pyg_multiple_conformers
-collate_function: pyg_graph_only_collate_with_pyg_dataset
+collate_function: pyg_and_dgl_graph_collate
 num_conformers: 10
 main_metric: loss
 
@@ -34,7 +34,7 @@ lr_scheduler_params:
 
 
 # Model parameters
-model_type: 'GeoMol'
+model_type: 'OptimalTransportModel'
 model_parameters:
   gnn_model: GeomolGNNOGBFeat
   gnn_params:

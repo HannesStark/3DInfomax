@@ -50,6 +50,8 @@ model_parameters:
   readout_layers: 2
   readout_batchnorm: True
   gnn_params:
+    random_vec_std: 5.0
+    random_vec_dim: 10
     depth: 3
     n_layers: 2
 

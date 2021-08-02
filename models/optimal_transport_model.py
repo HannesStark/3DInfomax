@@ -206,7 +206,7 @@ class OptimalTransportModel(nn.Module):
         rand_edge = rand_dist.sample([edge_attr.size(0), self.n_model_confs, self.random_vec_dim]).squeeze(-1).to(
             self.device)  # added squeeze
 
-        if dgl_graph:
+        if dgl_graph != None:
             dgl_graph_clone = dgl_graph.clone()
         else:
             dgl_graph_clone = None

@@ -1,9 +1,9 @@
 experiment_name: 'baseline'
 
-dataset: file_loader_geomol
+dataset: file_loader_qm9
 num_epochs: 250
 batch_size: 16
-trainer: geomol
+trainer: optimal_transport
 log_iterations: 10
 patience: 30
 loss_func: MSELoss

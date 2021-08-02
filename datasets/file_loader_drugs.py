@@ -39,10 +39,10 @@ def one_k_encoding(value, choices):
     return encoding
 
 
-class FileLoaderQM9(Dataset):
+class FileLoaderDrugs(Dataset):
     def __init__(self, return_types=[], root='dataset/GEOM', transform=None, pre_transform=None, max_confs=10, **kwargs):
         self.max_confs = max_confs
-        super(FileLoaderQM9, self).__init__(root, transform, pre_transform)
+        super(FileLoaderDrugs, self).__init__(root, transform, pre_transform)
 
         self.root = root
         self.return_types = return_types
@@ -55,11 +55,11 @@ class FileLoaderQM9(Dataset):
 
     @property
     def processed_file_names(self):
-        return ['valid_files_qm9.pt']
+        return ['valid_files_drugs.pt']
 
     def process(self):
         valid_files = []
-        for pickle_file in tqdm(sorted(glob.glob(osp.join(self.root, 'qm9', '*.pickle')))):
+        for pickle_file in tqdm(sorted(glob.glob(osp.join(self.root, 'drugs', '*.pickle')))):
             mol_dic = self.open_pickle(pickle_file)
             data = self.featurize_mol(mol_dic)
             if data != None:

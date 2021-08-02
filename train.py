@@ -13,15 +13,14 @@ from datasets.bbbp_geomol_featurization_of_qm9 import BBBPGeomolQM9Featurization
 from datasets.bbbp_geomol_random_split import BBBPGeomolRandom
 from datasets.esol_geomol_feat import ESOLGeomol
 from datasets.esol_geomol_featurization_of_qm9 import ESOLGeomolQM9Featurization
+from datasets.file_loader_drugs import FileLoaderDrugs
 from datasets.file_loader_qm9 import FileLoaderQM9
 from datasets.geom_drugs_dataset import GEOMDrugs
 from datasets.geom_qm9_dataset import GEOMqm9
-from datasets.geomol_drugs_dataset import GeomolDrugsDataset
-from datasets.geomol_geom_qm9_dataset import GeomolGeomQM9Datset
+from datasets.geomol_geom_qm9_dataset import QM9GeomolFeatDataset
 from datasets.lipo_geomol_feat import LIPOGeomol
 from datasets.lipo_geomol_featurization_of_qm9 import LIPOGeomolQM9Featurization
 from datasets.ogbg_dataset_extension import OGBGDatasetExtension
-from datasets.ot_pyg_geom_qm9 import PyGGeomolGeomQM9
 
 from datasets.qm9_geomol_featurization import QM9GeomolFeaturization
 from datasets.qmugs_dataset import QMugsDataset
@@ -30,15 +29,12 @@ from trainer.byol_trainer import BYOLTrainer
 from trainer.byol_wrapper import BYOLwrapper
 import faulthandler
 
-faulthandler.enable()
 import seaborn
 
 from trainer.optimal_transport_trainer import OptimalTransportTrainer
 from trainer.philosophy_trainer import PhilosophyTrainer
-from trainer.self_supervised_alternating_trainer import SelfSupervisedAlternatingTrainer
 
-install()
-seaborn.set_theme()
+from trainer.self_supervised_alternating_trainer import SelfSupervisedAlternatingTrainer
 
 from trainer.self_supervised_trainer import SelfSupervisedTrainer
 
@@ -62,9 +58,13 @@ from trainer.metrics import QM9DenormalizedL1, QM9DenormalizedL2, \
     Conformer2DVariance, Conformer3DVariance
 from trainer.trainer import Trainer
 
+faulthandler.enable()
+install()
+seaborn.set_theme()
+
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/adsf.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/4.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
@@ -136,6 +136,7 @@ def parse_arguments():
     p.add_argument('--eval_on_test', type=bool, default=True, help='runs evaluation on test set if true')
     return p.parse_args()
 
+
 def get_trainer(args, model, data, device, metrics):
     tensorboard_functions = {function: TENSORBOARD_FUNCTIONS[function] for function in args.tensorboard_functions}
     if args.model3d_type:
@@ -164,7 +165,7 @@ def get_trainer(args, model, data, device, metrics):
                            tensorboard_functions=tensorboard_functions,
                            scheduler_step_per_batch=args.scheduler_step_per_batch)
     else:
-        if args.trainer == 'geomol':
+        if args.trainer == 'optimal_transport':
             trainer = OptimalTransportTrainer
         else:
             trainer = Trainer
@@ -176,7 +177,6 @@ def get_trainer(args, model, data, device, metrics):
 
 
 def load_model(args, data, device):
-
     model = globals()[args.model_type](avg_d=data.avg_degree if hasattr(data, 'avg_degree') else 1, device=device,
                                        **args.model_parameters)
     if args.pretrain_checkpoint:
@@ -188,9 +188,10 @@ def load_model(args, data, device):
         checkpoint = torch.load(args.pretrain_checkpoint, map_location=device)
         # get all the weights that have something from 'args.transfer_layers' in their keys name
         # but only if they do not contain 'teacher' and remove 'student.' which we need for loading from BYOLWrapper
-        pretrained_gnn_dict = {k.replace('student.', '').replace('gnn.','node_gnn.').replace('gnn2.','node_gnn.'): v for k, v in checkpoint['model_state_dict'].items() if any(
-            transfer_layer in k for transfer_layer in args.transfer_layers) and 'teacher' not in k and not any(
-            to_exclude in k for to_exclude in args.exclude_from_transfer)}
+        pretrained_gnn_dict = {k.replace('student.', '').replace('gnn.', 'node_gnn.').replace('gnn2.', 'node_gnn.'): v
+                               for k, v in checkpoint['model_state_dict'].items() if any(
+                transfer_layer in k for transfer_layer in args.transfer_layers) and 'teacher' not in k and not any(
+                to_exclude in k for to_exclude in args.exclude_from_transfer)}
         model_state_dict = model.state_dict()
         model_state_dict.update(pretrained_gnn_dict)  # update the gnn layers with the pretrained weights
         model.load_state_dict(model_state_dict)
@@ -240,10 +241,10 @@ def train(args):
         train_zinc(args, device, metrics_dict)
     elif args.dataset == 'qmugs':
         train_geom(args, device, metrics_dict)
-    elif args.dataset == 'drugs' or args.dataset == 'geom_qm9' or args.dataset == 'geom_qm9_geomol' or args.dataset == 'geom_drugs_geomol' or args.dataset == 'file_loader_geomol' or args.dataset == 'ot_pyg_geom_qm9':
+    elif args.dataset == 'drugs' or args.dataset == 'geom_qm9' or args.dataset == 'qm9_geomol_feat' or args.dataset == 'file_loader_drugs' or args.dataset == 'file_loader_qm9':
         train_geom(args, device, metrics_dict)
     elif args.dataset == 'qm9_geomol':
-        train_geomol_qm9(args, device, metrics_dict)
+        train_qm9_geomol_featurization(args, device, metrics_dict)
     elif 'geomol' in args.dataset:
         train_geomol(args, device, metrics_dict)
     elif 'ogbg' in args.dataset:
@@ -309,7 +310,7 @@ def train_geomol(args, device, metrics_dict):
         trainer.evaluation(test_loader, data_split='test')
 
 
-def train_geomol_qm9(args, device, metrics_dict):
+def train_qm9_geomol_featurization(args, device, metrics_dict):
     all_data = QM9GeomolFeaturization(return_types=args.required_data, target_tasks=args.targets, device=device,
                                       dist_embedding=args.dist_embedding, num_radial=args.num_radial)
 
@@ -417,31 +418,27 @@ def train_geom(args, device, metrics_dict):
         dataset = GEOMqm9
     elif args.dataset == 'qmugs':
         dataset = QMugsDataset
-    elif args.dataset == 'geom_qm9_geomol':
-        dataset = GeomolGeomQM9Datset
-    elif args.dataset == 'geom_drugs_geomol':
-        dataset = GeomolDrugsDataset
-    elif args.dataset == 'file_loader_geomol':
+    elif args.dataset == 'qm9_geomol_feat':
+        dataset = QM9GeomolFeatDataset
+    elif args.dataset == 'file_loader_drugs':
+        dataset = FileLoaderDrugs
+    elif args.dataset == 'file_loader_qm9':
         dataset = FileLoaderQM9
-    elif args.dataset == 'ot_pyg_geom_qm9':
-        dataset = PyGGeomolGeomQM9
     all_data = dataset(return_types=args.required_data, target_tasks=args.targets, device=device,
                        num_conformers=args.num_conformers)
     all_idx = get_random_indices(len(all_data), args.seed_data)
     if args.dataset == 'drugs':
         model_idx = all_idx[:240000]
-    elif args.dataset == 'geom_qm9':
+    elif args.dataset in ['geom_qm9', 'qm9_geomol_feat']:
         model_idx = all_idx[:100000]
     elif args.dataset == 'qmugs':
         model_idx = all_idx[:620000]
-    elif args.dataset == 'file_loader_geomol':
-        model_idx = all_idx[:8000]
-    elif args.dataset == 'geom_qm9_geomol' or args.dataset == 'ot_pyg_geom_qm9':
-        model_idx = all_idx[:80000]  # 107962 molecules in all_data
-    elif args.dataset == 'geom_drugs_geomol':
+    elif args.dataset == 'file_loader_qm9':
+        model_idx = all_idx[:80000]  # 107857 molecules in all_data
+    elif args.dataset == 'file_loader_drugs':
         model_idx = all_idx[:160000]
     test_idx = all_idx[len(model_idx): len(model_idx) + int(0.05 * len(all_data))]
-    if args.dataset == 'geom_drugs_geomol' or args.dataset == 'geom_qm9_geomol' or args.dataset == 'ot_pyg_geom_qm9' or args.dataset == 'file_loader_geomol':
+    if args.dataset in ['file_loader_drugs', 'file_loader_qm9']:
         val_idx = all_idx[max(len(model_idx) + len(test_idx), len(all_data) - 1000):]
     else:
         val_idx = all_idx[len(model_idx) + len(test_idx):]
@@ -522,7 +519,6 @@ def train_qm9(args, device, metrics_dict):
     trainer.train(train_loader, val_loader)
     if args.eval_on_test:
         trainer.evaluation(test_loader, data_split='test')
-
 
 
 def get_arguments():

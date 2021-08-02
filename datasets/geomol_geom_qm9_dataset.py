@@ -25,7 +25,7 @@ chirality = {ChiralType.CHI_TETRAHEDRAL_CW: -1.,
              ChiralType.CHI_OTHER: 0}
 
 
-class GeomolGeomQM9Datset(Dataset):
+class QM9GeomolFeatDataset(Dataset):
 
     def __init__(self, return_types: list = None, target_tasks: list = None, normalize: bool = True, device='cuda:0',
                  num_conformers=1, **kwargs):
