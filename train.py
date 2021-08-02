@@ -13,7 +13,7 @@ from datasets.bbbp_geomol_featurization_of_qm9 import BBBPGeomolQM9Featurization
 from datasets.bbbp_geomol_random_split import BBBPGeomolRandom
 from datasets.esol_geomol_feat import ESOLGeomol
 from datasets.esol_geomol_featurization_of_qm9 import ESOLGeomolQM9Featurization
-from datasets.file_loader_geomol_qm9 import FileLoaderQM9
+from datasets.file_loader_qm9 import FileLoaderQM9
 from datasets.geom_drugs_dataset import GEOMDrugs
 from datasets.geom_qm9_dataset import GEOMqm9
 from datasets.geomol_drugs_dataset import GeomolDrugsDataset
@@ -21,7 +21,7 @@ from datasets.geomol_geom_qm9_dataset import GeomolGeomQM9Datset
 from datasets.lipo_geomol_feat import LIPOGeomol
 from datasets.lipo_geomol_featurization_of_qm9 import LIPOGeomolQM9Featurization
 from datasets.ogbg_dataset_extension import OGBGDatasetExtension
-from datasets.pyg_geomol_geom_qm9 import PyGGeomolGeomQM9
+from datasets.ot_pyg_geom_qm9 import PyGGeomolGeomQM9
 
 from datasets.qm9_geomol_featurization import QM9GeomolFeaturization
 from datasets.qmugs_dataset import QMugsDataset
@@ -33,7 +33,7 @@ import faulthandler
 faulthandler.enable()
 import seaborn
 
-from trainer.geomol_trainer import GeomolTrainer
+from trainer.optimal_transport_trainer import OptimalTransportTrainer
 from trainer.philosophy_trainer import PhilosophyTrainer
 from trainer.self_supervised_alternating_trainer import SelfSupervisedAlternatingTrainer
 
@@ -64,7 +64,7 @@ from trainer.trainer import Trainer
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/fine_tune_geomol_pna.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/adsf.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
@@ -165,7 +165,7 @@ def get_trainer(args, model, data, device, metrics):
                            scheduler_step_per_batch=args.scheduler_step_per_batch)
     else:
         if args.trainer == 'geomol':
-            trainer = GeomolTrainer
+            trainer = OptimalTransportTrainer
         else:
             trainer = Trainer
         return trainer(model=model, args=args, metrics=metrics, main_metric=args.main_metric,
@@ -240,7 +240,7 @@ def train(args):
         train_zinc(args, device, metrics_dict)
     elif args.dataset == 'qmugs':
         train_geom(args, device, metrics_dict)
-    elif args.dataset == 'drugs' or args.dataset == 'geom_qm9' or args.dataset == 'geom_qm9_geomol' or args.dataset == 'geom_drugs_geomol' or args.dataset == 'file_loader_geomol' or args.dataset == 'pyg_geomol_geom_qm9':
+    elif args.dataset == 'drugs' or args.dataset == 'geom_qm9' or args.dataset == 'geom_qm9_geomol' or args.dataset == 'geom_drugs_geomol' or args.dataset == 'file_loader_geomol' or args.dataset == 'ot_pyg_geom_qm9':
         train_geom(args, device, metrics_dict)
     elif args.dataset == 'qm9_geomol':
         train_geomol_qm9(args, device, metrics_dict)
@@ -423,7 +423,7 @@ def train_geom(args, device, metrics_dict):
         dataset = GeomolDrugsDataset
     elif args.dataset == 'file_loader_geomol':
         dataset = FileLoaderQM9
-    elif args.dataset == 'pyg_geomol_geom_qm9':
+    elif args.dataset == 'ot_pyg_geom_qm9':
         dataset = PyGGeomolGeomQM9
     all_data = dataset(return_types=args.required_data, target_tasks=args.targets, device=device,
                        num_conformers=args.num_conformers)
@@ -436,12 +436,12 @@ def train_geom(args, device, metrics_dict):
         model_idx = all_idx[:620000]
     elif args.dataset == 'file_loader_geomol':
         model_idx = all_idx[:8000]
-    elif args.dataset == 'geom_qm9_geomol' or args.dataset == 'pyg_geomol_geom_qm9':
+    elif args.dataset == 'geom_qm9_geomol' or args.dataset == 'ot_pyg_geom_qm9':
         model_idx = all_idx[:80000]  # 107962 molecules in all_data
     elif args.dataset == 'geom_drugs_geomol':
         model_idx = all_idx[:160000]
     test_idx = all_idx[len(model_idx): len(model_idx) + int(0.05 * len(all_data))]
-    if args.dataset == 'geom_drugs_geomol' or args.dataset == 'geom_qm9_geomol' or args.dataset == 'pyg_geomol_geom_qm9' or args.dataset == 'file_loader_geomol':
+    if args.dataset == 'geom_drugs_geomol' or args.dataset == 'geom_qm9_geomol' or args.dataset == 'ot_pyg_geom_qm9' or args.dataset == 'file_loader_geomol':
         val_idx = all_idx[max(len(model_idx) + len(test_idx), len(all_data) - 1000):]
     else:
         val_idx = all_idx[len(model_idx) + len(test_idx):]

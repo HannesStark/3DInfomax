@@ -18,9 +18,9 @@ from models.geomol_mpnn_ogb_feat import GeomolGNNOGBFeat
 DEBUG_NEIGHBORHOOD_PAIRS = False
 
 
-class GeoMol(nn.Module):
+class OptimalTransportModel(nn.Module):
     def __init__(self, hyperparams,gnn_model, gnn_params, device, **kwargs):
-        super(GeoMol, self).__init__()
+        super(OptimalTransportModel, self).__init__()
 
         self.hidden_dim = hyperparams['hidden_dim']
         self.random_vec_dim = hyperparams['random_vec_dim']

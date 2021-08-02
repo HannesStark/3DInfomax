@@ -1,6 +1,6 @@
 experiment_name: 'baseline'
 
-dataset: pyg_geomol_geom_qm9
+dataset: ot_pyg_geom_qm9
 num_epochs: 250
 batch_size: 2
 trainer: geomol

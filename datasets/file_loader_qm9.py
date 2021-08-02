@@ -15,6 +15,7 @@ import torch
 import torch.nn.functional as F
 from torch_scatter import scatter
 from torch_geometric.data import Dataset, Data, DataLoader
+from tqdm import tqdm
 
 dihedral_pattern = Chem.MolFromSmarts('[*]~[*]~[*]~[*]')
 chirality = {ChiralType.CHI_TETRAHEDRAL_CW: -1.,
@@ -40,12 +41,12 @@ def one_k_encoding(value, choices):
 
 class FileLoaderQM9(Dataset):
     def __init__(self, return_types=[], root='dataset/GEOM/qm9', transform=None, pre_transform=None, max_confs=10, **kwargs):
+        self.max_confs = max_confs
         super(FileLoaderQM9, self).__init__(root, transform, pre_transform)
 
         self.root = root
         self.return_types = return_types
         self.pickle_files = torch.load(self.processed_paths[0])
-        self.max_confs = max_confs
 
     def open_pickle(self, mol_path):
         with open(mol_path, "rb") as f:
@@ -58,7 +59,7 @@ class FileLoaderQM9(Dataset):
 
     def process(self):
         valid_files = []
-        for pickle_file in sorted(glob.glob(osp.join(self.root, '*.pickle'))):
+        for pickle_file in tqdm(sorted(glob.glob(osp.join(self.root, '*.pickle')))):
             mol_dic = self.open_pickle(pickle_file)
             data = self.featurize_mol(mol_dic)
             if data != None:

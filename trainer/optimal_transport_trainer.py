@@ -4,9 +4,9 @@ from commons.utils import move_to_device
 from trainer.trainer import Trainer
 
 
-class GeomolTrainer(Trainer):
+class OptimalTransportTrainer(Trainer):
     def __init__(self, **kwargs):
-        super(GeomolTrainer, self).__init__(**kwargs)
+        super(OptimalTransportTrainer, self).__init__(**kwargs)
 
     def forward_pass(self, batch, epoch):
         data = tuple(batch)
