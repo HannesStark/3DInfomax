@@ -5,6 +5,8 @@ transfer_layers:
   - gnn
 exclude_from_transfer:
   - batch_norm
+  - node_input_net
+  - edge_input
 
 
 dataset: drugs
