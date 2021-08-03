@@ -1,5 +1,6 @@
 import argparse
 import os
+import re
 
 from icecream import install
 
@@ -188,7 +189,7 @@ def load_model(args, data, device):
         checkpoint = torch.load(args.pretrain_checkpoint, map_location=device)
         # get all the weights that have something from 'args.transfer_layers' in their keys name
         # but only if they do not contain 'teacher' and remove 'student.' which we need for loading from BYOLWrapper
-        pretrained_gnn_dict = {k.replace('student.', '').replace('gnn.', 'node_gnn.').replace('gnn2.', 'node_gnn.'): v
+        pretrained_gnn_dict = {re.sub('^gnn\.|^gnn2\.', 'node_gnn.', k.replace('student.', '')): v
                                for k, v in checkpoint['model_state_dict'].items() if any(
                 transfer_layer in k for transfer_layer in args.transfer_layers) and 'teacher' not in k and not any(
                 to_exclude in k for to_exclude in args.exclude_from_transfer)}
