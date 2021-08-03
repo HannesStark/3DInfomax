@@ -1,7 +1,7 @@
 experiment_name: 'tune'
 
 seed: 6
-pretrain_checkpoint: runs/GeoMol_file_loader_geomol_baseline_123_01-08_15-11-34/best_checkpoint.pt
+pretrain_checkpoint: runs/OptimalTransportModel_file_loader_qm9_GeomolGNN_10000_hidden25_123_02-08_10-58-56/best_checkpoint.pt
 transfer_layers:
   - gnn.
 exclude_from_transfer:
@@ -46,12 +46,12 @@ lr_scheduler_params:
 model_type: 'GeomolGNNWrapperOGBFeat'
 model_parameters:
   target_dim: 1
-  hidden_dim: 50
+  hidden_dim: 25
   readout_layers: 2
   readout_batchnorm: True
+  random_vec_std: 5.0
+  random_vec_dim: 10
   gnn_params:
-    random_vec_std: 5.0
-    random_vec_dim: 10
     depth: 3
     n_layers: 2
 

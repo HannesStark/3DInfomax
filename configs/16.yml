@@ -1,29 +1,38 @@
-experiment_name: 'baseline'
+experiment_name: 'tune_qmugs_NTXentMultiplePositives_5layers_1pretrains'
 
-seed: 4
-dataset: 'ogbg-molbbbp'
+pretrain_checkpoint: runs/PNA_qmugs_NTXentMultiplePositives_5layers_1pretrains_123_01-08_12-14-01/best_checkpoint.pt
+transfer_layers:
+  - gnn
+exclude_from_transfer:
+  - batch_norm
+
+
 num_epochs: 1000
-batch_size: 32
+batch_size: 128
 log_iterations: 30
 patience: 30
-loss_func: BCEWithLogitsLoss
-minimum_epochs: 100
+loss_func: L1Loss
+num_train: 50000
+targets:
+  - homo
 required_data:
-  - pytorch_geometric_graph
+  - dgl_graph
   - targets
 metrics:
+  - mae_denormalized
   - pearsonr
   - rsquared
-collate_function: pytorch_geometric_collate
+  - qm9_properties
 
 optimizer: Adam
 optimizer_params:
-  lr: 1.0e-3
+  lr: 7.0e-5
+  weight_decay: 1.0e-11
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [700]
+  warmup_steps: [700,700,390]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
@@ -35,15 +44,39 @@ lr_scheduler_params:
 
 
 
-# Model parameters
-model_type: 'GeomolGNNWrapperOGBFeat'
+model_type: 'PNA'
 model_parameters:
   target_dim: 1
-  hidden_dim: 50
-  readout_layers: 2
+  hidden_dim: 200
+  mid_batch_norm: True
+  last_batch_norm: True
   readout_batchnorm: True
-  depth: 3
-  n_layers: 2
+  # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
+  batch_norm_momentum: 0.1
+  readout_hidden_dim: 256
+  readout_layers: 2
+  dropout: 0.0
+  propagation_depth: 5
+  aggregators:
+    - mean
+    - max
+    - min
+    - std
+  scalers:
+    - identity
+    - amplification
+    - attenuation
+  readout_aggregators:
+    - min
+    - max
+    - mean
+    - sum
+  pretrans_layers: 1
+  posttrans_layers: 1
+  residual: True
+
+
+
 
 
 

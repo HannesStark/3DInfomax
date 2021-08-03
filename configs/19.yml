@@ -1,6 +1,6 @@
-experiment_name: 'tune_drugs_NTXentMMDSeparate2D_SNAPSHOT'
+experiment_name: 'tune_qmugs_NTXentMultiplePositives_5layers'
 
-pretrain_checkpoint: runs/PNA_drugs_NTXentMMDSeparate2D_123_26-07_15-37-21/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_qmugs_NTXentMultiplePositives_5layers_123_01-08_12-14-01/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
@@ -24,7 +24,6 @@ metrics:
   - mae_denormalized
   - pearsonr
   - rsquared
-  - qm9_properties
 
 optimizer: Adam
 optimizer_params:
@@ -46,7 +45,6 @@ lr_scheduler_params:
 
 
 
-# Model parameters
 model_type: 'PNA'
 model_parameters:
   target_dim: 1
@@ -55,11 +53,11 @@ model_parameters:
   last_batch_norm: True
   readout_batchnorm: True
   # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
-  batch_norm_momentum: 0.1
-  readout_hidden_dim: 200
+  batch_norm_momentum: 0.93
+  readout_hidden_dim: 256
   readout_layers: 2
   dropout: 0.0
-  propagation_depth: 7
+  propagation_depth: 5
   aggregators:
     - mean
     - max
@@ -77,6 +75,7 @@ model_parameters:
   pretrans_layers: 2
   posttrans_layers: 1
   residual: True
+
 
 
 

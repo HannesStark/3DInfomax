@@ -61,8 +61,7 @@ class FileLoaderDrugs(Dataset):
         valid_files = []
         for pickle_file in tqdm(sorted(glob.glob(osp.join(self.root, 'drugs', '*.pickle')))):
             mol_dic = self.open_pickle(pickle_file)
-            data = self.featurize_mol(mol_dic)
-            if data != None:
+            if self.mol_is_valid(mol_dic):
                 valid_files.append(pickle_file)
         torch.save(valid_files, self.processed_paths[0])
 
@@ -179,3 +178,56 @@ class FileLoaderDrugs(Dataset):
 
 
 
+    def mol_is_valid(self, mol_dic):
+
+        confs = mol_dic['conformers']
+        random.shuffle(confs)  # shuffle confs
+        name = mol_dic["smiles"]
+
+        # filter mols rdkit can't intrinsically handle
+        mol_ = Chem.MolFromSmiles(name)
+        if mol_:
+            canonical_smi = Chem.MolToSmiles(mol_)
+        else:
+            return False
+
+        # skip conformers with fragments
+        if '.' in name:
+            return False
+
+        # skip conformers without dihedrals
+        N = confs[0]['rd_mol'].GetNumAtoms()
+        if N < 4:
+            return False
+        if confs[0]['rd_mol'].GetNumBonds() < 4:
+            return False
+        if not confs[0]['rd_mol'].HasSubstructMatch(dihedral_pattern):
+            return False
+
+        k = 0
+        for conf in confs:
+            mol = conf['rd_mol']
+
+            # skip mols with atoms with more than 4 neighbors for now
+            n_neighbors = [len(a.GetNeighbors()) for a in mol.GetAtoms()]
+            if np.max(n_neighbors) > 4:
+                continue
+
+            # filter for conformers that may have reacted
+            try:
+                conf_canonical_smi = Chem.MolToSmiles(Chem.RemoveHs(mol))
+            except Exception as e:
+                continue
+
+            if conf_canonical_smi != canonical_smi:
+                continue
+
+            k += 1
+            if k == self.max_confs:
+                break
+
+        # return False if no non-reactive conformers were found
+        if k == 0:
+            return False
+
+        return True
