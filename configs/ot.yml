@@ -39,6 +39,7 @@ model_type: 'OptimalTransportModel'
 model_parameters:
   gnn_model: PNAGNNRandom
   gnn_params:
+    hidden_dim: 50
     mid_batch_norm: True
     last_batch_norm: True
     readout_batchnorm: True

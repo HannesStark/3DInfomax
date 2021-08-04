@@ -85,10 +85,13 @@ def get_dihedral_pairs(edge_index, neighbors, data):
     dihedral_idxs = torch.nonzero(dihedral_pairs.sort(dim=0).indices[0, :] == 0).squeeze().detach().cpu().numpy()
 
     # prioritize rings for assigning dihedrals
-    dihedral_pairs = dihedral_pairs.t()[dihedral_idxs].squeeze(1)
+    dihedral_pairs = dihedral_pairs.t()[dihedral_idxs]
     G = nx.to_undirected(tg.utils.to_networkx(data))
     cycles = nx.cycle_basis(G)
     keep, sorted_keep = [], []
+
+    if len(dihedral_pairs.shape) == 1:
+        dihedral_pairs = dihedral_pairs.unsqueeze(0)
 
     for pair in dihedral_pairs:
         x, y = pair

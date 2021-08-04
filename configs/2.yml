@@ -1,4 +1,4 @@
-experiment_name: 'GeomolGNN_10000_hidden25'
+experiment_name: 'GeomolGNNOGBFeat_hidden25_depth_5'
 
 dataset: file_loader_qm9
 num_epochs: 250
@@ -7,7 +7,7 @@ trainer: optimal_transport
 log_iterations: 10
 patience: 30
 loss_func: MSELoss
-num_train: 10000
+num_train: 1000
 required_data:
   - pyg_multiple_conformers
 collate_function: pyg_graph_only_collate
@@ -38,7 +38,8 @@ model_type: 'OptimalTransportModel'
 model_parameters:
   gnn_model: GeomolGNNOGBFeat
   gnn_params:
-    depth: 3
+    hidden_dim: 25
+    depth: 5
     n_layers: 2
 
   hyperparams:

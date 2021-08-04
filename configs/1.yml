@@ -1,4 +1,4 @@
-experiment_name: 'PNA_10000_hidden50_depth5'
+experiment_name: 'PNA_10000_hidden25_depth5'
 
 dataset: file_loader_qm9
 num_epochs: 250
@@ -39,6 +39,7 @@ model_type: 'OptimalTransportModel'
 model_parameters:
   gnn_model: PNAGNNRandom
   gnn_params:
+    hidden_dim: 25
     mid_batch_norm: True
     last_batch_norm: True
     readout_batchnorm: True

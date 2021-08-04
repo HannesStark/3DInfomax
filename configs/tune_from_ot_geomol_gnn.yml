@@ -30,7 +30,7 @@ optimizer_params:
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [200,200,200]
+  warmup_steps: [700,700,350]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
@@ -52,6 +52,7 @@ model_parameters:
   random_vec_std: 5.0
   random_vec_dim: 10
   gnn_params:
+    hidden_dim: 25
     depth: 3
     n_layers: 2
 

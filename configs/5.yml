@@ -1,8 +1,8 @@
-experiment_name: 'PNA_10000_hidden200'
+experiment_name: 'PNA_10000_hidden200_depth7_batch32'
 
 dataset: file_loader_drugs
 num_epochs: 250
-batch_size: 16
+batch_size: 32
 trainer: optimal_transport
 log_iterations: 10
 patience: 30
@@ -17,7 +17,7 @@ main_metric: loss
 
 optimizer: Adam
 optimizer_params:
-  lr: 1.0e-3
+  lr: 1.0e-4
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
@@ -39,6 +39,7 @@ model_type: 'OptimalTransportModel'
 model_parameters:
   gnn_model: PNAGNNRandom
   gnn_params:
+    hidden_dim: 200
     mid_batch_norm: True
     last_batch_norm: True
     readout_batchnorm: True
@@ -74,7 +75,7 @@ model_parameters:
     h_mol_mlp:
       n_layers: 1
     loss_type: ot_emd
-    hidden_dim: 200
+    hidden_dim: 50
     n_model_confs: 10
     n_true_confs: 10
     random_alpha: false

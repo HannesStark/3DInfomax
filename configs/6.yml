@@ -1,4 +1,4 @@
-experiment_name: 'GeomolGNN_10000_hidden50'
+experiment_name: 'PNA_10000_hidden70_depth5_pretrans1'
 
 dataset: file_loader_drugs
 num_epochs: 250
@@ -10,7 +10,8 @@ loss_func: MSELoss
 num_train: 10000
 required_data:
   - pyg_multiple_conformers
-collate_function: pyg_graph_only_collate
+  - dgl_graph
+collate_function: pyg_and_dgl_graph_collate
 num_conformers: 10
 main_metric: loss
 
@@ -36,10 +37,28 @@ lr_scheduler_params:
 # Model parameters
 model_type: 'OptimalTransportModel'
 model_parameters:
-  gnn_model: GeomolGNNOGBFeat
+  gnn_model: PNAGNNRandom
   gnn_params:
-    depth: 3
-    n_layers: 2
+    hidden_dim: 70
+    mid_batch_norm: True
+    last_batch_norm: True
+    readout_batchnorm: True
+    # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
+    batch_norm_momentum: 0.1
+    dropout: 0.0
+    propagation_depth: 5
+    aggregators:
+      - mean
+      - max
+      - min
+      - std
+    scalers:
+      - identity
+      - amplification
+      - attenuation
+    pretrans_layers: 1
+    posttrans_layers: 1
+    residual: True
 
   hyperparams:
     alpha_mlp:

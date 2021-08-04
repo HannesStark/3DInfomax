@@ -11,6 +11,7 @@ from itertools import permutations
 import numpy as np
 import ot
 
+from models.base_layers import MLP
 from models.pna_gnn_random import PNAGNNRandom
 from models.geomol_mpnn import GeomolGNN, GeomolMLP
 from models.geomol_mpnn_ogb_feat import GeomolGNNOGBFeat
@@ -19,7 +20,7 @@ DEBUG_NEIGHBORHOOD_PAIRS = False
 
 
 class OptimalTransportModel(nn.Module):
-    def __init__(self, hyperparams,gnn_model, gnn_params, device, **kwargs):
+    def __init__(self, hyperparams,gnn_model, gnn_params, device, use_transformer = True, use_two_gnns= True, **kwargs):
         super(OptimalTransportModel, self).__init__()
 
         self.hidden_dim = hyperparams['hidden_dim']
@@ -33,13 +34,23 @@ class OptimalTransportModel(nn.Module):
         self.n_model_confs = hyperparams['n_model_confs']
         self.device = device
 
-        self.gnn = globals()[gnn_model](hidden_dim=self.hidden_dim, random_vec_dim= self.random_vec_dim, n_model_confs=self.n_model_confs, pretrain_mode=True,**gnn_params)
-        self.gnn2 = globals()[gnn_model](hidden_dim=self.hidden_dim, random_vec_dim= self.random_vec_dim, n_model_confs=self.n_model_confs, pretrain_mode=True,**gnn_params)
+        self.use_two_gnns = use_two_gnns
+        self.gnn = globals()[gnn_model](random_vec_dim= self.random_vec_dim, n_model_confs=self.n_model_confs, pretrain_mode=True,**gnn_params)
+        if self.use_two_gnns:
+            self.gnn2 = globals()[gnn_model](random_vec_dim= self.random_vec_dim, n_model_confs=self.n_model_confs, pretrain_mode=True,**gnn_params)
+        self.use_gnn_output_mlp = gnn_params['hidden_dim'] != self.hidden_dim
+        if self.use_gnn_output_mlp:
+            self.gnn_output_mlp = MLP(in_dim=gnn_params['hidden_dim'], out_dim=self.hidden_dim, layers=1)
+            if self.use_two_gnns:
+                self.gnn2_output_mlp = MLP(in_dim=gnn_params['hidden_dim'], out_dim=self.hidden_dim, layers=1)
+
         if hyperparams['global_transformer']:
             self.global_embed = TransformerEncoderLayer(d_model=self.hidden_dim, nhead=1,
                                                         dim_feedforward=self.hidden_dim * 2,
                                                         dropout=0.0, activation='relu')
-        self.encoder = TransformerEncoderLayer(d_model=self.hidden_dim * 2,
+        self.use_transformer= use_transformer
+        if use_transformer:
+            self.encoder = TransformerEncoderLayer(d_model=self.hidden_dim * 2,
                                                nhead=hyperparams['encoder']['n_head'],
                                                dim_feedforward=self.hidden_dim * 3,
                                                dropout=0.0, activation='relu')
@@ -57,6 +68,8 @@ class OptimalTransportModel(nn.Module):
             self.alpha_mlp = GeomolMLP(in_dim=self.hidden_dim * 3, out_dim=1,
                                        num_layers=hyperparams['alpha_mlp']['n_layers'])
         self.c_mlp = GeomolMLP(in_dim=self.hidden_dim * 4, out_dim=1, num_layers=hyperparams['c_mlp']['n_layers'])
+
+
 
         self.loss = torch.nn.MSELoss(reduction='none')
 
@@ -212,7 +225,17 @@ class OptimalTransportModel(nn.Module):
             dgl_graph_clone = None
         # gnn
         x1, _ = self.gnn(x=x, edge_index=edge_index, edge_attr=edge_attr, rand_x=rand_x, rand_edge=rand_edge, dgl_graph=dgl_graph)
-        x2, _ = self.gnn2(x=x, edge_index=edge_index, edge_attr=edge_attr, rand_x=rand_x, rand_edge=rand_edge, dgl_graph=dgl_graph_clone)
+        if self.use_two_gnns:
+            x2, _ = self.gnn2(x=x, edge_index=edge_index, edge_attr=edge_attr, rand_x=rand_x, rand_edge=rand_edge, dgl_graph=dgl_graph_clone)
+        else:
+            x2 = x1.clone()
+
+        if self.use_gnn_output_mlp:
+            x1 = self.gnn_output_mlp(x1)
+            if self.use_two_gnns:
+                x2 = self.gnn2_output_mlp(x2)
+            else:
+                x2 = x1.clone()
 
         if self.global_transformer:
 
@@ -256,10 +279,12 @@ class OptimalTransportModel(nn.Module):
                                            self.hidden_dim * 2)  # CHECK RESHAPE OP
         h_mask = self.neighbor_mask.bool().unsqueeze(1).repeat(1, self.n_model_confs, 1).view(
             self.n_neighborhoods * self.n_model_confs, 4)
-
-        h_new = self.encoder(h_, src_key_padding_mask=~h_mask).view(4, self.n_neighborhoods, self.n_model_confs,
+        if self.use_transformer:
+            h_new = self.encoder(h_, src_key_padding_mask=~h_mask).view(4, self.n_neighborhoods, self.n_model_confs,
                                                                     self.hidden_dim * 2).permute(1, 0, 2, 3) \
                 * self.neighbor_mask.unsqueeze(-1).unsqueeze(-1)
+        else:
+            h_new = h_
         unit_normals = self.coord_pred(h_new) * self.neighbor_mask.unsqueeze(-1).unsqueeze(-1)
 
         # tetrahedral chiral corrections

@@ -1,6 +1,6 @@
-experiment_name: 'PNA_10000_hidden200'
+experiment_name: 'PNA_10000_hidden50_depth5'
 
-dataset: file_loader_qm9
+dataset: file_loader_drugs
 num_epochs: 250
 batch_size: 16
 trainer: optimal_transport
@@ -39,13 +39,14 @@ model_type: 'OptimalTransportModel'
 model_parameters:
   gnn_model: PNAGNNRandom
   gnn_params:
+    hidden_dim: 50
     mid_batch_norm: True
     last_batch_norm: True
     readout_batchnorm: True
     # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
     batch_norm_momentum: 0.1
     dropout: 0.0
-    propagation_depth: 7
+    propagation_depth: 5
     aggregators:
       - mean
       - max
@@ -74,7 +75,7 @@ model_parameters:
     h_mol_mlp:
       n_layers: 1
     loss_type: ot_emd
-    hidden_dim: 200
+    hidden_dim: 50
     n_model_confs: 10
     n_true_confs: 10
     random_alpha: false
