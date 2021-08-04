@@ -17,6 +17,8 @@ from torch_scatter import scatter
 from torch_geometric.data import Dataset, Data, DataLoader
 from tqdm import tqdm
 
+from commons.geomol_utils import get_dihedral_pairs
+
 dihedral_pattern = Chem.MolFromSmarts('[*]~[*]~[*]~[*]')
 chirality = {ChiralType.CHI_TETRAHEDRAL_CW: -1.,
              ChiralType.CHI_TETRAHEDRAL_CCW: 1.,
@@ -45,6 +47,7 @@ class FileLoaderDrugs(Dataset):
         super(FileLoaderDrugs, self).__init__(root, transform, pre_transform)
 
         self.root = root
+        self.dihedral_pairs = {}
         self.return_types = return_types
         self.pickle_files = torch.load(self.processed_paths[0])
 
@@ -74,6 +77,10 @@ class FileLoaderDrugs(Dataset):
         pickle_file = self.pickle_files[idx]
         mol_dic = self.open_pickle(pickle_file)
         data = self.featurize_mol(mol_dic)
+        if idx in self.dihedral_pairs:
+            data.edge_index_dihedral_pairs = self.dihedral_pairs[idx]
+        else:
+            data.edge_index_dihedral_pairs = get_dihedral_pairs(data.edge_index, neighbors=None, data=data)
 
         if 'dgl_graph' in self.return_types:
             g = dgl.graph((data.edge_index[0], data.edge_index[1]),num_nodes=data.num_nodes)

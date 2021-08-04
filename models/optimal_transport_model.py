@@ -151,7 +151,7 @@ class OptimalTransportModel(nn.Module):
         """
         self.neighbors = get_neighbor_ids(data)
         self.leaf_hydrogens = get_leaf_hydrogens(self.neighbors, x)
-        self.dihedral_pairs = get_dihedral_pairs(edge_index, self.neighbors, data)
+        self.dihedral_pairs = data.edge_index_dihedral_pairs
 
         self.n_neighborhoods = len(self.neighbors)
         self.n_dihedral_pairs = len(self.dihedral_pairs.t())

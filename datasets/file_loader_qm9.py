@@ -1,4 +1,5 @@
 import dgl
+import networkx as nx
 from ogb.utils.features import atom_to_feature_vector, bond_to_feature_vector
 from rdkit import Chem
 from rdkit.Chem.rdchem import HybridizationType
@@ -16,6 +17,8 @@ import torch.nn.functional as F
 from torch_scatter import scatter
 from torch_geometric.data import Dataset, Data, DataLoader
 from tqdm import tqdm
+
+from commons.geomol_utils import get_dihedral_pairs
 
 dihedral_pattern = Chem.MolFromSmarts('[*]~[*]~[*]~[*]')
 chirality = {ChiralType.CHI_TETRAHEDRAL_CW: -1.,
@@ -40,13 +43,15 @@ def one_k_encoding(value, choices):
 
 
 class FileLoaderQM9(Dataset):
-    def __init__(self, return_types=[], root='dataset/GEOM', transform=None, pre_transform=None, max_confs=10, **kwargs):
+    def __init__(self, return_types=[], root='dataset/GEOM', transform=None, pre_transform=None, max_confs=10,
+                 **kwargs):
         self.max_confs = max_confs
         super(FileLoaderQM9, self).__init__(root, transform, pre_transform)
 
         self.root = root
         self.return_types = return_types
         self.pickle_files = torch.load(self.processed_paths[0])
+        self.dihedral_pairs = {}
 
     def open_pickle(self, mol_path):
         with open(mol_path, "rb") as f:
@@ -66,7 +71,6 @@ class FileLoaderQM9(Dataset):
                 valid_files.append(pickle_file)
         torch.save(valid_files, self.processed_paths[0])
 
-
     def len(self):
         return len(self.pickle_files)
 
@@ -75,9 +79,13 @@ class FileLoaderQM9(Dataset):
         pickle_file = self.pickle_files[idx]
         mol_dic = self.open_pickle(pickle_file)
         data = self.featurize_mol(mol_dic)
+        if idx in self.dihedral_pairs:
+            data.edge_index_dihedral_pairs = self.dihedral_pairs[idx]
+        else:
+            data.edge_index_dihedral_pairs = get_dihedral_pairs(data.edge_index, neighbors=None, data=data)
 
         if 'dgl_graph' in self.return_types:
-            g = dgl.graph((data.edge_index[0], data.edge_index[1]),num_nodes=data.num_nodes)
+            g = dgl.graph((data.edge_index[0], data.edge_index[1]), num_nodes=data.num_nodes)
             g.ndata['feat'] = data.x
             g.edata['feat'] = data.edge_attr
             return data, g
@@ -149,7 +157,7 @@ class FileLoaderQM9(Dataset):
             if len(n_ids) > 1:
                 neighbor_dict[i] = torch.tensor(n_ids)
             chiral_tag.append(chirality[atom.GetChiralTag()])
-            atom_features.append(torch.tensor(atom_to_feature_vector(atom),dtype=torch.long))
+            atom_features.append(torch.tensor(atom_to_feature_vector(atom), dtype=torch.long))
 
         z = torch.tensor(atomic_number, dtype=torch.long)
         chiral_tag = torch.tensor(chiral_tag, dtype=torch.float)
@@ -164,7 +172,7 @@ class FileLoaderQM9(Dataset):
             bond_features.append(bond_feature)
 
         edge_index = torch.tensor([row, col], dtype=torch.long)
-        edge_attr = torch.stack(bond_features,dim=0)
+        edge_attr = torch.stack(bond_features, dim=0)
 
         perm = (edge_index[0] * N + edge_index[1]).argsort()
         edge_index = edge_index[:, perm]
@@ -176,6 +184,3 @@ class FileLoaderQM9(Dataset):
                     chiral_tag=chiral_tag, name=name, boltzmann_weight=conf['boltzmannweight'],
                     degeneracy=conf['degeneracy'], mol=correct_mol, pos_mask=pos_mask)
         return data
-
-
-

@@ -104,7 +104,7 @@ class Trainer():
         # evaluate on best checkpoint
         checkpoint = torch.load(os.path.join(self.writer.log_dir, 'best_checkpoint.pt'), map_location=self.device)
         self.model.load_state_dict(checkpoint['model_state_dict'])
-        self.evaluation(val_loader, data_split='val_best_checkpoint')
+        return self.evaluation(val_loader, data_split='val_best_checkpoint')
 
     def forward_pass(self, batch):
         targets = batch[-1]  # the last entry of the batch tuple is always the targets
@@ -207,6 +207,7 @@ class Trainer():
             for key, value in metrics.items():
                 file.write(f'{key}: {value}\n')
                 print(f'{key}: {value}')
+        return metrics
 
     def initialize_optimizer(self, optim):
         transferred_keys = [k for k in self.model.state_dict().keys() if

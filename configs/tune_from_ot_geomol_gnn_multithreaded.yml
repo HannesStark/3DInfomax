@@ -1,6 +1,12 @@
 experiment_name: 'tune'
 
-seed: 6
+multithreaded_seeds:
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
 pretrain_checkpoint: runs/OptimalTransportModel_file_loader_qm9_baseline_123_03-08_10-53-57/best_checkpoint.pt
 transfer_layers:
   - gnn.

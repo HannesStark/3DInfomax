@@ -78,6 +78,7 @@ def get_dihedral_pairs(edge_index, neighbors, data):
     start, end = edge_index
     degrees = degree(end)
     dihedral_pairs_true = torch.nonzero(torch.logical_and(degrees[start] > 1, degrees[end] > 1))
+
     dihedral_pairs = edge_index[:, dihedral_pairs_true].squeeze(-1)
 
     # # first method which removes one (pseudo) random edge from a cycle

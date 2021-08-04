@@ -1,4 +1,6 @@
 import argparse
+import concurrent.futures
+import copy
 import os
 import re
 
@@ -28,7 +30,6 @@ from datasets.qmugs_dataset import QMugsDataset
 from models.geomol_mpnn import GeomolGNNWrapper
 from trainer.byol_trainer import BYOLTrainer
 from trainer.byol_wrapper import BYOLwrapper
-import faulthandler
 
 import seaborn
 
@@ -59,13 +60,17 @@ from trainer.metrics import QM9DenormalizedL1, QM9DenormalizedL2, \
     Conformer2DVariance, Conformer3DVariance
 from trainer.trainer import Trainer
 
-faulthandler.enable()
+# turn on for debugging C code like Segmentation Faults
+# import faulthandler
+# faulthandler.enable()
 install()
 seaborn.set_theme()
 
+
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/tune_from_ot_geomol_gnn.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'),
+                   default='configs/pna.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
@@ -75,6 +80,8 @@ def parse_arguments():
     p.add_argument('--dataset', type=str, default='qm9', help='[qm9, zinc, drugs, geom_qm9, molhiv]')
     p.add_argument('--num_train', type=int, default=-1, help='n samples of the model samples to use for train')
     p.add_argument('--seed', type=int, default=123, help='seed for reproducibility')
+    p.add_argument('--multithreaded_seeds', type=list, default=[],
+                   help='if this is non empty, multiple threads will be started, training the same model but with the different seeds')
     p.add_argument('--seed_data', type=int, default=123, help='if you want to use a different seed for the datasplit')
     p.add_argument('--loss_func', type=str, default='MSELoss', help='Class name of torch.nn like [MSELoss, L1Loss]')
     p.add_argument('--loss_params', type=dict, default={}, help='parameters with keywords of the chosen loss function')
@@ -237,19 +244,20 @@ def train(args):
                     }
     print('using device: ', device)
     if args.dataset == 'qm9':
-        train_qm9(args, device, metrics_dict)
+        return train_qm9(args, device, metrics_dict)
     elif args.dataset == 'zinc':
-        train_zinc(args, device, metrics_dict)
+        return train_zinc(args, device, metrics_dict)
     elif args.dataset == 'qmugs':
-        train_geom(args, device, metrics_dict)
+        return train_geom(args, device, metrics_dict)
     elif args.dataset == 'drugs' or args.dataset == 'geom_qm9' or args.dataset == 'qm9_geomol_feat' or args.dataset == 'file_loader_drugs' or args.dataset == 'file_loader_qm9':
-        train_geom(args, device, metrics_dict)
+        return train_geom(args, device, metrics_dict)
     elif args.dataset == 'qm9_geomol':
-        train_qm9_geomol_featurization(args, device, metrics_dict)
+        return train_qm9_geomol_featurization(args, device, metrics_dict)
     elif 'geomol' in args.dataset:
-        train_geomol(args, device, metrics_dict)
+        return train_geomol(args, device, metrics_dict)
     elif 'ogbg' in args.dataset:
-        train_ogbg(args, device, metrics_dict)
+        return train_ogbg(args, device, metrics_dict)
+
 
 
 def train_geomol(args, device, metrics_dict):
@@ -306,9 +314,11 @@ def train_geomol(args, device, metrics_dict):
     args.val_per_batch = False
     args.main_metric_goal = 'min' if metrics[metric_name].metric == 'rmse' else 'max'
     trainer = get_trainer(args=args, model=model, data=train, device=device, metrics=metrics)
-    trainer.train(train_loader, val_loader)
+    val_metrics = trainer.train(train_loader, val_loader)
     if args.eval_on_test:
-        trainer.evaluation(test_loader, data_split='test')
+        test_metrics = trainer.evaluation(test_loader, data_split='test')
+        return val_metrics, test_metrics, trainer.writer.log_dir
+    return val_metrics
 
 
 def train_qm9_geomol_featurization(args, device, metrics_dict):
@@ -354,9 +364,11 @@ def train_qm9_geomol_featurization(args, device, metrics_dict):
             {task: QM9SingleTargetDenormalizedL1(dataset=all_data, task=task) for task in all_data.target_tasks})
 
     trainer = get_trainer(args=args, model=model, data=all_data, device=device, metrics=metrics)
-    trainer.train(train_loader, val_loader)
+    val_metrics = trainer.train(train_loader, val_loader)
     if args.eval_on_test:
-        trainer.evaluation(test_loader, data_split='test')
+        test_metrics = trainer.evaluation(test_loader, data_split='test')
+        return val_metrics, test_metrics, trainer.writer.log_dir
+    return val_metrics
 
 
 def train_ogbg(args, device, metrics_dict):
@@ -380,10 +392,11 @@ def train_ogbg(args, device, metrics_dict):
     args.val_per_batch = False
     args.main_metric_goal = 'min' if metrics[args.main_metric].metric == 'rmse' else 'max'
     trainer = get_trainer(args=args, model=model, data=dataset, device=device, metrics=metrics)
-    trainer.train(train_loader, val_loader)
-
+    val_metrics = trainer.train(train_loader, val_loader)
     if args.eval_on_test:
-        trainer.evaluation(test_loader, data_split='test')
+        test_metrics = trainer.evaluation(test_loader, data_split='test')
+        return val_metrics, test_metrics, trainer.writer.log_dir
+    return val_metrics
 
 
 def train_zinc(args, device, metrics_dict):
@@ -406,10 +419,11 @@ def train_zinc(args, device, metrics_dict):
 
     metrics = {metric: metrics_dict[metric] for metric in args.metrics}
     trainer = get_trainer(args=args, model=model, data=train_data, device=device, metrics=metrics)
-    trainer.train(train_loader, val_loader)
-
+    val_metrics = trainer.train(train_loader, val_loader)
     if args.eval_on_test:
-        trainer.evaluation(test_loader, data_split='test')
+        test_metrics = trainer.evaluation(test_loader, data_split='test')
+        return val_metrics, test_metrics, trainer.writer.log_dir
+    return val_metrics
 
 
 def train_geom(args, device, metrics_dict):
@@ -471,10 +485,11 @@ def train_geom(args, device, metrics_dict):
                              'mse_denormalized': QM9DenormalizedL2(dataset=all_data)})
     metrics = {metric: metrics_dict[metric] for metric in args.metrics}
     trainer = get_trainer(args=args, model=model, data=all_data, device=device, metrics=metrics)
-    trainer.train(train_loader, val_loader)
-
+    val_metrics = trainer.train(train_loader, val_loader)
     if args.eval_on_test:
-        trainer.evaluation(test_loader, data_split='test')
+        test_metrics = trainer.evaluation(test_loader, data_split='test')
+        return val_metrics, test_metrics, trainer.writer.log_dir
+    return val_metrics
 
 
 def train_qm9(args, device, metrics_dict):
@@ -487,8 +502,8 @@ def train_qm9(args, device, metrics_dict):
     val_idx = all_idx[len(model_idx) + len(test_idx):]
     train_idx = model_idx[:args.num_train]
     # for debugging purposes:
-    # test_idx = all_idx[len(model_idx): len(model_idx) + 200]
-    # val_idx = all_idx[len(model_idx) + len(test_idx): len(model_idx) + len(test_idx) + 3000]
+    test_idx = all_idx[len(model_idx): len(model_idx) + 20]
+    val_idx = all_idx[len(model_idx) + len(test_idx): len(model_idx) + len(test_idx) + 30]
 
     model, num_pretrain, transfer_from_same_dataset = load_model(args, data=all_data, device=device)
     if transfer_from_same_dataset:
@@ -517,9 +532,11 @@ def train_qm9(args, device, metrics_dict):
             {task: QM9SingleTargetDenormalizedL1(dataset=all_data, task=task) for task in all_data.target_tasks})
 
     trainer = get_trainer(args=args, model=model, data=all_data, device=device, metrics=metrics)
-    trainer.train(train_loader, val_loader)
+    val_metrics = trainer.train(train_loader, val_loader)
     if args.eval_on_test:
-        trainer.evaluation(test_loader, data_split='test')
+        test_metrics = trainer.evaluation(test_loader, data_split='test')
+        return val_metrics, test_metrics, trainer.writer.log_dir
+    return val_metrics
 
 
 def get_arguments():
@@ -547,8 +564,62 @@ def get_arguments():
                         arg_dict[key].append(v)
                 else:
                     arg_dict[key] = value
+
     return args
 
 
 if __name__ == '__main__':
-    train(get_arguments())
+    args = get_arguments()
+    if args.multithreaded_seeds != []:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = []
+            for seed in args.multithreaded_seeds:
+                args_copy = get_arguments()
+                args_copy.seed = seed
+                futures.append(executor.submit(train, args_copy))
+            results = [f.result() for f in futures] # list of tuples of dictionaries with the validation results first and the test results second
+        all_val_metrics = defaultdict(list)
+        all_test_metrics = defaultdict(list)
+        log_dirs = []
+        for result in results:
+            val_metrics, test_metrics, log_dir = result
+            log_dirs.append(log_dir)
+            for key in val_metrics.keys():
+                all_val_metrics[key].append(val_metrics[key])
+                all_test_metrics[key].append(test_metrics[key])
+        files = [open(os.path.join(dir, 'multiple_seed_validation_statistics.txt'), 'w') for dir in log_dirs]
+        print('Validation results:')
+        for key, value in all_val_metrics.items():
+            metric = np.array(value)
+            for file in files:
+                file.write(f'\n{key:}\n')
+                file.write(f'mean: {metric.mean()}\n')
+                file.write(f'stddev: {metric.std()}\n')
+                file.write(f'stderr: {metric.std()/np.sqrt(len(metric))}\n')
+                file.write(f'values: {value}\n')
+            print(f'\n{key}:')
+            print(f'mean: {metric.mean()}')
+            print(f'stddev: {metric.std()}')
+            print(f'stderr: {metric.std()/np.sqrt(len(metric))}')
+            print(f'values: {value}')
+        for file in files:
+            file.close()
+        files = [open(os.path.join(dir, 'multiple_seed_test_statistics.txt'), 'w') for dir in log_dirs]
+        print('Test results:')
+        for key, value in all_test_metrics.items():
+            metric = np.array(value)
+            for file in files:
+                file.write(f'\n{key:}\n')
+                file.write(f'mean: {metric.mean()}\n')
+                file.write(f'stddev: {metric.std()}\n')
+                file.write(f'stderr: {metric.std() / np.sqrt(len(metric))}\n')
+                file.write(f'values: {value}\n')
+            print(f'\n{key}:')
+            print(f'mean: {metric.mean()}')
+            print(f'stddev: {metric.std()}')
+            print(f'stderr: {metric.std() / np.sqrt(len(metric))}')
+            print(f'values: {value}')
+        for file in files:
+            file.close()
+    else:
+        train(args)
