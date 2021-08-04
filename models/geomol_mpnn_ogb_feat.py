@@ -53,7 +53,7 @@ class GeomolGNNWrapperOGBFeat(nn.Module):
         self.random_vec_std = random_vec_std
         if readout_hidden_dim == None:
             readout_hidden_dim = hidden_dim
-        self.node_gnn = GeomolGNNOGBFeat(random_vec_dim=self.random_vec_dim,hidden_dim=hidden_dim, **gnn_params)
+        self.node_gnn = GeomolGNNOGBFeat(random_vec_dim=self.random_vec_dim, **gnn_params)
         self.output = MLP(in_dim=hidden_dim, hidden_size=readout_hidden_dim,
                           mid_batch_norm=readout_batchnorm, out_dim=target_dim,
                           layers=readout_layers, batch_norm_momentum=0.1)
