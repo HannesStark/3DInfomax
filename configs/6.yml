@@ -1,6 +1,6 @@
 experiment_name: 'GeomolGNNOGBFeat_hidden25_depth3_noTransformer'
 
-dataset: file_loader_qm9
+dataset: file_loader_drugs
 num_epochs: 250
 batch_size: 16
 trainer: optimal_transport
