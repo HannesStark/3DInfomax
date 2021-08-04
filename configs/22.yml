@@ -1,4 +1,4 @@
-experiment_name: 'GeomolGNN_hidden50_baseline'
+experiment_name: 'GeomolGNN_hidden50_baseline_gnn2'
 
 multithreaded_seeds:
   - 1
@@ -9,7 +9,7 @@ multithreaded_seeds:
   - 6
 pretrain_checkpoint: runs/OptimalTransportModel_file_loader_drugs_GeomolGNN_10000_hidden50_123_02-08_17-26-26/best_checkpoint.pt
 transfer_layers:
-  - gnn.
+  - gnn2.
 exclude_from_transfer:
   - batch_norm
 
