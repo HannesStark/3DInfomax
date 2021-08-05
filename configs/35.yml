@@ -1,9 +1,15 @@
-experiment_name: 'tune_from_drugs_NTXentMultiplePositives_PNAOriginal'
+experiment_name: 'tune_qm9_PNA_10000_hidden25_depth5'
 
-seed: 4
-pretrain_checkpoint: runs/PNAOriginal_drugs_NTXentMultiplePositives_123_28-07_09-25-22/best_checkpoint.pt
+multithreaded_seeds:
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+pretrain_checkpoint: runs/OptimalTransportModel_file_loader_qm9_PNA_10000_hidden25_depth5_123_04-08_11-53-45/best_checkpoint.pt
 transfer_layers:
-  - gnn
+  - gnn.
 exclude_from_transfer:
   - batch_norm
 
@@ -11,7 +17,8 @@ dataset: 'ogbg-molhiv'
 num_epochs: 1000
 batch_size: 128
 log_iterations: 30
-patience: 30
+patience: 40
+minimum_epochs: 30
 loss_func: BCEWithLogitsLoss
 required_data:
   - dgl_graph
@@ -20,15 +27,16 @@ metrics:
   - rsquared
   - mean_predictor_loss
   - pearsonr
+
+
 optimizer: Adam
 optimizer_params:
-  lr: 1.0e-4
-collate_function: s_norm_graph_collate
+  lr: 1.0e-3
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [700,700,390]
+  warmup_steps: [700,700,350]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
@@ -39,24 +47,19 @@ lr_scheduler_params:
   verbose: True
 
 
-model_type: 'PNAOriginal'
+
+# Model parameters
+model_type: 'PNARandom'
 model_parameters:
   target_dim: 1
-  hidden_dim: 70
-  last_layer_dim: 70
+  hidden_dim: 25
   mid_batch_norm: True
   last_batch_norm: True
-  graph_norm: True
   readout_batchnorm: True
-  edge_hidden_dim: 30
-  readout_hidden_dim: 100
-  readout_layers: 2
+  # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
+  batch_norm_momentum: 0.1
   dropout: 0.0
-  in_feat_dropout: 0.0
-  propagation_depth: 4
-  towers: 5
-  divide_input_first: False
-  divide_input_last: True
+  propagation_depth: 5
   aggregators:
     - mean
     - max
@@ -71,16 +74,9 @@ model_parameters:
     - max
     - min
     - sum
-  pretrans_layers: 1
+  pretrans_layers: 2
   posttrans_layers: 1
   residual: True
-  gru: False
-
-
-
-
-
-
 
 
 

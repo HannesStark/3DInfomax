@@ -49,21 +49,22 @@ class GeomolGNNWrapperOGBFeat(nn.Module):
                  **kwargs):
         super(GeomolGNNWrapperOGBFeat, self).__init__()
 
-        self.random_vec_dim = random_vec_dim
-        self.random_vec_std = random_vec_std
+        self.rand_x = nn.Parameter(torch.empty((random_vec_dim,)))
+        self.rand_edge = nn.Parameter(torch.empty((random_vec_dim,)))
+        nn.init.normal_(self.rand_x, std=random_vec_std)
+        nn.init.normal_(self.rand_edge, std=random_vec_std)
         if readout_hidden_dim == None:
             readout_hidden_dim = hidden_dim
-        self.node_gnn = GeomolGNNOGBFeat(random_vec_dim=self.random_vec_dim, **gnn_params)
+        self.node_gnn = GeomolGNNOGBFeat(random_vec_dim=random_vec_dim, **gnn_params)
         self.output = MLP(in_dim=hidden_dim, hidden_size=readout_hidden_dim,
                           mid_batch_norm=readout_batchnorm, out_dim=target_dim,
                           layers=readout_layers, batch_norm_momentum=0.1)
 
     def forward(self, data):
         x, edge_index, edge_attr, batch = data.z, data.edge_index, data.edge_attr, data.batch
-        rand_dist = torch.distributions.normal.Normal(loc=0, scale=self.random_vec_std)
-        # rand_dist = torch.distributions.uniform.Uniform(torch.tensor([0.0]), torch.tensor([1.0]))
-        rand_x = rand_dist.sample([x.size(0), self.random_vec_dim]).squeeze(-1).to(x.device)
-        rand_edge = rand_dist.sample([edge_attr.size(0), self.random_vec_dim]).squeeze(-1).to(x.device)
+
+        rand_x = self.rand_x[None, :].expand(x.size(0), -1)
+        rand_edge = self.rand_edge[None, :].expand(edge_attr.size(0),-1)
 
         x, edge_attr = self.node_gnn(x, edge_index, edge_attr, rand_x, rand_edge)
         pooled = global_mean_pool(x, batch)

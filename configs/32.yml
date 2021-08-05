@@ -1,4 +1,4 @@
-experiment_name: 'tune_from_OptimalTransportModel_file_loader_drugs_GeomolGNN_10000_hidden50'
+experiment_name: 'tune_qm9_PNA_10000_hidden25_depth5'
 
 multithreaded_seeds:
   - 1
@@ -7,22 +7,21 @@ multithreaded_seeds:
   - 4
   - 5
   - 6
-pretrain_checkpoint: runs/OptimalTransportModel_file_loader_drugs_GeomolGNN_10000_hidden50_123_02-08_17-26-26/best_checkpoint.pt
+pretrain_checkpoint: runs/OptimalTransportModel_file_loader_qm9_PNA_10000_hidden25_depth5_123_04-08_11-53-45/best_checkpoint.pt
 transfer_layers:
   - gnn.
 exclude_from_transfer:
   - batch_norm
 
-dataset: 'ogbg-molesol'
+dataset: 'ogbg-mollipo'
 num_epochs: 1000
 batch_size: 32
 log_iterations: 30
 patience: 40
 minimum_epochs: 120
-loss_func: L1Loss
-collate_function: pytorch_geometric_collate
+loss_func: BCEWithLogitsLoss
 required_data:
-  - pytorch_geometric_graph
+  - dgl_graph
   - targets
 metrics:
   - rsquared
@@ -37,7 +36,7 @@ optimizer_params:
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [200]
+  warmup_steps: [700,700,350]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
@@ -50,17 +49,33 @@ lr_scheduler_params:
 
 
 # Model parameters
-model_type: 'GeomolGNNWrapperOGBFeat'
+model_type: 'PNARandom'
 model_parameters:
   target_dim: 1
-  hidden_dim: 50
-  readout_layers: 2
+  hidden_dim: 25
+  mid_batch_norm: True
+  last_batch_norm: True
   readout_batchnorm: True
-  random_vec_std: 5.0
-  random_vec_dim: 10
-  gnn_params:
-    depth: 3
-    n_layers: 2
+  # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
+  batch_norm_momentum: 0.1
+  dropout: 0.0
+  propagation_depth: 5
+  aggregators:
+    - mean
+    - max
+    - min
+    - std
+  scalers:
+    - identity
+    - amplification
+    - attenuation
+  readout_aggregators:
+    - mean
+    - sum
+  pretrans_layers: 2
+  posttrans_layers: 1
+  residual: True
+
 
 
 
