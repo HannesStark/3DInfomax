@@ -1,4 +1,4 @@
-experiment_name: 'GeomolGNN_hidden50_baseline_gnn2'
+experiment_name: 'GeomolGNN_hidden50_baseline'
 
 multithreaded_seeds:
   - 1
