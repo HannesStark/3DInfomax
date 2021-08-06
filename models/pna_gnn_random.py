@@ -31,17 +31,20 @@ class PNARandom(nn.Module):
                                      )
         if readout_hidden_dim == None:
             readout_hidden_dim = hidden_dim
-        self.rand_x = nn.Parameter(torch.empty((random_vec_dim,)))
-        self.rand_edge = nn.Parameter(torch.empty((random_vec_dim,)))
-        nn.init.normal_(self.rand_x, std=random_vec_std)
-        nn.init.normal_(self.rand_edge, std=random_vec_std)
+        self.random_vec_dim = random_vec_dim
+        self.random_vec_std = random_vec_std
         self.readout_aggregators = readout_aggregators
         self.output = MLP(in_dim=hidden_dim * len(self.readout_aggregators), hidden_size=readout_hidden_dim,
                           mid_batch_norm=readout_batchnorm, out_dim=target_dim,
                           layers=readout_layers, batch_norm_momentum=batch_norm_momentum)
 
     def forward(self, graph: dgl.DGLGraph):
-        self.node_gnn(self.rand_x[None,:].expand(graph.ndata['feat'].size(0),-1), self.rand_edge[None,:].expand(graph.edata['feat'].size(0),-1), graph)
+        rand_dist = torch.distributions.normal.Normal(loc=0, scale=self.random_vec_std)
+        # rand_dist = torch.distributions.uniform.Uniform(torch.tensor([0.0]), torch.tensor([1.0]))
+        rand_x = rand_dist.sample([graph.ndata['feat'].size(0), self.random_vec_dim]).squeeze(-1).to(graph.device)
+        rand_edge = rand_dist.sample([graph.edata['feat'].size(0), self.random_vec_dim]).squeeze(-1).to(graph.device)
+        
+        self.node_gnn(rand_x, rand_edge, graph)
         readouts_to_cat = [dgl.readout_nodes(graph, 'feat', op=aggr) for aggr in self.readout_aggregators]
         readout = torch.cat(readouts_to_cat, dim=-1)
         return self.output(readout)
