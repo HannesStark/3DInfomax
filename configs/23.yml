@@ -7,7 +7,7 @@ multithreaded_seeds:
   - 4
   - 5
   - 6
-pretrain_checkpoint: runs/OptimalTransportModel_file_loader_drugs_GeomolGNN_10000_hidden50_123_02-08_17-26-26/best_checkpoint.pt
+pretrain_checkpoint: runs/OptimalTransportModel_file_loader_drugs_GeomolGNNOGBFeat_hidden25_depth3_jointGNN_123_05-08_08-14-57/best_checkpoint.pt
 transfer_layers:
   - gnn.
 exclude_from_transfer:

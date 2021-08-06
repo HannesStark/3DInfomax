@@ -19,7 +19,7 @@ batch_size: 32
 log_iterations: 30
 patience: 40
 minimum_epochs: 120
-loss_func: BCEWithLogitsLoss
+loss_func: L1Loss
 required_data:
   - dgl_graph
   - targets
