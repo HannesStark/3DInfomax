@@ -7,7 +7,7 @@ multithreaded_seeds:
   - 4
   - 5
   - 6
-pretrain_checkpoint: runs/OptimalTransportModel_file_loader_drugs_PNA_10000_hidden50_depth5_123_04-08_11-53-45/best_checkpoint.pt
+pretrain_checkpoint: runs/OptimalTransportModel_file_loader_drugs_PNA_10000_hidden200_depth7_batch32_123_04-08_11-53-52/best_checkpoint.pt
 transfer_layers:
   - gnn.
 exclude_from_transfer:
@@ -47,21 +47,22 @@ lr_scheduler_params:
   verbose: True
 
 
-
 # Model parameters
 model_type: 'PNARandom'
 model_parameters:
-  target_dim: 1
-  hidden_dim: 50
   random_vec_dim: 10
   random_vec_std: 1.0
+  target_dim: 1
+  hidden_dim: 200
   mid_batch_norm: True
   last_batch_norm: True
   readout_batchnorm: True
   # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
   batch_norm_momentum: 0.1
+  readout_hidden_dim: 200
+  readout_layers: 2
   dropout: 0.0
-  propagation_depth: 5
+  propagation_depth: 7
   aggregators:
     - mean
     - max
@@ -72,6 +73,8 @@ model_parameters:
     - amplification
     - attenuation
   readout_aggregators:
+    - min
+    - max
     - mean
     - sum
   pretrans_layers: 2
