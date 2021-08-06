@@ -45,7 +45,7 @@ lr_scheduler_params:
 
 
 # Model parameters
-model_type: 'GeomolGNNWrapperOGBFeat'
+model_type: 'PNA'
 model_parameters:
   target_dim: 1
   hidden_dim: 70
