@@ -1,52 +1,77 @@
-experiment_name: 'tune'
+experiment_name: 'lokas_settings'
 
-seed: 6
-pretrain_checkpoint: runs2/geomol_qm9/best_model.pt
-transfer_layers:
-  - gnn2
-exclude_from_transfer:
-  - batch_norm
+multithreaded_seeds:
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
 
-dataset: bbbp_geomol_qm9_featurization
+dataset: 'ogbg-molhiv'
 num_epochs: 1000
-batch_size: 32
+batch_size: 128
 log_iterations: 30
-patience: 50
-minimum_epochs: 100
+patience: 40
+minimum_epochs: 30
 loss_func: BCEWithLogitsLoss
+required_data:
+  - dgl_graph
+  - targets
 metrics:
   - rsquared
   - mean_predictor_loss
   - pearsonr
-collate_function: pytorch_geometric_collate
+
 
 optimizer: Adam
 optimizer_params:
-  lr: 1.0e-3
+  lr: 1.0e-2
+  weight_decay: 3.0e-6
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [700,700,390]
+  warmup_steps: [700]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
   factor: 0.5
   patience: 25
-  min_lr: 1.0e-6
+  min_lr: 1.0e-4
   mode: 'min'
   verbose: True
 
 
 
 # Model parameters
-model_type: 'GeomolGNNWrapper'
+model_type: 'GeomolGNNWrapperOGBFeat'
 model_parameters:
-  hidden_dim: 50
-  readout_layers: 2
+  target_dim: 1
+  hidden_dim: 70
+  mid_batch_norm: True
+  last_batch_norm: True
   readout_batchnorm: True
-  depth: 3
-  n_layers: 2
+  # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
+  batch_norm_momentum: 0.1
+  readout_hidden_dim: 70
+  readout_layers: 2
+  dropout: 0.3
+  propagation_depth: 7
+  aggregators:
+    - mean
+    - max
+    - min
+    - std
+  scalers:
+    - identity
+    - amplification
+    - attenuation
+  readout_aggregators:
+    - mean
+  pretrans_layers: 1
+  posttrans_layers: 1
+  residual: True
 
 
 
