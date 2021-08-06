@@ -1,4 +1,4 @@
-experiment_name: 'tune_drugs_GeomolGNN_10000_hidden50'
+experiment_name: 'tune_drugs_hidden25_depth3_jointGNN'
 
 multithreaded_seeds:
   - 1
@@ -53,13 +53,13 @@ lr_scheduler_params:
 model_type: 'GeomolGNNWrapperOGBFeat'
 model_parameters:
   target_dim: 1
-  hidden_dim: 50
   readout_layers: 2
+  hidden_dim: 25
   readout_batchnorm: True
-  random_vec_std: 5.0
+  random_vec_std: 1.0
   random_vec_dim: 10
   gnn_params:
-    hidden_dim: 50
+    hidden_dim: 25
     depth: 3
     n_layers: 2
 

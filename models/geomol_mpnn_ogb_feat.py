@@ -51,8 +51,6 @@ class GeomolGNNWrapperOGBFeat(nn.Module):
 
         self.random_vec_dim = random_vec_dim
         self.random_vec_std = random_vec_std
-        nn.init.normal_(self.rand_x, std=random_vec_std)
-        nn.init.normal_(self.rand_edge, std=random_vec_std)
         if readout_hidden_dim == None:
             readout_hidden_dim = hidden_dim
         self.node_gnn = GeomolGNNOGBFeat(random_vec_dim=random_vec_dim, **gnn_params)

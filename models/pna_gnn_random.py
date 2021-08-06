@@ -19,7 +19,7 @@ class PNARandom(nn.Module):
                  dropout: float = 0.0, posttrans_layers: int = 1, pretrans_layers: int = 1, batch_norm_momentum=0.1,
                  **kwargs):
         super(PNARandom, self).__init__()
-        self.node_gnn = PNAGNNRandom(random_vec_dim=random_vec_dim, random_vec_std=random_vec_std, hidden_dim=hidden_dim,
+        self.node_gnn = PNAGNNRandom(random_vec_dim=random_vec_dim, hidden_dim=hidden_dim,
                                      aggregators=aggregators,
                                      scalers=scalers, residual=residual, pairwise_distances=pairwise_distances,
                                      activation=activation, last_activation=last_activation,

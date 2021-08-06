@@ -1,4 +1,4 @@
-experiment_name: 'tune_qm9_PNA_10000_hidden25_depth5'
+experiment_name: 'tune_drugs_PNA_10000_hidden50_depth5'
 
 multithreaded_seeds:
   - 1
@@ -52,7 +52,9 @@ lr_scheduler_params:
 model_type: 'PNARandom'
 model_parameters:
   target_dim: 1
-  hidden_dim: 25
+  hidden_dim: 50
+  random_vec_dim: 10
+  random_vec_std: 1.0
   mid_batch_norm: True
   last_batch_norm: True
   readout_batchnorm: True
@@ -71,8 +73,6 @@ model_parameters:
     - attenuation
   readout_aggregators:
     - mean
-    - max
-    - min
     - sum
   pretrans_layers: 2
   posttrans_layers: 1
