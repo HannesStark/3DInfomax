@@ -7,7 +7,7 @@ multithreaded_seeds:
   - 4
   - 5
   - 6
-pretrain_checkpoint: runs/OptimalTransportModel_file_loader_qm9_PNA_10000_hidden25_depth5_123_04-08_11-53-45/best_checkpoint.pt
+pretrain_checkpoint: runs/OptimalTransportModel_file_loader_drugs_PNA_10000_hidden50_depth5_123_04-08_11-53-45/best_checkpoint.pt
 transfer_layers:
   - gnn.
 exclude_from_transfer:
