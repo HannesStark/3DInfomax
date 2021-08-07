@@ -118,6 +118,7 @@ def parse_arguments():
     p.add_argument('--exclude_from_transfer', default=[],
                    help='parameters that usually should not be transferred like batchnorm params')
     p.add_argument('--transferred_lr', type=float, default=None, help='set to use a different LR for transfer layers')
+    p.add_argument('--num_epochs_local_only', type=int, default=1, help='when training with OptimalTransportTrainer, this specifies for how many epochs only the local predictions will get a loss')
 
     p.add_argument('--required_data', default=[],
                    help='what will be included in a batch like [dgl_graph, targets, dgl_graph3d]')

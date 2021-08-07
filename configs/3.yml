@@ -1,9 +1,10 @@
-experiment_name: 'PNA_10000_hidden50_depth5'
+experiment_name: 'GeomolGNNOGBFeat_10000_hidden50_localonly'
 
 dataset: file_loader_drugs
 num_epochs: 250
 batch_size: 16
 trainer: optimal_transport
+num_epochs_local_only: 250
 log_iterations: 10
 patience: 30
 loss_func: MSELoss
@@ -37,28 +38,11 @@ lr_scheduler_params:
 # Model parameters
 model_type: 'OptimalTransportModel'
 model_parameters:
-  gnn_model: PNAGNNRandom
+  gnn_model: GeomolGNNOGBFeat
   gnn_params:
     hidden_dim: 50
-    mid_batch_norm: True
-    last_batch_norm: True
-    readout_batchnorm: True
-    # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
-    batch_norm_momentum: 0.1
-    dropout: 0.0
-    propagation_depth: 5
-    aggregators:
-      - mean
-      - max
-      - min
-      - std
-    scalers:
-      - identity
-      - amplification
-      - attenuation
-    pretrans_layers: 2
-    posttrans_layers: 1
-    residual: True
+    depth: 5
+    n_layers: 2
 
   hyperparams:
     alpha_mlp:
@@ -80,8 +64,9 @@ model_parameters:
     n_true_confs: 10
     random_alpha: false
     random_vec_dim: 10
-    random_vec_std: 5.0
+    random_vec_std: 1.0
     teacher_force: false
+
 
 
 

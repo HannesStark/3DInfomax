@@ -1,9 +1,10 @@
-experiment_name: 'PNA_10000_hidden200_depth7_batch32'
+experiment_name: 'PNA_10000_hidden200_depth7_5localEpochs'
 
 dataset: file_loader_drugs
 num_epochs: 500
 batch_size: 16
 trainer: optimal_transport
+num_epochs_local_only: 5
 log_iterations: 10
 patience: 30
 loss_func: MSELoss

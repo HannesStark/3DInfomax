@@ -10,8 +10,8 @@ class OptimalTransportTrainer(Trainer):
 
     def forward_pass(self, batch, epoch):
         data = tuple(batch)
-        loss = self.model(*data) if epoch > 1 else self.model(*data,
-                                                              ignore_neighbors=True)  # foward the rest of the batch to the model
+        loss = self.model(*data) if epoch > self.args.num_epochs_local_only else self.model(*data,
+                                                                                            ignore_neighbors=True)  # foward the rest of the batch to the model
         return loss
 
     def process_batch(self, batch, optim, epoch):
@@ -65,4 +65,3 @@ class OptimalTransportTrainer(Trainer):
             else:
                 total_metrics[type(self.loss_func).__name__] = epoch_loss / len(data_loader)
             return total_metrics
-
