@@ -1,4 +1,4 @@
-experiment_name: 'tune_drugs_hidden25_depth3_jointGNN'
+experiment_name: 'tune_drugs_GeomolGNNOGBFeat_10000_hidden50_localonly'
 
 multithreaded_seeds:
   - 1
@@ -7,7 +7,7 @@ multithreaded_seeds:
   - 4
   - 5
   - 6
-pretrain_checkpoint: runs/OptimalTransportModel_file_loader_drugs_GeomolGNNOGBFeat_hidden25_depth3_jointGNN_123_05-08_08-14-57/best_checkpoint.pt
+pretrain_checkpoint: runs/OptimalTransportModel_file_loader_drugs_GeomolGNNOGBFeat_10000_hidden50_localonly_123_07-08_06-55-16/best_checkpoint.pt
 transfer_layers:
   - gnn.
 exclude_from_transfer:
@@ -54,14 +54,15 @@ model_type: 'GeomolGNNWrapperOGBFeat'
 model_parameters:
   target_dim: 1
   readout_layers: 2
-  hidden_dim: 25
+  hidden_dim: 50
   readout_batchnorm: True
   random_vec_std: 1.0
   random_vec_dim: 10
   gnn_params:
-    hidden_dim: 25
-    depth: 3
+    hidden_dim: 50
+    depth: 5
     n_layers: 2
+
 
 
 
