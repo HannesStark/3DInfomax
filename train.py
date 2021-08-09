@@ -5,6 +5,8 @@ import os
 import re
 
 from icecream import install
+from ogb.lsc import DglPCQM4MDataset
+from ogb.utils import smiles2graph
 
 from commons.utils import seed_all, get_random_indices, TENSORBOARD_FUNCTIONS
 from datasets.ZINC_dataset import ZINCDataset
@@ -66,11 +68,10 @@ from trainer.trainer import Trainer
 install()
 seaborn.set_theme()
 
-
 def parse_arguments():
     p = argparse.ArgumentParser()
     p.add_argument('--config', type=argparse.FileType(mode='r'),
-                   default='configs/20.yml')
+                   default='configs/gin_ogb.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
@@ -254,6 +255,8 @@ def train(args):
         return train_geom(args, device, metrics_dict)
     elif args.dataset == 'qm9_geomol':
         return train_qm9_geomol_featurization(args, device, metrics_dict)
+    elif 'pcqm4m' == args.dataset:
+        return train_pcqm4m(args, device, metrics_dict)
     elif 'geomol' in args.dataset:
         return train_geomol(args, device, metrics_dict)
     elif 'ogbg' in args.dataset:
@@ -371,6 +374,32 @@ def train_qm9_geomol_featurization(args, device, metrics_dict):
         return val_metrics, test_metrics, trainer.writer.log_dir
     return val_metrics
 
+def train_pcqm4m(args, device, metrics_dict):
+    dataset = DglPCQM4MDataset(smiles2graph = smiles2graph)
+    split_idx = dataset.get_idx_split()
+    collate_function = globals()[args.collate_function] if args.collate_params == {} else globals()[
+        args.collate_function](**args.collate_params)
+
+    train_loader = DataLoader(Subset(dataset, split_idx["train"]), batch_size=args.batch_size, shuffle=True,
+                              collate_fn=collate_function)
+    val_loader = DataLoader(Subset(dataset, split_idx["valid"]), batch_size=args.batch_size, shuffle=False,
+                            collate_fn=collate_function)
+    test_loader = DataLoader(Subset(dataset, split_idx["test"]), batch_size=args.batch_size, shuffle=False,
+                             collate_fn=collate_function)
+
+    model, num_pretrain, transfer_from_same_dataset = load_model(args, data=dataset, device=device)
+
+    metrics = {metric: metrics_dict[metric] for metric in args.metrics}
+    metrics[args.dataset] = metrics_dict[args.dataset]
+    args.main_metric = args.dataset
+    args.val_per_batch = False
+    args.main_metric_goal = 'min' if metrics[args.main_metric].metric == 'rmse' else 'max'
+    trainer = get_trainer(args=args, model=model, data=dataset, device=device, metrics=metrics)
+    val_metrics = trainer.train(train_loader, val_loader)
+    if args.eval_on_test:
+        test_metrics = trainer.evaluation(test_loader, data_split='test')
+        return val_metrics, test_metrics, trainer.writer.log_dir
+    return val_metrics
 
 def train_ogbg(args, device, metrics_dict):
     dataset = OGBGDatasetExtension(return_types=args.required_data, device=device, name=args.dataset)
