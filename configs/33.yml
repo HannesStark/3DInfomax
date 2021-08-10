@@ -1,4 +1,4 @@
-experiment_name: 'tune_drugs_PNA_120000_hidden200_depth7_5localEpochs'
+experiment_name: 'tune_drugs_PNA_120000_hidden200_depth7_5localEpochs_after_reaching_torsion_angles'
 
 multithreaded_seeds:
   - 1
