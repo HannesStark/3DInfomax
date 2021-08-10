@@ -1,4 +1,4 @@
-experiment_name: 'tune_drugs_PNA_120000_hidden200_depth7_5localEpochs_after_reaching_torsion_angles'
+experiment_name: 'baseline'
 
 multithreaded_seeds:
   - 1
@@ -7,11 +7,7 @@ multithreaded_seeds:
   - 4
   - 5
   - 6
-pretrain_checkpoint: runs/OptimalTransportModel_file_loader_drugs_PNA_120000_hidden200_depth7_5localEpochs_123_08-08_06-27-21/best_checkpoint.pt
-transfer_layers:
-  - gnn.
-exclude_from_transfer:
-  - batch_norm
+
 
 dataset: 'ogbg-molbace'
 num_epochs: 1000
