@@ -1,6 +1,6 @@
 # Self-Supervised Graph Representation Learning
 
-**disclaimer: this project is under development and not cleaned up yet**
+**disclaimer: this project is under development and not cleaned up yet but definitely absolutely usable if you do not mind my comments :D**
 
 Contains contrastive learning methods, different contrastive losses, local-global methods but also stuff like "Bootstrap your own Latent" or "Barlow Twins".
 
