@@ -1,14 +1,14 @@
-experiment_name: 'PNA_10000_hidden200_depth7_0localEpochs'
+experiment_name: 'PNA_120000_hidden200_depth7_5localEpochs_batchsize128'
 
 dataset: file_loader_drugs
 num_epochs: 500
-batch_size: 16
+batch_size: 128
 trainer: optimal_transport
-num_epochs_local_only: 0
+num_epochs_local_only: 5
 log_iterations: 10
 patience: 30
 loss_func: MSELoss
-num_train: 10000
+num_train: 120000
 required_data:
   - pyg_multiple_conformers
   - dgl_graph
