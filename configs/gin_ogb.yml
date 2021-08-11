@@ -41,7 +41,7 @@ model_parameters:
   target_dim: 1
   num_layers: 5
   dropout: 0.5
-  emb_dim: 300
+  hidden_dim: 300
   virtual_node: True
 
 

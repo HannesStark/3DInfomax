@@ -1,4 +1,4 @@
-experiment_name: 'GeomolGNNOGBFeat_hidden25_depth3_noTransformer'
+experiment_name: 'GNN_node_VirtualnodeRandom'
 
 dataset: file_loader_drugs
 num_epochs: 250
@@ -7,10 +7,11 @@ trainer: optimal_transport
 log_iterations: 10
 patience: 30
 loss_func: MSELoss
-num_train: 1000
+num_train: 10000
 required_data:
   - pyg_multiple_conformers
-collate_function: pyg_graph_only_collate
+  - dgl_graph
+collate_function: pyg_and_dgl_graph_collate
 num_conformers: 10
 main_metric: loss
 
@@ -36,12 +37,11 @@ lr_scheduler_params:
 # Model parameters
 model_type: 'OptimalTransportModel'
 model_parameters:
-  gnn_model: GeomolGNNOGBFeat
-  use_transformer: False
+  gnn_model: GNN_node_VirtualnodeRandom
   gnn_params:
-    hidden_dim: 25
-    depth: 3
-    n_layers: 2
+    num_layers: 5
+    dropout: 0.0
+    hidden_dim: 300
 
   hyperparams:
     alpha_mlp:
@@ -58,7 +58,7 @@ model_parameters:
     h_mol_mlp:
       n_layers: 1
     loss_type: ot_emd
-    hidden_dim: 25
+    hidden_dim: 50
     n_model_confs: 10
     n_true_confs: 10
     random_alpha: false

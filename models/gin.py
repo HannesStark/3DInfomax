@@ -16,7 +16,7 @@ from dgl.nn.pytorch import SumPooling, AvgPooling, MaxPooling, GlobalAttentionPo
 
 class OGBGNN(nn.Module):
 
-    def __init__(self, target_dim = 1, num_layers = 5, emb_dim = 300, gnn_type = 'gin',
+    def __init__(self, target_dim = 1, num_layers = 5, hidden_dim = 300, gnn_type = 'gin',
                  virtual_node = True, residual = False, dropout = 0, JK = "last",
                  graph_pooling = "sum", batch_norm_momentum=0.1, **kwargs):
         '''
@@ -28,7 +28,7 @@ class OGBGNN(nn.Module):
         self.num_layers = num_layers
         self.dropout = dropout
         self.JK = JK
-        self.emb_dim = emb_dim
+        self.hidden_dim = hidden_dim
         self.target_dim = target_dim
         self.graph_pooling = graph_pooling
 
@@ -37,12 +37,12 @@ class OGBGNN(nn.Module):
 
         ### GNN to generate node embeddings
         if virtual_node:
-            self.node_gnn = GNN_node_Virtualnode(num_layers, emb_dim, JK = JK,
+            self.node_gnn = GNN_node_Virtualnode(num_layers, hidden_dim, JK = JK,
                                                  dropout = dropout,
                                                  residual = residual,
                                                  gnn_type = gnn_type, batch_norm_momentum=batch_norm_momentum)
         else:
-            self.node_gnn = GNN_node(num_layers, emb_dim, JK = JK, dropout = dropout,
+            self.node_gnn = GNN_node(num_layers, hidden_dim, JK = JK, dropout = dropout,
                                      residual = residual, gnn_type = gnn_type, batch_norm_momentum=batch_norm_momentum)
 
 
@@ -55,20 +55,20 @@ class OGBGNN(nn.Module):
             self.pool = MaxPooling
         elif self.graph_pooling == "attention":
             self.pool = GlobalAttentionPooling(
-                gate_nn = nn.Sequential(nn.Linear(emb_dim, 2*emb_dim),
-                                        nn.BatchNorm1d(2*emb_dim, momentum=batch_norm_momentum),
+                gate_nn = nn.Sequential(nn.Linear(hidden_dim, 2*hidden_dim),
+                                        nn.BatchNorm1d(2*hidden_dim, momentum=batch_norm_momentum),
                                         nn.ReLU(),
-                                        nn.Linear(2*emb_dim, 1)))
+                                        nn.Linear(2*hidden_dim, 1)))
 
         elif self.graph_pooling == "set2set":
-            self.pool = Set2Set(emb_dim, n_iters = 2, n_layers = 2)
+            self.pool = Set2Set(hidden_dim, n_iters = 2, n_layers = 2)
         else:
             raise ValueError("Invalid graph pooling type.")
 
         if graph_pooling == "set2set":
-            self.graph_pred_linear = nn.Linear(2*self.emb_dim, self.target_dim)
+            self.graph_pred_linear = nn.Linear(2*self.hidden_dim, self.target_dim)
         else:
-            self.graph_pred_linear = nn.Linear(self.emb_dim, self.target_dim)
+            self.graph_pred_linear = nn.Linear(self.hidden_dim, self.target_dim)
 
     def forward(self, g):
         x = g.ndata['feat']
@@ -83,20 +83,20 @@ class OGBGNN(nn.Module):
 
 ### GIN convolution along the graph structure
 class GINConv(nn.Module):
-    def __init__(self, emb_dim, batch_norm_momentum=0.1):
+    def __init__(self, hidden_dim, batch_norm_momentum=0.1):
         '''
-            emb_dim (int): node embedding dimensionality
+            hidden_dim (int): node embedding dimensionality
         '''
 
         super(GINConv, self).__init__()
 
-        self.mlp = nn.Sequential(nn.Linear(emb_dim, emb_dim),
-                                 nn.BatchNorm1d(emb_dim, momentum=batch_norm_momentum),
+        self.mlp = nn.Sequential(nn.Linear(hidden_dim, hidden_dim),
+                                 nn.BatchNorm1d(hidden_dim, momentum=batch_norm_momentum),
                                  nn.ReLU(),
-                                 nn.Linear(emb_dim, emb_dim))
+                                 nn.Linear(hidden_dim, hidden_dim))
         self.eps = nn.Parameter(torch.Tensor([0]))
 
-        self.bond_encoder = BondEncoder(emb_dim = emb_dim)
+        self.bond_encoder = BondEncoder(emb_dim = hidden_dim)
 
     def forward(self, g, x, edge_attr):
         with g.local_scope():
@@ -111,16 +111,16 @@ class GINConv(nn.Module):
 
 ### GCN convolution along the graph structure
 class GCNConv(nn.Module):
-    def __init__(self, emb_dim):
+    def __init__(self, hidden_dim):
         '''
-            emb_dim (int): node embedding dimensionality
+            hidden_dim (int): node embedding dimensionality
         '''
 
         super(GCNConv, self).__init__()
 
-        self.linear = nn.Linear(emb_dim, emb_dim)
-        self.root_emb = nn.Embedding(1, emb_dim)
-        self.bond_encoder = BondEncoder(emb_dim = emb_dim)
+        self.linear = nn.Linear(hidden_dim, hidden_dim)
+        self.root_emb = nn.Embedding(1, hidden_dim)
+        self.bond_encoder = BondEncoder(emb_dim = hidden_dim)
 
     def forward(self, g, x, edge_attr):
         with g.local_scope():
@@ -148,10 +148,10 @@ class GNN_node(nn.Module):
     Output:
         node representations
     """
-    def __init__(self, num_layers, emb_dim, dropout = 0.5, JK = "last", residual = False, gnn_type = 'gin', batch_norm_momentum=0.1):
+    def __init__(self, num_layers, hidden_dim, dropout = 0.5, JK = "last", residual = False, gnn_type = 'gin', batch_norm_momentum=0.1):
         '''
             num_layers (int): number of GNN message passing layers
-            emb_dim (int): node embedding dimensionality
+            hidden_dim (int): node embedding dimensionality
         '''
 
         super(GNN_node, self).__init__()
@@ -164,7 +164,7 @@ class GNN_node(nn.Module):
         if self.num_layers < 2:
             raise ValueError("Number of GNN layers must be greater than 1.")
 
-        self.atom_encoder = AtomEncoder(emb_dim)
+        self.atom_encoder = AtomEncoder(hidden_dim)
 
         ###List of GNNs
         self.convs = nn.ModuleList()
@@ -172,13 +172,13 @@ class GNN_node(nn.Module):
 
         for layer in range(num_layers):
             if gnn_type == 'gin':
-                self.convs.append(GINConv(emb_dim, batch_norm_momentum))
+                self.convs.append(GINConv(hidden_dim, batch_norm_momentum))
             elif gnn_type == 'gcn':
-                self.convs.append(GCNConv(emb_dim, batch_norm_momentum))
+                self.convs.append(GCNConv(hidden_dim, batch_norm_momentum))
             else:
                 ValueError('Undefined GNN type called {}'.format(gnn_type))
 
-            self.batch_norms.append(nn.BatchNorm1d(emb_dim, momentum=batch_norm_momentum))
+            self.batch_norms.append(nn.BatchNorm1d(hidden_dim, momentum=batch_norm_momentum))
 
     def forward(self, g, x, edge_attr):
         ### computing input node embedding
@@ -216,10 +216,10 @@ class GNN_node_Virtualnode(nn.Module):
     Output:
         node representations
     """
-    def __init__(self, num_layers, emb_dim, dropout = 0.5, JK = "last", residual = False, gnn_type = 'gin', batch_norm_momentum=0.1):
+    def __init__(self, num_layers, hidden_dim, dropout = 0.5, JK = "last", residual = False, gnn_type = 'gin', batch_norm_momentum=0.1):
         '''
             num_layers (int): number of GNN message passing layers
-            emb_dim (int): node embedding dimensionality
+            hidden_dim (int): node embedding dimensionality
         '''
 
         super(GNN_node_Virtualnode, self).__init__()
@@ -232,10 +232,10 @@ class GNN_node_Virtualnode(nn.Module):
         if self.num_layers < 2:
             raise ValueError("Number of GNN layers must be greater than 1.")
 
-        self.atom_encoder = AtomEncoder(emb_dim)
+        self.atom_encoder = AtomEncoder(hidden_dim)
 
         ### set the initial virtual node embedding to 0.
-        self.virtualnode_embedding = nn.Embedding(1, emb_dim)
+        self.virtualnode_embedding = nn.Embedding(1, hidden_dim)
         nn.init.constant_(self.virtualnode_embedding.weight.data, 0)
 
         ### List of GNNs
@@ -248,20 +248,20 @@ class GNN_node_Virtualnode(nn.Module):
 
         for layer in range(num_layers):
             if gnn_type == 'gin':
-                self.convs.append(GINConv(emb_dim))
+                self.convs.append(GINConv(hidden_dim))
             elif gnn_type == 'gcn':
-                self.convs.append(GCNConv(emb_dim))
+                self.convs.append(GCNConv(hidden_dim))
             else:
                 ValueError('Undefined GNN type called {}'.format(gnn_type))
 
-            self.batch_norms.append(nn.BatchNorm1d(emb_dim, momentum=batch_norm_momentum))
+            self.batch_norms.append(nn.BatchNorm1d(hidden_dim, momentum=batch_norm_momentum))
 
         for layer in range(num_layers - 1):
-            self.mlp_virtualnode_list.append(nn.Sequential(nn.Linear(emb_dim, emb_dim),
-                                                           nn.BatchNorm1d(emb_dim, momentum=batch_norm_momentum),
+            self.mlp_virtualnode_list.append(nn.Sequential(nn.Linear(hidden_dim, hidden_dim),
+                                                           nn.BatchNorm1d(hidden_dim, momentum=batch_norm_momentum),
                                                            nn.ReLU(),
-                                                           nn.Linear(emb_dim, emb_dim),
-                                                           nn.BatchNorm1d(emb_dim, momentum=batch_norm_momentum),
+                                                           nn.Linear(hidden_dim, hidden_dim),
+                                                           nn.BatchNorm1d(hidden_dim, momentum=batch_norm_momentum),
                                                            nn.ReLU()))
         self.pool = SumPooling()
 

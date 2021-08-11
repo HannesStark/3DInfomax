@@ -37,28 +37,11 @@ lr_scheduler_params:
 # Model parameters
 model_type: 'OptimalTransportModel'
 model_parameters:
-  gnn_model: OGBGNNRandom
+  gnn_model: GNN_node_VirtualnodeRandom
   gnn_params:
-    hidden_dim: 50
-    mid_batch_norm: True
-    last_batch_norm: True
-    readout_batchnorm: True
-    # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
-    batch_norm_momentum: 0.1
-    dropout: 0.0
-    propagation_depth: 7
-    aggregators:
-      - mean
-      - max
-      - min
-      - std
-    scalers:
-      - identity
-      - amplification
-      - attenuation
-    pretrans_layers: 2
-    posttrans_layers: 1
-    residual: True
+    num_layers: 5
+    dropout: 0.5
+    hidden_dim: 300
 
   hyperparams:
     alpha_mlp:
