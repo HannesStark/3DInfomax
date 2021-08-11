@@ -16,11 +16,11 @@ from dgl.nn.pytorch import SumPooling, AvgPooling, MaxPooling, GlobalAttentionPo
 
 class OGBGNN(nn.Module):
 
-    def __init__(self, num_tasks = 1, num_layers = 5, emb_dim = 300, gnn_type = 'gin',
+    def __init__(self, target_dim = 1, num_layers = 5, emb_dim = 300, gnn_type = 'gin',
                  virtual_node = True, residual = False, dropout = 0, JK = "last",
-                 graph_pooling = "sum", **kwargs):
+                 graph_pooling = "sum", batch_norm_momentum=0.1, **kwargs):
         '''
-            num_tasks (int): number of labels to be predicted
+            target_dim (int): number of labels to be predicted
             virtual_node (bool): whether to add virtual node or not
         '''
         super(OGBGNN, self).__init__()
@@ -29,7 +29,7 @@ class OGBGNN(nn.Module):
         self.dropout = dropout
         self.JK = JK
         self.emb_dim = emb_dim
-        self.num_tasks = num_tasks
+        self.target_dim = target_dim
         self.graph_pooling = graph_pooling
 
         if self.num_layers < 2:
@@ -40,10 +40,10 @@ class OGBGNN(nn.Module):
             self.gnn_node = GNN_node_Virtualnode(num_layers, emb_dim, JK = JK,
                                                  dropout = dropout,
                                                  residual = residual,
-                                                 gnn_type = gnn_type)
+                                                 gnn_type = gnn_type, batch_norm_momentum=batch_norm_momentum)
         else:
             self.gnn_node = GNN_node(num_layers, emb_dim, JK = JK, dropout = dropout,
-                                     residual = residual, gnn_type = gnn_type)
+                                     residual = residual, gnn_type = gnn_type, batch_norm_momentum=batch_norm_momentum)
 
 
         ### Pooling function to generate whole-graph embeddings
@@ -56,7 +56,7 @@ class OGBGNN(nn.Module):
         elif self.graph_pooling == "attention":
             self.pool = GlobalAttentionPooling(
                 gate_nn = nn.Sequential(nn.Linear(emb_dim, 2*emb_dim),
-                                        nn.BatchNorm1d(2*emb_dim),
+                                        nn.BatchNorm1d(2*emb_dim, momentum=batch_norm_momentum),
                                         nn.ReLU(),
                                         nn.Linear(2*emb_dim, 1)))
 
@@ -66,9 +66,9 @@ class OGBGNN(nn.Module):
             raise ValueError("Invalid graph pooling type.")
 
         if graph_pooling == "set2set":
-            self.graph_pred_linear = nn.Linear(2*self.emb_dim, self.num_tasks)
+            self.graph_pred_linear = nn.Linear(2*self.emb_dim, self.target_dim)
         else:
-            self.graph_pred_linear = nn.Linear(self.emb_dim, self.num_tasks)
+            self.graph_pred_linear = nn.Linear(self.emb_dim, self.target_dim)
 
     def forward(self, g):
         x = g.ndata['feat']
@@ -83,7 +83,7 @@ class OGBGNN(nn.Module):
 
 ### GIN convolution along the graph structure
 class GINConv(nn.Module):
-    def __init__(self, emb_dim):
+    def __init__(self, emb_dim, batch_norm_momentum=0.1):
         '''
             emb_dim (int): node embedding dimensionality
         '''
@@ -91,7 +91,7 @@ class GINConv(nn.Module):
         super(GINConv, self).__init__()
 
         self.mlp = nn.Sequential(nn.Linear(emb_dim, emb_dim),
-                                 nn.BatchNorm1d(emb_dim),
+                                 nn.BatchNorm1d(emb_dim, momentum=batch_norm_momentum),
                                  nn.ReLU(),
                                  nn.Linear(emb_dim, emb_dim))
         self.eps = nn.Parameter(torch.Tensor([0]))
@@ -148,7 +148,7 @@ class GNN_node(nn.Module):
     Output:
         node representations
     """
-    def __init__(self, num_layers, emb_dim, dropout = 0.5, JK = "last", residual = False, gnn_type = 'gin'):
+    def __init__(self, num_layers, emb_dim, dropout = 0.5, JK = "last", residual = False, gnn_type = 'gin', batch_norm_momentum=0.1):
         '''
             num_layers (int): number of GNN message passing layers
             emb_dim (int): node embedding dimensionality
@@ -172,13 +172,13 @@ class GNN_node(nn.Module):
 
         for layer in range(num_layers):
             if gnn_type == 'gin':
-                self.convs.append(GINConv(emb_dim))
+                self.convs.append(GINConv(emb_dim, batch_norm_momentum))
             elif gnn_type == 'gcn':
-                self.convs.append(GCNConv(emb_dim))
+                self.convs.append(GCNConv(emb_dim, batch_norm_momentum))
             else:
                 ValueError('Undefined GNN type called {}'.format(gnn_type))
 
-            self.batch_norms.append(nn.BatchNorm1d(emb_dim))
+            self.batch_norms.append(nn.BatchNorm1d(emb_dim, momentum=batch_norm_momentum))
 
     def forward(self, g, x, edge_attr):
         ### computing input node embedding
@@ -216,7 +216,7 @@ class GNN_node_Virtualnode(nn.Module):
     Output:
         node representations
     """
-    def __init__(self, num_layers, emb_dim, dropout = 0.5, JK = "last", residual = False, gnn_type = 'gin'):
+    def __init__(self, num_layers, emb_dim, dropout = 0.5, JK = "last", residual = False, gnn_type = 'gin', batch_norm_momentum=0.1):
         '''
             num_layers (int): number of GNN message passing layers
             emb_dim (int): node embedding dimensionality
@@ -254,18 +254,18 @@ class GNN_node_Virtualnode(nn.Module):
             else:
                 ValueError('Undefined GNN type called {}'.format(gnn_type))
 
-            self.batch_norms.append(nn.BatchNorm1d(emb_dim))
+            self.batch_norms.append(nn.BatchNorm1d(emb_dim, momentum=batch_norm_momentum))
 
         for layer in range(num_layers - 1):
             self.mlp_virtualnode_list.append(nn.Sequential(nn.Linear(emb_dim, emb_dim),
-                                                           nn.BatchNorm1d(emb_dim),
+                                                           nn.BatchNorm1d(emb_dim, momentum=batch_norm_momentum),
                                                            nn.ReLU(),
                                                            nn.Linear(emb_dim, emb_dim),
-                                                           nn.BatchNorm1d(emb_dim),
+                                                           nn.BatchNorm1d(emb_dim, momentum=batch_norm_momentum),
                                                            nn.ReLU()))
         self.pool = SumPooling()
 
-    def forward(self, g, x, edge_attr, rand_x, rand_edge):
+    def forward(self, g, x, edge_attr):
         ### virtual node embeddings for graphs
         virtualnode_embedding = self.virtualnode_embedding(
             torch.zeros(g.batch_size).to(x.dtype).to(x.device))
