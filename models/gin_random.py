@@ -24,7 +24,8 @@ class OGBGNNRandom(nn.Module):
             virtual_node (bool): whether to add virtual node or not
         '''
         super(OGBGNNRandom, self).__init__()
-
+        self.random_vec_dim=random_vec_dim
+        self.random_vec_std = random_vec_std
         self.num_layers = num_layers
         self.dropout = dropout
         self.JK = JK
@@ -37,12 +38,12 @@ class OGBGNNRandom(nn.Module):
 
         ### GNN to generate node embeddings
         if virtual_node:
-            self.gnn_node = GNN_node_VirtualnodeRandom(num_layers, emb_dim, JK = JK,
+            self.node_gnn = GNN_node_VirtualnodeRandom(num_layers, emb_dim, JK = JK,
                                                  dropout = dropout,
                                                  residual = residual,
                                                  gnn_type = gnn_type)
         else:
-            self.gnn_node = GNN_node(num_layers, emb_dim, JK = JK, dropout = dropout,
+            self.node_gnn = GNN_nodeRandom(num_layers, emb_dim, JK = JK, dropout = dropout,
                                      residual = residual, gnn_type = gnn_type)
 
 
@@ -71,9 +72,14 @@ class OGBGNNRandom(nn.Module):
             self.graph_pred_linear = nn.Linear(self.emb_dim, self.num_tasks)
 
     def forward(self, g):
+        rand_dist = torch.distributions.normal.Normal(loc=0, scale=self.random_vec_std)
+        # rand_dist = torch.distributions.uniform.Uniform(torch.tensor([0.0]), torch.tensor([1.0]))
+        rand_x = rand_dist.sample([g.ndata['feat'].size(0), self.random_vec_dim]).squeeze(-1).to(g.device)
+        rand_edge = rand_dist.sample([g.edata['feat'].size(0), self.random_vec_dim]).squeeze(-1).to(g.device)
+
         x = g.ndata['feat']
         edge_attr = g.edata['feat']
-        h_node = self.gnn_node(g, x, edge_attr)
+        h_node = self.node_gnn(g, x, edge_attr)
 
         h_graph = self.pool(g, h_node)
         output = self.graph_pred_linear(h_graph)
@@ -98,7 +104,7 @@ class GINConvRandom(nn.Module):
 
         self.bond_encoder = BondEncoder(emb_dim = emb_dim)
 
-    def forward(self, g, x, edge_attr):
+    def forward(self,  rand_x, rand_edge, g: dgl.DGLGraph, x, edge_attr):
         with g.local_scope():
             edge_embedding = self.bond_encoder(edge_attr)
             g.ndata['x'] = x
@@ -122,7 +128,7 @@ class GCNConv(nn.Module):
         self.root_emb = nn.Embedding(1, emb_dim)
         self.bond_encoder = BondEncoder(emb_dim = emb_dim)
 
-    def forward(self, g, x, edge_attr):
+    def forward(self, rand_x, rand_edge, g: dgl.DGLGraph, x, edge_attr):
         with g.local_scope():
             x = self.linear(x)
             edge_embedding = self.bond_encoder(edge_attr)
@@ -143,7 +149,7 @@ class GCNConv(nn.Module):
             return out
 
 ### GNN to generate node embedding
-class GNN_node(nn.Module):
+class GNN_nodeRandom(nn.Module):
     """
     Output:
         node representations
@@ -154,7 +160,7 @@ class GNN_node(nn.Module):
             emb_dim (int): node embedding dimensionality
         '''
 
-        super(GNN_node, self).__init__()
+        super(GNN_nodeRandom, self).__init__()
         self.num_layers = num_layers
         self.dropout = dropout
         self.JK = JK

@@ -37,12 +37,12 @@ class OGBGNN(nn.Module):
 
         ### GNN to generate node embeddings
         if virtual_node:
-            self.gnn_node = GNN_node_Virtualnode(num_layers, emb_dim, JK = JK,
+            self.node_gnn = GNN_node_Virtualnode(num_layers, emb_dim, JK = JK,
                                                  dropout = dropout,
                                                  residual = residual,
                                                  gnn_type = gnn_type, batch_norm_momentum=batch_norm_momentum)
         else:
-            self.gnn_node = GNN_node(num_layers, emb_dim, JK = JK, dropout = dropout,
+            self.node_gnn = GNN_node(num_layers, emb_dim, JK = JK, dropout = dropout,
                                      residual = residual, gnn_type = gnn_type, batch_norm_momentum=batch_norm_momentum)
 
 
@@ -73,7 +73,7 @@ class OGBGNN(nn.Module):
     def forward(self, g):
         x = g.ndata['feat']
         edge_attr = g.edata['feat']
-        h_node = self.gnn_node(g, x, edge_attr)
+        h_node = self.node_gnn(g, x, edge_attr)
 
         h_graph = self.pool(g, h_node)
         output = self.graph_pred_linear(h_graph)

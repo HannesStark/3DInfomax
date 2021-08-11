@@ -37,7 +37,7 @@ lr_scheduler_params:
 # Model parameters
 model_type: 'OptimalTransportModel'
 model_parameters:
-  gnn_model: PNAGNNRandom
+  gnn_model: OGBGNNRandom
   gnn_params:
     hidden_dim: 50
     mid_batch_norm: True
