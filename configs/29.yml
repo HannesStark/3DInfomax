@@ -51,7 +51,7 @@ model_parameters:
   num_layers: 5
   dropout: 0.5
   batch_norm_momentum: 0.1
-  emb_dim: 300
+  hidden_dim: 300
   virtual_node: True
 
 
