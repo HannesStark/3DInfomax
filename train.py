@@ -202,9 +202,7 @@ def load_model(args, data, device):
                                for k, v in checkpoint['model_state_dict'].items() if any(
                 transfer_layer in k for transfer_layer in args.transfer_layers) and 'teacher' not in k and not any(
                 to_exclude in k for to_exclude in args.exclude_from_transfer)}
-        ic(pretrained_gnn_dict.keys())
         model_state_dict = model.state_dict()
-        ic(model_state_dict.keys())
         model_state_dict.update(pretrained_gnn_dict)  # update the gnn layers with the pretrained weights
         model.load_state_dict(model_state_dict)
         return model, pretrain_args.num_train, pretrain_args.dataset == args.dataset

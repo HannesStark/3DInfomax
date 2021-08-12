@@ -1,14 +1,5 @@
 experiment_name: 'baseline'
 
-multithreaded_seeds:
-  - 1
-  - 2
-  - 3
-  - 4
-  - 5
-  - 6
-
-
 dataset: 'ogbg-molesol'
 num_epochs: 1000
 batch_size: 32
