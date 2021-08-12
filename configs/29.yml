@@ -1,4 +1,4 @@
-experiment_name: 'tune_NTXent'
+experiment_name: 'baseline'
 
 multithreaded_seeds:
   - 1
@@ -7,11 +7,7 @@ multithreaded_seeds:
   - 4
   - 5
   - 6
-pretrain_checkpoint: runs/OGBGNN_drugs_NTXent_123_11-08_11-14-05/best_checkpoint.pt
-transfer_layers:
-  - gnn.
-exclude_from_transfer:
-  - batch_norm
+
 
 dataset: 'ogbg-molbace'
 num_epochs: 1000
