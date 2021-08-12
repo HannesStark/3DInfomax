@@ -325,7 +325,7 @@ class PNALayer(nn.Module):
 class PNAOriginalSimple(nn.Module):
     def __init__(self, hidden_dim, last_layer_dim, target_dim, in_feat_dropout, dropout, last_batch_norm,
                  mid_batch_norm, propagation_depth, readout_aggregators, readout_hidden_dim, readout_layers,
-                 aggregators, scalers, avg_d, residual, posttrans_layers, pretrans_layers, **kwargs):
+                 aggregators, scalers, avg_d, residual, posttrans_layers, readout_batchnorm, batch_norm_momentum, **kwargs):
         super().__init__()
 
         self.gnn = PNAGNNSimple(hidden_dim=hidden_dim, last_layer_dim=last_layer_dim, last_batch_norm=last_batch_norm,
@@ -334,8 +334,9 @@ class PNAOriginalSimple(nn.Module):
                                 propagation_depth=propagation_depth, posttrans_layers=posttrans_layers)
 
         self.readout_aggregators = readout_aggregators
-        self.MLP_layer = MLPReadout(last_layer_dim * len(self.readout_aggregators),
-                                    target_dim)  # 1 out dim since regression problem
+        self.output = MLP(in_dim=hidden_dim * len(self.readout_aggregators), hidden_size=readout_hidden_dim,
+                          mid_batch_norm=readout_batchnorm, out_dim=target_dim,
+                          layers=readout_layers, batch_norm_momentum=batch_norm_momentum)
 
     def forward(self, g):
         h = g.ndata['feat']
@@ -343,7 +344,7 @@ class PNAOriginalSimple(nn.Module):
 
         readouts_to_cat = [dgl.readout_nodes(g, 'feat', op=aggr) for aggr in self.readout_aggregators]
         readout = torch.cat(readouts_to_cat, dim=-1)
-        return self.MLP_layer(readout)
+        return self.output(readout)
 
 
 class PNAGNNSimple(nn.Module):

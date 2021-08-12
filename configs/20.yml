@@ -32,7 +32,7 @@ optimizer_params:
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [700]
+  warmup_steps: [1]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
@@ -45,19 +45,21 @@ lr_scheduler_params:
 
 
 # Model parameters
-model_type: 'PNA'
+model_type: 'PNAOriginalSimple'
 model_parameters:
   target_dim: 1
-  hidden_dim: 70
+  hidden_dim: 80
+  last_layer_dim: 80
   mid_batch_norm: True
   last_batch_norm: True
-  readout_batchnorm: True
+  readout_batchnorm: False
   # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
   batch_norm_momentum: 0.1
-  readout_hidden_dim: 70
+  readout_hidden_dim: 40
   readout_layers: 2
+  in_feat_dropout: 0.0
   dropout: 0.3
-  propagation_depth: 7
+  propagation_depth: 4
   aggregators:
     - mean
     - max
@@ -69,7 +71,6 @@ model_parameters:
     - attenuation
   readout_aggregators:
     - mean
-  pretrans_layers: 1
   posttrans_layers: 1
   residual: True
 
