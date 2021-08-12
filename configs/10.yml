@@ -48,14 +48,34 @@ lr_scheduler_params:
 
 
 # Model parameters
-model_type: 'OGBGNN'
+model_type: 'PNAOriginalSimple'
 model_parameters:
   target_dim: 256
-  num_layers: 5
-  dropout: 0.0
-  batch_norm_momentum: 0.93
-  hidden_dim: 300
-  virtual_node: True
+  hidden_dim: 80
+  last_layer_dim: 80
+  mid_batch_norm: True
+  last_batch_norm: True
+  readout_batchnorm: False
+  # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
+  batch_norm_momentum: 0.1
+  readout_hidden_dim: 40
+  readout_layers: 2
+  in_feat_dropout: 0.0
+  dropout: 0.3
+  propagation_depth: 4
+  aggregators:
+    - mean
+    - max
+    - min
+    - std
+  scalers:
+    - identity
+    - amplification
+    - attenuation
+  readout_aggregators:
+    - mean
+  posttrans_layers: 1
+  residual: True
 
 # Model parameters
 model3d_type: 'Net3D'
