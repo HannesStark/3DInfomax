@@ -231,7 +231,6 @@ class GNN_node_Virtualnode(nn.Module):
 
         if self.num_layers < 2:
             raise ValueError("Number of GNN layers must be greater than 1.")
-
         self.atom_encoder = AtomEncoder(hidden_dim)
 
         ### set the initial virtual node embedding to 0.

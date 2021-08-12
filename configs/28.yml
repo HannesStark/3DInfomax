@@ -1,4 +1,4 @@
-experiment_name: 'GeomolGNN_hidden50_baseline'
+experiment_name: 'tune_NTXent'
 
 multithreaded_seeds:
   - 1
@@ -7,7 +7,11 @@ multithreaded_seeds:
   - 4
   - 5
   - 6
-
+pretrain_checkpoint: runs/OGBGNN_drugs_NTXent_123_11-08_11-14-05/best_checkpoint.pt
+transfer_layers:
+  - gnn.
+exclude_from_transfer:
+  - batch_norm
 
 dataset: 'ogbg-molbbbp'
 num_epochs: 1000
@@ -16,9 +20,8 @@ log_iterations: 30
 patience: 40
 minimum_epochs: 120
 loss_func: BCEWithLogitsLoss
-collate_function: pytorch_geometric_collate
 required_data:
-  - pytorch_geometric_graph
+  - dgl_graph
   - targets
 metrics:
   - rsquared
@@ -46,18 +49,15 @@ lr_scheduler_params:
 
 
 # Model parameters
-model_type: 'GeomolGNNWrapperOGBFeat'
+model_type: 'OGBGNN'
 model_parameters:
   target_dim: 1
-  hidden_dim: 50
-  readout_layers: 2
-  readout_batchnorm: True
-  random_vec_std: 5.0
-  random_vec_dim: 10
-  gnn_params:
-    hidden_dim: 50
-    depth: 3
-    n_layers: 2
+  num_layers: 5
+  dropout: 0.5
+  batch_norm_momentum: 0.1
+  emb_dim: 300
+  virtual_node: True
+
 
 
 
