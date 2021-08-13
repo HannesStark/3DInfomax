@@ -7,11 +7,6 @@ multithreaded_seeds:
   - 4
   - 5
   - 6
-pretrain_checkpoint: runs/PNAOriginalSimple_drugs_NTXent_123_12-08_15-52-50/best_checkpoint.pt
-transfer_layers:
-  - gnn.
-exclude_from_transfer:
-  - batch_norm
 
 dataset: 'ogbg-mollipo'
 num_epochs: 1000
