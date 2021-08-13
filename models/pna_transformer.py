@@ -134,11 +134,11 @@ class PNATransformerLayer(nn.Module):
     def forward(self, graph, h, mask_include_vnode, mask_exclude_vnode):
         # shape of masks: [batch_size, max_num_atoms + 1]
         batch_size, n_atoms_plus_one, hidden_dim = h.size()
-        h_graph_padded = h.clone() # [batch_size, max_num_atoms + 1, hidden_dim]
-
         self.pna_layer(graph)
         h_graph = graph.ndata['feat'] # [n_nodes, hidden_dim]
         n_atoms, hidden_dim = h_graph.size()
+
+        h_graph_padded = h.clone() # [batch_size, max_num_atoms + 1, hidden_dim]
         h_graph_padded = h_graph_padded.view(-1, hidden_dim) # [batch_size*(max_num_atoms + 1), hidden_dim]
         expanded_mask = mask_exclude_vnode.view(-1).unsqueeze(1).expand(-1, hidden_dim) # [batch_size*(max_num_atoms + 1), hidden_dim]
         h_graph_padded[~expanded_mask] = h_graph.view(-1)

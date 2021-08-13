@@ -36,7 +36,7 @@ optimizer_params:
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [700,700,350]
+  warmup_steps: [1]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
@@ -52,7 +52,7 @@ model_type: 'OGBGNN'
 model_parameters:
   target_dim: 1
   num_layers: 5
-  dropout: 0.5
+  dropout: 0.0
   batch_norm_momentum: 0.1
   emb_dim: 300
   virtual_node: True
