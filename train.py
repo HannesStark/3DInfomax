@@ -63,8 +63,8 @@ from trainer.metrics import QM9DenormalizedL1, QM9DenormalizedL2, \
 from trainer.trainer import Trainer
 
 # turn on for debugging C code like Segmentation Faults
-# import faulthandler
-# faulthandler.enable()
+import faulthandler
+faulthandler.enable()
 install()
 seaborn.set_theme()
 
