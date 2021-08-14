@@ -116,7 +116,7 @@ AGGREGATORS = {'mean': aggregate_mean, 'sum': aggregate_sum, 'max': aggregate_ma
                'moment5': aggregate_moment_5}
 
 
-class PNAOriginal(nn.Module):
+class PNAOriginalRandom(nn.Module):
     def __init__(self, hidden_dim, last_layer_dim, target_dim, in_feat_dropout, dropout, last_batch_norm,
                  mid_batch_norm, propagation_depth, readout_aggregators, readout_hidden_dim, readout_layers,
                  aggregators, scalers, avg_d, residual, posttrans_layers, pretrans_layers, device, edge_hidden_dim,
@@ -124,14 +124,16 @@ class PNAOriginal(nn.Module):
                  edge_feat=True, towers=1, **kwargs):
         super().__init__()
 
-        self.node_gnn = PNAGNNOriginal(hidden_dim=hidden_dim, last_layer_dim=last_layer_dim, last_batch_norm=last_batch_norm,
-                                  mid_batch_norm=mid_batch_norm, in_feat_dropout=in_feat_dropout, dropout=dropout,
-                                  aggregators=aggregators, scalers=scalers, residual=residual, avg_d=avg_d,
-                                  propagation_depth=propagation_depth, posttrans_layers=posttrans_layers, device=device,
-                                  pretrans_layers=pretrans_layers, gru_enable=gru_enable, use_3d=use_3d,
-                                  edge_hidden_dim=edge_hidden_dim, divide_input_first=divide_input_first,
-                                  divide_input_last=divide_input_last, edge_feat=edge_feat, graph_norm=graph_norm,
-                                  towers=towers)
+        self.node_gnn = PNAGNNOriginalRandom(hidden_dim=hidden_dim, last_layer_dim=last_layer_dim,
+                                       last_batch_norm=last_batch_norm,
+                                       mid_batch_norm=mid_batch_norm, in_feat_dropout=in_feat_dropout, dropout=dropout,
+                                       aggregators=aggregators, scalers=scalers, residual=residual, avg_d=avg_d,
+                                       propagation_depth=propagation_depth, posttrans_layers=posttrans_layers,
+                                       device=device,
+                                       pretrans_layers=pretrans_layers, gru_enable=gru_enable, use_3d=use_3d,
+                                       edge_hidden_dim=edge_hidden_dim, divide_input_first=divide_input_first,
+                                       divide_input_last=divide_input_last, edge_feat=edge_feat, graph_norm=graph_norm,
+                                       towers=towers)
 
         self.readout_aggregators = readout_aggregators
         self.output = MLPReadout(last_layer_dim * len(self.readout_aggregators), target_dim)
@@ -146,7 +148,7 @@ class PNAOriginal(nn.Module):
         return self.output(readout)
 
 
-class PNAGNNOriginal(nn.Module):
+class PNAGNNOriginalRandom(nn.Module):
     def __init__(self, hidden_dim, last_layer_dim, in_feat_dropout, dropout, propagation_depth, graph_norm,
                  mid_batch_norm, last_batch_norm, residual, aggregators, scalers, avg_d, use_3d,
                  towers, divide_input_first, divide_input_last, edge_feat, edge_hidden_dim, pretrans_layers,
@@ -322,16 +324,19 @@ class PNALayer(nn.Module):
         return '{}(in_channels={}, out_channels={})'.format(self.__class__.__name__, self.in_dim, self.out_dim)
 
 
-class PNAOriginalSimple(nn.Module):
+class PNAOriginalSimpleRandom(nn.Module):
     def __init__(self, hidden_dim, last_layer_dim, target_dim, in_feat_dropout, dropout, last_batch_norm,
                  mid_batch_norm, propagation_depth, readout_aggregators, readout_hidden_dim, readout_layers,
-                 aggregators, scalers, avg_d, residual, posttrans_layers, readout_batchnorm, batch_norm_momentum, **kwargs):
+                 aggregators, scalers, avg_d, residual, posttrans_layers, readout_batchnorm, batch_norm_momentum,
+                 **kwargs):
         super().__init__()
 
-        self.node_gnn = PNAGNNSimple(hidden_dim=hidden_dim, last_layer_dim=last_layer_dim, last_batch_norm=last_batch_norm,
-                                mid_batch_norm=mid_batch_norm, in_feat_dropout=in_feat_dropout, dropout=dropout,
-                                aggregators=aggregators, scalers=scalers, residual=residual, avg_d=avg_d,
-                                propagation_depth=propagation_depth, posttrans_layers=posttrans_layers)
+        self.node_gnn = PNAGNNSimpleRandom(hidden_dim=hidden_dim, last_layer_dim=last_layer_dim,
+                                           last_batch_norm=last_batch_norm,
+                                           mid_batch_norm=mid_batch_norm, in_feat_dropout=in_feat_dropout,
+                                           dropout=dropout,
+                                           aggregators=aggregators, scalers=scalers, residual=residual, avg_d=avg_d,
+                                           propagation_depth=propagation_depth, posttrans_layers=posttrans_layers)
 
         self.readout_aggregators = readout_aggregators
         self.output = MLP(in_dim=hidden_dim * len(self.readout_aggregators), hidden_size=readout_hidden_dim,
@@ -347,13 +352,16 @@ class PNAOriginalSimple(nn.Module):
         return self.output(readout)
 
 
-class PNAGNNSimple(nn.Module):
-    def __init__(self, hidden_dim, last_layer_dim, in_feat_dropout, dropout, residual, aggregators, scalers, avg_d,
-                 last_batch_norm, mid_batch_norm, propagation_depth, posttrans_layers):
+class PNAGNNSimpleRandom(nn.Module):
+    def __init__(self, random_vec_dim, n_model_confs, hidden_dim, last_layer_dim, in_feat_dropout, dropout, residual,
+                 aggregators, scalers, avg_d,
+                 last_batch_norm, mid_batch_norm, propagation_depth, posttrans_layers, pretrain_mode=False):
         super().__init__()
-
+        self.random_vec_dim = random_vec_dim
+        self.pretrain_mode = pretrain_mode
+        self.n_model_confs = n_model_confs
         self.in_feat_dropout = nn.Dropout(in_feat_dropout)
-        self.embedding_h = AtomEncoder(emb_dim=hidden_dim)
+        self.embedding_h = AtomEncoder(emb_dim=hidden_dim - random_vec_dim)
 
         self.layers = nn.ModuleList(
             [PNASimpleLayer(in_dim=hidden_dim, out_dim=hidden_dim, dropout=dropout,
@@ -369,16 +377,29 @@ class PNAGNNSimple(nn.Module):
 
         self.output = MLPReadout(last_layer_dim, 1)  # 1 out dim since regression problem
 
-    def forward(self, g, h):
-        h = self.embedding_h(h)
+    def forward(self, rand_x, rand_edge, dgl_graph: dgl.DGLGraph, **kwargs):
+        dgl_graph.ndata['feat'] = self.embedding_h(dgl_graph.ndata['feat'])
+        if self.pretrain_mode:
+            n_atoms, small_hidden_dim = dgl_graph.ndata['feat'].size()
+            graph_confs = []
+            for i in range(self.n_model_confs):
+                graph_confs.append(dgl_graph.clone())
+            graph_confs = dgl.batch(graph_confs)
+            n_all_atoms = graph_confs.number_of_nodes()
+            dgl_graph = graph_confs
+            rand_x = rand_x.view(n_all_atoms, -1)
+        dgl_graph.ndata['feat'] = torch.cat([dgl_graph.ndata['feat'], rand_x], dim=-1)
+        h = dgl_graph.ndata['feat']
         h = self.in_feat_dropout(h)
 
         for i, conv in enumerate(self.layers):
-            h = conv(g, h)
-
-        g.ndata['feat'] = h
-
-        return g, h
+            h = conv(dgl_graph, h)
+        dgl_graph.ndata['feat'] = h
+        if self.pretrain_mode:
+            h = dgl_graph.ndata['feat'].view(n_atoms, -1, small_hidden_dim + self.random_vec_dim)
+        else:
+            h = dgl_graph.ndata['feat']
+        return  h, None
 
 
 class PNASimpleLayer(nn.Module):
