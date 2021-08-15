@@ -44,8 +44,8 @@ model_parameters:
   simple: True
   target_dim: 1
   hidden_dim: 80
-  nhead: 32
-  dim_feedforward: 512
+  nhead: 10
+  dim_feedforward: 500
   dropout: 0.1
   propagation_depth: 6
   readout_batchnorm: True
