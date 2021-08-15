@@ -1,11 +1,11 @@
-experiment_name: 'GeomolGNNOGBFeat_hidden25_depth_5'
+experiment_name: 'GeomolGNNOGBFeat_120000_hidden50_depth3'
 
-dataset: file_loader_qm9
-num_epochs: 250
+dataset: file_loader_drugs
+num_epochs: 300
 batch_size: 16
 trainer: optimal_transport
 log_iterations: 10
-patience: 30
+patience: 80
 loss_func: MSELoss
 num_train: 10000
 required_data:
@@ -37,9 +37,10 @@ lr_scheduler_params:
 model_type: 'OptimalTransportModel'
 model_parameters:
   gnn_model: GeomolGNNOGBFeat
+  use_two_gnns: True
   gnn_params:
-    hidden_dim: 25
-    depth: 5
+    hidden_dim: 50
+    depth: 3
     n_layers: 2
 
   hyperparams:
@@ -57,12 +58,12 @@ model_parameters:
     h_mol_mlp:
       n_layers: 1
     loss_type: ot_emd
-    hidden_dim: 25
+    hidden_dim: 50
     n_model_confs: 10
     n_true_confs: 10
     random_alpha: false
     random_vec_dim: 10
-    random_vec_std: 5.0
+    random_vec_std: 1.0
     teacher_force: false
 
 
