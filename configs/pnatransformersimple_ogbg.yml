@@ -1,10 +1,5 @@
-experiment_name: 'pnaTransformerSimple'
+experiment_name: 'baseline'
 
-multithreaded_seeds:
-  - 1
-  - 2
-  - 3
-  - 4
 dataset: 'ogbg-molhiv'
 num_epochs: 1000
 batch_size: 64

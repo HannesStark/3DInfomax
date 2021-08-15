@@ -11,26 +11,27 @@ from torch.nn import TransformerEncoderLayer
 from commons.mol_encoder import AtomEncoder, BondEncoder
 from models.base_layers import MLP
 from models.pna import PNALayer
+from models.pna_original import PNASimpleLayer
 
 EPS = 1e-5
 
 
 class PNATransformer(nn.Module):
 
-    def __init__(self, node_dim, hidden_dim, target_dim, dropout, nhead, dim_feedforward, aggregators: List[str],
+    def __init__(self, hidden_dim, target_dim, dropout, nhead, dim_feedforward, aggregators: List[str],
                  scalers: List[str], readout_batchnorm: bool = True, readout_hidden_dim=None, readout_layers: int = 2,
                  batch_norm_momentum=0.1, pos_enc_dim=16, residual: bool = True, pairwise_distances: bool = False,
                  activation: Union[Callable, str] = "relu", last_activation: Union[Callable, str] = "none",
                  mid_batch_norm: bool = False, last_batch_norm: bool = False, propagation_depth: int = 5,
-                 posttrans_layers: int = 1, pretrans_layers: int = 1, **kwargs):
+                 posttrans_layers: int = 1, pretrans_layers: int = 1, simple=False, **kwargs):
         super(PNATransformer, self).__init__()
-        self.node_gnn = PNATransformerGNN(node_dim=node_dim, hidden_dim=hidden_dim, dim_feedforward=dim_feedforward,
+        self.node_gnn = PNATransformerGNN( hidden_dim=hidden_dim, dim_feedforward=dim_feedforward,
                                           nhead=nhead, dropout=dropout, activation=activation, aggregators=aggregators,
                                           scalers=scalers, pairwise_distances=pairwise_distances, residual=residual,
                                           last_activation=last_activation, mid_batch_norm=mid_batch_norm,
                                           last_batch_norm=last_batch_norm, avg_d={"log": 1.0},
                                           posttrans_layers=posttrans_layers, pretrans_layers=pretrans_layers,
-                                          batch_norm_momentum=batch_norm_momentum)
+                                          batch_norm_momentum=batch_norm_momentum,simple=simple)
 
         if readout_hidden_dim == None:
             readout_hidden_dim = hidden_dim
@@ -49,11 +50,11 @@ class PNATransformer(nn.Module):
 
 
 class PNATransformerGNN(nn.Module):
-    def __init__(self, node_dim, hidden_dim, dim_feedforward, aggregators: List[str], scalers: List[str],
+    def __init__(self, hidden_dim, dim_feedforward, aggregators: List[str], scalers: List[str],
                  nhead: int = 4, pos_enc_dim=16, residual: bool = True, pairwise_distances: bool = False,
                  activation: Union[Callable, str] = "relu", last_activation: Union[Callable, str] = "none",
                  mid_batch_norm: bool = False, last_batch_norm: bool = False, batch_norm_momentum=0.1,
-                 propagation_depth: int = 5, dropout: float = 0.0, posttrans_layers: int = 1, pretrans_layers: int = 1,
+                 propagation_depth: int = 5, dropout: float = 0.0, posttrans_layers: int = 1, pretrans_layers: int = 1, simple=False,
                  **kwargs):
         super(PNATransformerGNN, self).__init__()
 
@@ -72,7 +73,7 @@ class PNATransformerGNN(nn.Module):
                                     last_activation=last_activation, mid_batch_norm=mid_batch_norm,
                                     last_batch_norm=last_batch_norm, avg_d={"log": 1.0},
                                     posttrans_layers=posttrans_layers, pretrans_layers=pretrans_layers,
-                                    batch_norm_momentum=batch_norm_momentum)
+                                    batch_norm_momentum=batch_norm_momentum, simple=simple)
             )
 
         self.atom_encoder = AtomEncoder(emb_dim=hidden_dim - pos_enc_dim)
@@ -113,14 +114,21 @@ class PNATransformerLayer(nn.Module):
                  residual: bool = True, pairwise_distances: bool = False, activation: Union[Callable, str] = "relu",
                  last_activation: Union[Callable, str] = "none", mid_batch_norm: bool = False,
                  last_batch_norm: bool = False, batch_norm_momentum=0.1,
-                 dropout: float = 0.0, posttrans_layers: int = 1, pretrans_layers: int = 1, combine_mlp_batchnorm_last = False, **kwargs):
+                 dropout: float = 0.0, posttrans_layers: int = 1, pretrans_layers: int = 1, combine_mlp_batchnorm_last = False, simple=False, **kwargs):
         super(PNATransformerLayer, self).__init__()
 
         self.transformer_layer = TransformerEncoderLayer(d_model=hidden_dim, dim_feedforward=dim_feedforward,
                                                          nhead=nhead, batch_first=True, dropout=dropout,
                                                          activation=activation)
-
-        self.pna_layer = PNALayer(in_dim=hidden_dim, out_dim=hidden_dim, in_dim_edges=hidden_dim,
+        self.simple= simple
+        if simple:
+            self.pna_layer = PNASimpleLayer(in_dim=hidden_dim, out_dim=hidden_dim,
+                                            aggregators=aggregators, scalers=scalers,
+                                            residual=residual, dropout=dropout, mid_batch_norm=mid_batch_norm,
+                                            last_batch_norm=last_batch_norm, avg_d=1.0,
+                                            posttrans_layers=posttrans_layers)
+        else:
+            self.pna_layer = PNALayer(in_dim=hidden_dim, out_dim=hidden_dim, in_dim_edges=hidden_dim,
                                   aggregators=aggregators, scalers=scalers, pairwise_distances=pairwise_distances,
                                   residual=residual, dropout=dropout, activation=activation,
                                   last_activation=last_activation, mid_batch_norm=mid_batch_norm,
@@ -134,7 +142,13 @@ class PNATransformerLayer(nn.Module):
     def forward(self, graph, h, mask_include_vnode, mask_exclude_vnode):
         # shape of masks: [batch_size, max_num_atoms + 1]
         batch_size, n_atoms_plus_one, hidden_dim = h.size()
-        self.pna_layer(graph)
+
+        if self.simple:
+            feat = self.pna_layer(graph, graph.ndata['feat'])
+            graph.ndata['feat'] = feat
+        else:
+            self.pna_layer(graph)
+
         h_graph = graph.ndata['feat'] # [n_nodes, hidden_dim]
         n_atoms, hidden_dim = h_graph.size()
 
