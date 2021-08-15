@@ -1,4 +1,4 @@
-experiment_name: 'baseline'
+experiment_name: 'tune_drugs_NTXent'
 
 multithreaded_seeds:
   - 1
