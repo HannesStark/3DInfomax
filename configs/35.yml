@@ -1,4 +1,4 @@
-experiment_name: 'tune_drugs_NTXent_luke_settings'
+experiment_name: 'no_scalers_sum_aggregation_mean_readout'
 
 multithreaded_seeds:
   - 1
@@ -31,8 +31,7 @@ metrics:
 
 optimizer: Adam
 optimizer_params:
-  lr: 1.0e-2
-  weight_decay: 3.0e-6
+  lr: 1.0e-3
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
@@ -50,32 +49,28 @@ lr_scheduler_params:
 
 
 # Model parameters
-model_type: 'PNAOriginalSimple'
+model_type: 'PNA'
 model_parameters:
   target_dim: 1
   hidden_dim: 80
-  last_layer_dim: 80
   mid_batch_norm: True
   last_batch_norm: True
-  readout_batchnorm: False
+  readout_batchnorm: True
   # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
   batch_norm_momentum: 0.1
   readout_hidden_dim: 40
   readout_layers: 2
-  in_feat_dropout: 0.0
   dropout: 0.3
   propagation_depth: 4
   aggregators:
     - mean
     - max
-    - min
-    - std
+    - sum
   scalers:
     - identity
-    - amplification
-    - attenuation
   readout_aggregators:
     - mean
+  pretrans_layers: 2
   posttrans_layers: 1
   residual: True
 

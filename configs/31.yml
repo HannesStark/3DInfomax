@@ -1,4 +1,4 @@
-experiment_name: 'no_scalers_sum_aggregation'
+experiment_name: 'no_scalers_sum_aggregation_mean_readout'
 
 multithreaded_seeds:
   - 1
@@ -60,15 +60,11 @@ model_parameters:
   aggregators:
     - mean
     - max
-    - min
     - sum
   scalers:
     - identity
   readout_aggregators:
-    - min
-    - max
     - mean
-    - sum
   pretrans_layers: 2
   posttrans_layers: 1
   residual: True
