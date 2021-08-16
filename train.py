@@ -394,7 +394,7 @@ def train_pcqm4m(args, device, metrics_dict):
     metrics[args.dataset] = metrics_dict[args.dataset]
     args.main_metric = args.dataset
     args.val_per_batch = False
-    args.main_metric_goal = 'min' if metrics[args.main_metric].metric == 'rmse' else 'max'
+    args.main_metric_goal = 'min'
     trainer = get_trainer(args=args, model=model, data=dataset, device=device, metrics=metrics)
     val_metrics = trainer.train(train_loader, val_loader)
     if args.eval_on_test:
