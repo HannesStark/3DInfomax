@@ -325,18 +325,19 @@ class PNALayer(nn.Module):
 
 
 class PNAOriginalSimpleRandom(nn.Module):
-    def __init__(self, hidden_dim, last_layer_dim, target_dim, in_feat_dropout, dropout, last_batch_norm,
+    def __init__(self, hidden_dim,random_vec_dim, random_vec_std, last_layer_dim, target_dim, in_feat_dropout, dropout, last_batch_norm,
                  mid_batch_norm, propagation_depth, readout_aggregators, readout_hidden_dim, readout_layers,
                  aggregators, scalers, avg_d, residual, posttrans_layers, readout_batchnorm, batch_norm_momentum,
                  **kwargs):
         super().__init__()
-
+        self.random_vec_dim = random_vec_dim
+        self.random_vec_std = random_vec_std
         self.node_gnn = PNAGNNSimpleRandom(hidden_dim=hidden_dim, last_layer_dim=last_layer_dim,
                                            last_batch_norm=last_batch_norm,
                                            mid_batch_norm=mid_batch_norm, in_feat_dropout=in_feat_dropout,
                                            dropout=dropout,
                                            aggregators=aggregators, scalers=scalers, residual=residual, avg_d=avg_d,
-                                           propagation_depth=propagation_depth, posttrans_layers=posttrans_layers)
+                                           propagation_depth=propagation_depth, posttrans_layers=posttrans_layers, random_vec_dim=random_vec_dim)
 
         self.readout_aggregators = readout_aggregators
         self.output = MLP(in_dim=hidden_dim * len(self.readout_aggregators), hidden_size=readout_hidden_dim,
@@ -344,8 +345,13 @@ class PNAOriginalSimpleRandom(nn.Module):
                           layers=readout_layers, batch_norm_momentum=batch_norm_momentum)
 
     def forward(self, g):
-        h = g.ndata['feat']
-        g, h = self.node_gnn(g, h)
+        rand_dist = torch.distributions.normal.Normal(loc=0, scale=self.random_vec_std)
+        # rand_dist = torch.distributions.uniform.Uniform(torch.tensor([0.0]), torch.tensor([1.0]))
+        rand_x = rand_dist.sample([g.ndata['feat'].size(0), self.random_vec_dim]).squeeze(-1).to(g.device)
+        rand_edge = rand_dist.sample([g.edata['feat'].size(0), self.random_vec_dim]).squeeze(-1).to(g.device)
+
+        h, _ = self.node_gnn(rand_x, rand_edge, g)
+        g.ndata['feat']= h
 
         readouts_to_cat = [dgl.readout_nodes(g, 'feat', op=aggr) for aggr in self.readout_aggregators]
         readout = torch.cat(readouts_to_cat, dim=-1)
@@ -353,9 +359,9 @@ class PNAOriginalSimpleRandom(nn.Module):
 
 
 class PNAGNNSimpleRandom(nn.Module):
-    def __init__(self, random_vec_dim, n_model_confs, hidden_dim, last_layer_dim, in_feat_dropout, dropout, residual,
+    def __init__(self, random_vec_dim, hidden_dim, last_layer_dim, in_feat_dropout, dropout, residual,
                  aggregators, scalers, avg_d,
-                 last_batch_norm, mid_batch_norm, propagation_depth, posttrans_layers, pretrain_mode=False):
+                 last_batch_norm, mid_batch_norm, propagation_depth, posttrans_layers,n_model_confs = 10, pretrain_mode=False):
         super().__init__()
         self.random_vec_dim = random_vec_dim
         self.pretrain_mode = pretrain_mode

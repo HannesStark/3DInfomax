@@ -1,4 +1,4 @@
-experiment_name: 'no_scalers_sum_aggregation_mean_readout'
+experiment_name: 'tune_PNAGNNSimpleRandom_10000_2localEpochs'
 
 multithreaded_seeds:
   - 1
@@ -7,6 +7,11 @@ multithreaded_seeds:
   - 4
   - 5
   - 6
+pretrain_checkpoint: runs/OptimalTransportModel_file_loader_drugs_PNAGNNSimpleRandom_10000_2localEpochs_123_14-08_18-09-51/best_checkpoint.pt
+transfer_layers:
+  - gnn.
+exclude_from_transfer:
+  - batch_norm
 
 
 dataset: 'ogbg-molbace'
@@ -45,28 +50,34 @@ lr_scheduler_params:
 
 
 # Model parameters
-model_type: 'PNA'
+model_type: 'PNAOriginalSimpleRandom'
 model_parameters:
   target_dim: 1
+  random_vec_dim: 10
+  random_vec_std: 0.1
   hidden_dim: 80
+  last_layer_dim: 80
   mid_batch_norm: True
   last_batch_norm: True
-  readout_batchnorm: True
+  readout_batchnorm: False
   # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
   batch_norm_momentum: 0.1
   readout_hidden_dim: 40
   readout_layers: 2
+  in_feat_dropout: 0.0
   dropout: 0.3
   propagation_depth: 4
   aggregators:
     - mean
     - max
-    - sum
+    - min
+    - std
   scalers:
     - identity
+    - amplification
+    - attenuation
   readout_aggregators:
     - mean
-  pretrans_layers: 2
   posttrans_layers: 1
   residual: True
 
