@@ -12,7 +12,10 @@ from commons.utils import get_adj_matrix
 def graph_collate(batch: List[Tuple]):
     graphs, targets = map(list, zip(*batch))
     batched_graph = dgl.batch(graphs)
-    return [batched_graph], torch.stack(targets).float()
+    targets = torch.stack(targets).float()
+    if len(targets.shape) ==1:
+        targets = targets.unsqueeze(-1)
+    return [batched_graph], targets
 
 
 def pytorch_geometric_collate(batch: List[Tuple]):
