@@ -101,12 +101,9 @@ class QM9DenormalizedL2(nn.Module):
         return F.mse_loss(preds, targets)
 
 class OGBEvaluator(nn.Module):
-    def __init__(self, d_name, metric='rocauc', val_only=True):
+    def __init__(self, d_name, metric='rocauc'):
         super().__init__()
-        if d_name == 'pcqm4m':
-            self.evaluator = PCQM4MEvaluator()
-        else:
-            self.evaluator = Evaluator(name=d_name)
+        self.evaluator = Evaluator(name=d_name)
         self.val_only = True
         self.metric = metric
 
@@ -116,6 +113,17 @@ class OGBEvaluator(nn.Module):
         input_dict = {"y_true": targets.long(), "y_pred": preds}
         return torch.tensor(self.evaluator.eval(input_dict)[self.metric])
 
+class PCQM4MEvaluatorWrapper(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.evaluator = PCQM4MEvaluator()
+        self.val_only = False
+
+    def forward(self, preds, targets):
+        if preds.shape[1] != 1:
+            return torch.tensor(float('NaN'))
+        input_dict = {"y_true": targets.long(), "y_pred": preds}
+        return torch.tensor(self.evaluator.eval(input_dict)['mae'])
 
 
 class Rsquared(nn.Module):

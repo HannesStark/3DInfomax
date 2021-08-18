@@ -59,7 +59,7 @@ from trainer.metrics import QM9DenormalizedL1, QM9DenormalizedL2, \
     PositiveSimilarity, ContrastiveAccuracy, TrueNegativeRate, TruePositiveRate, Alignment, Uniformity, \
     BatchVariance, DimensionCovariance, MAE, PositiveSimilarityMultiplePositivesSeparate2d, \
     NegativeSimilarityMultiplePositivesSeparate2d, OGBEvaluator, PearsonR, PositiveProb, NegativeProb, \
-    Conformer2DVariance, Conformer3DVariance
+    Conformer2DVariance, Conformer3DVariance, PCQM4MEvaluatorWrapper
 from trainer.trainer import Trainer
 
 # turn on for debugging C code like Segmentation Faults
@@ -222,12 +222,12 @@ def train(args):
                     'ogbg-molclintox': OGBEvaluator(d_name='ogbg-molclintox', metric='rocauc'),
                     'ogbg-moltoxcast': OGBEvaluator(d_name='ogbg-moltoxcast', metric='rocauc'),
                     'ogbg-moltox21': OGBEvaluator(d_name='ogbg-moltox21', metric='rocauc'),
-                    'ogbg-mollipo': OGBEvaluator(d_name='ogbg-mollipo', metric='rmse', val_only=False),
+                    'ogbg-mollipo': OGBEvaluator(d_name='ogbg-mollipo', metric='rmse'),
                     'ogbg-molmuv': OGBEvaluator(d_name='ogbg-molmuv', metric='ap'),
                     'ogbg-molsider': OGBEvaluator(d_name='ogbg-molsider', metric='rocauc'),
-                    'ogbg-molfreesolv': OGBEvaluator(d_name='ogbg-molfreesolv', metric='rmse', val_only=False),
-                    'ogbg-molesol': OGBEvaluator(d_name='ogbg-molesol', metric='rmse', val_only=False),
-                    'pcqm4m': OGBEvaluator(d_name='pcqm4m', metric='mae', val_only=False),
+                    'ogbg-molfreesolv': OGBEvaluator(d_name='ogbg-molfreesolv', metric='rmse'),
+                    'ogbg-molesol': OGBEvaluator(d_name='ogbg-molesol', metric='rmse'),
+                    'pcqm4m': PCQM4MEvaluatorWrapper(),
                     'conformer_3d_variance': Conformer3DVariance(),
                     'conformer_2d_variance': Conformer2DVariance(),
                     'positive_similarity': PositiveSimilarity(),
