@@ -3,6 +3,7 @@ from typing import Union
 
 import torch
 from ogb.graphproppred import Evaluator
+from ogb.lsc import PCQM4MEvaluator
 from torch import Tensor
 from torch.nn import functional as F
 import torch.nn as nn
@@ -100,9 +101,12 @@ class QM9DenormalizedL2(nn.Module):
         return F.mse_loss(preds, targets)
 
 class OGBEvaluator(nn.Module):
-    def __init__(self, d_name, metric='rocauc'):
+    def __init__(self, d_name, metric='rocauc', val_only=True):
         super().__init__()
-        self.evaluator = Evaluator(name=d_name)
+        if d_name == 'pcqm4m':
+            self.evaluator = PCQM4MEvaluator()
+        else:
+            self.evaluator = Evaluator(name=d_name)
         self.val_only = True
         self.metric = metric
 
@@ -111,6 +115,7 @@ class OGBEvaluator(nn.Module):
             return torch.tensor(float('NaN'))
         input_dict = {"y_true": targets.long(), "y_pred": preds}
         return torch.tensor(self.evaluator.eval(input_dict)[self.metric])
+
 
 
 class Rsquared(nn.Module):
