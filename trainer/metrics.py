@@ -122,7 +122,7 @@ class PCQM4MEvaluatorWrapper(nn.Module):
     def forward(self, preds, targets):
         if preds.shape[1] != 1:
             return torch.tensor(float('NaN'))
-        input_dict = {"y_true": targets.long(), "y_pred": preds}
+        input_dict = {"y_true": targets.long().squeeze(), "y_pred": preds.squeeze()}
         return torch.tensor(self.evaluator.eval(input_dict)['mae'])
 
 
