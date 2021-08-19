@@ -1,4 +1,4 @@
-experiment_name: 'tune_drugs_GeomolGNNOGBFeat_10000_hidden50_depth3_batchsize_48_lr3e3'
+experiment_name: 'tune_drugs_GeomolGNNOGBFeat_120000_hidden50_depth3'
 
 multithreaded_seeds:
   - 1
@@ -7,7 +7,7 @@ multithreaded_seeds:
   - 4
   - 5
   - 6
-pretrain_checkpoint: runs/OptimalTransportModel_file_loader_drugs_GeomolGNNOGBFeat_10000_hidden50_depth3_batchsize_48_lr3e3_123_15-08_07-55-19/best_checkpoint.pt
+pretrain_checkpoint: runs/OptimalTransportModel_file_loader_drugs_GeomolGNNOGBFeat_120000_hidden50_depth3_123_15-08_07-55-19/best_checkpoint.pt
 transfer_layers:
   - gnn.
 exclude_from_transfer:
