@@ -39,7 +39,7 @@ model_parameters:
   gnn_model: GeomolGNNOGBFeat
   use_two_gnns: True
   gnn_params:
-    hidden_dim: 50
+    hidden_dim: 100
     depth: 3
     n_layers: 2
 
