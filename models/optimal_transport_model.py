@@ -17,6 +17,7 @@ from models.pna_gnn_random import PNAGNNRandom
 from models.geomol_mpnn import GeomolGNN, GeomolMLP
 from models.geomol_mpnn_ogb_feat import GeomolGNNOGBFeat
 from models.pna_original_random import PNAGNNSimpleRandom
+from models.gin_random import GNN_nodeRandom
 
 DEBUG_NEIGHBORHOOD_PAIRS = False
 
