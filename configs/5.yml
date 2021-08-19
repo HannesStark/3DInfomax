@@ -1,18 +1,16 @@
-experiment_name: 'PNA_120000_hidden200_depth7_0localEpochs'
+experiment_name: 'GeomolGNNOGBFeat_120000_hidden100_depth3'
 
 dataset: file_loader_drugs
-num_epochs: 500
-batch_size: 32
+num_epochs: 300
+batch_size: 16
 trainer: optimal_transport
-num_epochs_local_only: 0
 log_iterations: 10
-patience: 30
+patience: 80
 loss_func: MSELoss
-num_train: 120000
+num_train: 10000
 required_data:
   - pyg_multiple_conformers
-  - dgl_graph
-collate_function: pyg_and_dgl_graph_collate
+collate_function: pyg_graph_only_collate
 num_conformers: 10
 main_metric: loss
 
@@ -38,28 +36,12 @@ lr_scheduler_params:
 # Model parameters
 model_type: 'OptimalTransportModel'
 model_parameters:
-  gnn_model: PNAGNNRandom
+  gnn_model: GeomolGNNOGBFeat
+  use_two_gnns: True
   gnn_params:
-    hidden_dim: 200
-    mid_batch_norm: True
-    last_batch_norm: True
-    readout_batchnorm: True
-    # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
-    batch_norm_momentum: 0.1
-    dropout: 0.0
-    propagation_depth: 7
-    aggregators:
-      - mean
-      - max
-      - min
-      - std
-    scalers:
-      - identity
-      - amplification
-      - attenuation
-    pretrans_layers: 2
-    posttrans_layers: 1
-    residual: True
+    hidden_dim: 50
+    depth: 3
+    n_layers: 2
 
   hyperparams:
     alpha_mlp:
