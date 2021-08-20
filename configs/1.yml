@@ -1,2 +1,41 @@
+experiment_name: 'baseline'
+
+dataset: 'pcqm4m'
+num_epochs: 1000
+batch_size: 256
+log_iterations: 30
+patience: 30
+loss_func: L1Loss
+num_train: 380000
+
+required_data:
+  - dgl_graph
+  - targets
+metrics:
+  - pearsonr
+  - rsquared
+  - mean_predictor_loss
+
+optimizer: Adam
+optimizer_params:
+  lr: 1.0e-3
+
+scheduler_step_per_batch: False
+lr_scheduler: StepLR
+lr_scheduler_params:
+  step_size: 300
+  gamma: 0.25
+
+# Model parameters
+model_type: 'OGBGNN'
+model_parameters:
+  target_dim: 1
+  num_layers: 5
+  dropout: 0.0
+  batch_norm_momentum: 0.1
+  emb_dim: 600
+  virtual_node: True
+
+
 # continue training from checkpoint:
-checkpoint: runs/OptimalTransportModel_file_loader_drugs_GeomolGNNOGBFeat_10000_hidden50_depth3_123_15-08_07-55-17/last_checkpoint.pt
+#checkpoint: runs/PNAReadout_2_layer_03-04_15-29-07/last_checkpoint.pt

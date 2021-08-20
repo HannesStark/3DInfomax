@@ -70,7 +70,7 @@ seaborn.set_theme()
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'),default='configs/5.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'),default='configs/4.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
@@ -377,6 +377,7 @@ def train_qm9_geomol_featurization(args, device, metrics_dict):
 def train_pcqm4m(args, device, metrics_dict):
     dataset = DglPCQM4MDataset(smiles2graph = smiles2graph)
     split_idx = dataset.get_idx_split()
+    split_idx["train"] = split_idx["train"][:args.num_train]
     collate_function = globals()[args.collate_function] if args.collate_params == {} else globals()[
         args.collate_function](**args.collate_params)
 

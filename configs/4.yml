@@ -7,7 +7,7 @@ trainer: optimal_transport
 log_iterations: 10
 patience: 80
 loss_func: MSELoss
-num_train: 10000
+num_train: 120000
 required_data:
   - pyg_multiple_conformers
 collate_function: pyg_graph_only_collate
@@ -39,8 +39,8 @@ model_parameters:
   gnn_model: GeomolGNNOGBFeat
   use_two_gnns: True
   gnn_params:
-    hidden_dim: 50
-    depth: 4
+    hidden_dim: 100
+    depth: 5
     n_layers: 2
 
   hyperparams:
