@@ -1,4 +1,4 @@
-experiment_name: 'NTXentMultiplePositives'
+experiment_name: 'NTXentMultiplePositives_280000_random_conformer'
 
 dataset: drugs
 num_epochs: 1000

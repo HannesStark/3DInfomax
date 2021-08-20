@@ -1,4 +1,4 @@
-experiment_name: 'GIN_120000_hidden50_depth3'
+experiment_name: 'GIN_10000_hidden300_depth5'
 
 dataset: file_loader_drugs
 num_epochs: 300
@@ -17,7 +17,7 @@ main_metric: loss
 
 optimizer: Adam
 optimizer_params:
-  lr: 1.0e-3
+  lr: 4.0e-3
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
@@ -38,10 +38,10 @@ lr_scheduler_params:
 model_type: 'OptimalTransportModel'
 model_parameters:
   gnn_model: GNN_nodeRandom
-  use_two_gnns: True
+  use_two_gnns: False
   gnn_params:
-    hidden_dim: 50
-    num_layers: 3
+    hidden_dim: 300
+    num_layers: 5
 
   hyperparams:
     alpha_mlp:
