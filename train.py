@@ -70,7 +70,7 @@ seaborn.set_theme()
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'),default='configs/4.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'),default='configs/13.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
@@ -472,8 +472,9 @@ def train_geom(args, device, metrics_dict):
     all_data = dataset(return_types=args.required_data, target_tasks=args.targets, device=device,
                        num_conformers=args.num_conformers)
     all_idx = get_random_indices(len(all_data), args.seed_data)
+    ic(len(all_idx))
     if args.dataset == 'drugs':
-        model_idx = all_idx[:240000]
+        model_idx = all_idx[:280000] # 304293 in all data
     elif args.dataset in ['geom_qm9', 'qm9_geomol_feat']:
         model_idx = all_idx[:100000]
     elif args.dataset == 'qmugs':
