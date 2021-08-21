@@ -7,11 +7,7 @@ multithreaded_seeds:
   - 4
   - 5
   - 6
-pretrain_checkpoint: runs/OptimalTransportModel_file_loader_drugs_GNN_node_VirtualnodeRandom_123_11-08_11-55-58/best_checkpoint.pt
-transfer_layers:
-  - gnn.
-exclude_from_transfer:
-  - batch_norm
+
 
 dataset: 'ogbg-molbace'
 num_epochs: 1000
@@ -49,16 +45,14 @@ lr_scheduler_params:
 
 
 # Model parameters
-model_type: 'OGBGNNRandom'
+model_type: 'OGBGNN'
 model_parameters:
   target_dim: 1
-  random_vec_dim: 10
-  random_vec_std: 1.0
   num_layers: 5
   dropout: 0.0
   batch_norm_momentum: 0.1
   emb_dim: 300
-  virtual_node: True
+  virtual_node: False
 
 
 

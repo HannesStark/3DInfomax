@@ -21,8 +21,9 @@ log_iterations: 30
 patience: 40
 minimum_epochs: 120
 loss_func: BCEWithLogitsLoss
+collate_function: pytorch_geometric_collate
 required_data:
-  - dgl_graph
+  - pytorch_geometric_graph
   - targets
 metrics:
   - rsquared
@@ -50,36 +51,17 @@ lr_scheduler_params:
 
 
 # Model parameters
-model_type: 'PNAOriginalSimpleRandom'
+model_type: 'GeomolGNNWrapperOGBFeatRandom'
 model_parameters:
   target_dim: 1
-  random_vec_dim: 10
-  random_vec_std: 0.1
-  hidden_dim: 80
-  last_layer_dim: 80
-  mid_batch_norm: True
-  last_batch_norm: True
-  readout_batchnorm: False
-  # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
-  batch_norm_momentum: 0.1
-  readout_hidden_dim: 40
-  readout_layers: 2
-  in_feat_dropout: 0.0
-  dropout: 0.3
-  propagation_depth: 4
-  aggregators:
-    - mean
-    - max
-    - min
-    - std
-  scalers:
-    - identity
-    - amplification
-    - attenuation
-  readout_aggregators:
-    - mean
-  posttrans_layers: 1
-  residual: True
+  hidden_dim: 50
+  gnn_params:
+    hidden_dim: 50
+    readout_layers: 2
+    readout_batchnorm: True
+    depth: 3
+    n_layers: 2
+
 
 
 

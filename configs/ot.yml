@@ -75,7 +75,7 @@ model_parameters:
     n_true_confs: 10
     random_alpha: false
     random_vec_dim: 10
-    random_vec_std: 5.0
+    random_vec_std: 1.0
     teacher_force: false
 
 

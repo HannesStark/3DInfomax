@@ -12,7 +12,8 @@ import torch.nn.functional as F
 
 
 class PNARandomEdgeUpdate(nn.Module):
-    def __init__(self, hidden_dim, target_dim, random_vec_dim, random_vec_std, aggregators: List[str], scalers: List[str],
+    def __init__(self, hidden_dim, target_dim, random_vec_dim, random_vec_std, aggregators: List[str],
+                 scalers: List[str],
                  readout_aggregators: List[str], readout_batchnorm: bool = True, readout_hidden_dim=None,
                  readout_layers: int = 2, residual: bool = True, pairwise_distances: bool = False,
                  activation: Union[Callable, str] = "relu", last_activation: Union[Callable, str] = "none",
@@ -21,15 +22,16 @@ class PNARandomEdgeUpdate(nn.Module):
                  **kwargs):
         super(PNARandomEdgeUpdate, self).__init__()
         self.node_gnn = PNAGNNRandomEdgeUpdate(random_vec_dim=random_vec_dim, hidden_dim=hidden_dim,
-                                     aggregators=aggregators,
-                                     scalers=scalers, residual=residual, pairwise_distances=pairwise_distances,
-                                     activation=activation, last_activation=last_activation,
-                                     mid_batch_norm=mid_batch_norm,
-                                     last_batch_norm=last_batch_norm, propagation_depth=propagation_depth,
-                                     dropout=dropout,
-                                     posttrans_layers=posttrans_layers, pretrans_layers=pretrans_layers,
-                                     batch_norm_momentum=batch_norm_momentum
-                                     )
+                                               aggregators=aggregators,
+                                               scalers=scalers, residual=residual,
+                                               pairwise_distances=pairwise_distances,
+                                               activation=activation, last_activation=last_activation,
+                                               mid_batch_norm=mid_batch_norm,
+                                               last_batch_norm=last_batch_norm, propagation_depth=propagation_depth,
+                                               dropout=dropout,
+                                               posttrans_layers=posttrans_layers, pretrans_layers=pretrans_layers,
+                                               batch_norm_momentum=batch_norm_momentum
+                                               )
         if readout_hidden_dim == None:
             readout_hidden_dim = hidden_dim
         self.random_vec_dim = random_vec_dim
@@ -52,7 +54,7 @@ class PNARandomEdgeUpdate(nn.Module):
 
 
 class PNAGNNRandomEdgeUpdate(nn.Module):
-    def __init__(self, random_vec_dim, hidden_dim, aggregators: List[str], scalers: List[str], n_model_confs = 10,
+    def __init__(self, random_vec_dim, hidden_dim, aggregators: List[str], scalers: List[str], n_model_confs=10,
                  residual: bool = True, pairwise_distances: bool = False, activation: Union[Callable, str] = "relu",
                  last_activation: Union[Callable, str] = "none", mid_batch_norm: bool = False,
                  last_batch_norm: bool = False, batch_norm_momentum=0.1, propagation_depth: int = 5,
@@ -65,12 +67,16 @@ class PNAGNNRandomEdgeUpdate(nn.Module):
         self.pretrain_mode = pretrain_mode
         for _ in range(propagation_depth):
             self.mp_layers.append(
-                PNALayerEdgeUpdate(in_dim=hidden_dim, out_dim=int(hidden_dim), in_dim_edges=hidden_dim, aggregators=aggregators,
-                         scalers=scalers, pairwise_distances=pairwise_distances, residual=residual, dropout=dropout,
-                         activation=activation, last_activation=last_activation, mid_batch_norm=mid_batch_norm,
-                         last_batch_norm=last_batch_norm, avg_d={"log": 1.0}, posttrans_layers=posttrans_layers,
-                         pretrans_layers=pretrans_layers, batch_norm_momentum=batch_norm_momentum
-                         ),
+                PNALayerEdgeUpdate(in_dim=hidden_dim, out_dim=int(hidden_dim), in_dim_edges=hidden_dim,
+                                   aggregators=aggregators,
+                                   scalers=scalers, pairwise_distances=pairwise_distances, residual=residual,
+                                   dropout=dropout,
+                                   activation=activation, last_activation=last_activation,
+                                   mid_batch_norm=mid_batch_norm,
+                                   last_batch_norm=last_batch_norm, avg_d={"log": 1.0},
+                                   posttrans_layers=posttrans_layers,
+                                   pretrans_layers=pretrans_layers, batch_norm_momentum=batch_norm_momentum
+                                   ),
 
             )
         self.atom_encoder = AtomEncoder(emb_dim=hidden_dim - self.random_vec_dim)
@@ -102,6 +108,7 @@ class PNAGNNRandomEdgeUpdate(nn.Module):
             feat = dgl_graph.ndata['feat']
         return feat, None
 
+
 class PNALayerEdgeUpdate(nn.Module):
     def __init__(self, in_dim: int, out_dim: int, in_dim_edges: int, aggregators: List[str], scalers: List[str],
                  activation: Union[Callable, str] = "relu", last_activation: Union[Callable, str] = "none",
@@ -132,11 +139,16 @@ class PNALayerEdgeUpdate(nn.Module):
         )
         self.edge_eps = nn.Parameter(torch.Tensor([0]))
         self.node_eps = nn.Parameter(torch.Tensor([0]))
-        self.posttrans = MLP(in_dim=(len(self.aggregators) * len(self.scalers)) * in_dim, hidden_size=out_dim,
-                             out_dim=out_dim, layers=posttrans_layers, mid_activation=activation,
-                             last_activation=last_activation, dropout=dropout, mid_batch_norm=mid_batch_norm,
-                             last_batch_norm=last_batch_norm, batch_norm_momentum=batch_norm_momentum
-                             )
+        self.posttrans_1 = MLP(in_dim=in_dim, hidden_size=out_dim,
+                               out_dim=out_dim, layers=posttrans_layers, mid_activation=activation,
+                               last_activation=last_activation, dropout=dropout, mid_batch_norm=mid_batch_norm,
+                               last_batch_norm=last_batch_norm, batch_norm_momentum=batch_norm_momentum
+                               )
+        self.posttrans_2 = MLP(in_dim=(len(self.aggregators) * len(self.scalers)) * in_dim, hidden_size=out_dim,
+                               out_dim=out_dim, layers=posttrans_layers, mid_activation=activation,
+                               last_activation=last_activation, dropout=dropout, mid_batch_norm=mid_batch_norm,
+                               last_batch_norm=last_batch_norm, batch_norm_momentum=batch_norm_momentum
+                               )
 
     def forward(self, g):
         h = g.ndata['feat']
@@ -147,7 +159,7 @@ class PNALayerEdgeUpdate(nn.Module):
         # aggregation
         g.update_all(self.message_func, self.reduce_func)
         # post-transformation
-        h = (1 + self.node_eps) * h_in + self.posttrans(g.ndata['feat'])
+        h = (1 + self.node_eps) * h_in + self.posttrans_2(g.ndata['feat'])
         if self.residual:
             h = h + h_in
 
@@ -165,7 +177,7 @@ class PNALayerEdgeUpdate(nn.Module):
         Apply the aggregators and scalers, and concatenate the results.
         """
         h_in = nodes.data['feat']
-        h = nodes.mailbox['e']
+        h = self.posttrans_1(nodes.mailbox['e'])
         D = h.shape[-2]
         h_to_cat = [aggr(h=h, h_in=h_in) for aggr in self.aggregators]
         h = torch.cat(h_to_cat, dim=-1)
@@ -183,7 +195,6 @@ class PNALayerEdgeUpdate(nn.Module):
         edge = self.edge(edges.data['feat'])
         node_in = self.node_in(edges.src['feat'])
         node_out = self.node_out(edges.dst['feat'])
-
 
         out = F.relu(edge + node_in + node_out)
         return {'feat': (1 + self.edge_eps) * edges.data['feat'] + self.pretrans(out)}
