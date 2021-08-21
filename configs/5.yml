@@ -40,8 +40,8 @@ model_parameters:
   gnn_model: GNN_nodeRandom
   use_two_gnns: False
   gnn_params:
-    hidden_dim: 300
-    num_layers: 5
+    hidden_dim: 50
+    num_layers: 3
 
   hyperparams:
     alpha_mlp:

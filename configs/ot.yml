@@ -37,27 +37,22 @@ lr_scheduler_params:
 # Model parameters
 model_type: 'OptimalTransportModel'
 model_parameters:
-  gnn_model: PNAGNNRandom
+  gnn_model: PNAGNNRandomEdgeUpdate
   gnn_params:
     hidden_dim: 50
-    mid_batch_norm: True
-    last_batch_norm: True
+    mid_batch_norm: False
+    last_batch_norm: False
     readout_batchnorm: True
     # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
     batch_norm_momentum: 0.1
     dropout: 0.0
-    propagation_depth: 7
+    propagation_depth: 3
     aggregators:
-      - mean
-      - max
-      - min
-      - std
+      - sum
     scalers:
       - identity
-      - amplification
-      - attenuation
     pretrans_layers: 2
-    posttrans_layers: 1
+    posttrans_layers: 2
     residual: True
 
   hyperparams:

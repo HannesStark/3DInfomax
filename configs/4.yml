@@ -1,6 +1,6 @@
 experiment_name: 'GeomolGNNOGBFeat_10000_hidden50_depth4'
 
-dataset: file_loader_drugs
+dataset: file_loader_qm9
 num_epochs: 300
 batch_size: 16
 trainer: optimal_transport
@@ -39,8 +39,8 @@ model_parameters:
   gnn_model: GeomolGNNOGBFeat
   use_two_gnns: True
   gnn_params:
-    hidden_dim: 100
-    depth: 5
+    hidden_dim: 50
+    depth: 3
     n_layers: 2
 
   hyperparams:

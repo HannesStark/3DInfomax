@@ -4,9 +4,9 @@ dataset: 'pcqm4m'
 num_epochs: 1000
 batch_size: 256
 log_iterations: 30
-patience: 30
+patience: 150
 loss_func: L1Loss
-num_train: 380000
+num_train: 38000000
 
 required_data:
   - dgl_graph
@@ -23,7 +23,7 @@ optimizer_params:
 scheduler_step_per_batch: False
 lr_scheduler: StepLR
 lr_scheduler_params:
-  step_size: 300
+  step_size: 30
   gamma: 0.25
 
 # Model parameters
