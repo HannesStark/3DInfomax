@@ -53,7 +53,7 @@ model_parameters:
       - identity
     pretrans_layers: 2
     posttrans_layers: 2
-    residual: True
+    residual: False
 
   hyperparams:
     alpha_mlp:

@@ -130,7 +130,9 @@ class PNALayerEdgeUpdate(nn.Module):
             batch_norm_momentum=batch_norm_momentum
 
         )
-        self.posttrans = MLP(in_dim=(len(self.aggregators) * len(self.scalers) + 1) * in_dim, hidden_size=out_dim,
+        self.edge_eps = nn.Parameter(torch.Tensor([0]))
+        self.node_eps = nn.Parameter(torch.Tensor([0]))
+        self.posttrans = MLP(in_dim=(len(self.aggregators) * len(self.scalers)) * in_dim, hidden_size=out_dim,
                              out_dim=out_dim, layers=posttrans_layers, mid_activation=activation,
                              last_activation=last_activation, dropout=dropout, mid_batch_norm=mid_batch_norm,
                              last_batch_norm=last_batch_norm, batch_norm_momentum=batch_norm_momentum
@@ -144,9 +146,8 @@ class PNALayerEdgeUpdate(nn.Module):
 
         # aggregation
         g.update_all(self.message_func, self.reduce_func)
-        h = torch.cat([h, g.ndata['feat']], dim=-1)
         # post-transformation
-        h = self.posttrans(h)
+        h = (1 + self.node_eps) * h_in + self.posttrans(g.ndata['feat'])
         if self.residual:
             h = h + h_in
 
@@ -156,7 +157,7 @@ class PNALayerEdgeUpdate(nn.Module):
         r"""
         The message function to generate messages along the edges.
         """
-        return {'feat': edges.data['feat']}
+        return {'e': edges.data['feat']}
 
     def reduce_func(self, nodes) -> Dict[str, torch.Tensor]:
         r"""
@@ -164,7 +165,7 @@ class PNALayerEdgeUpdate(nn.Module):
         Apply the aggregators and scalers, and concatenate the results.
         """
         h_in = nodes.data['feat']
-        h = nodes.mailbox['feat']
+        h = nodes.mailbox['e']
         D = h.shape[-2]
         h_to_cat = [aggr(h=h, h_in=h_in) for aggr in self.aggregators]
         h = torch.cat(h_to_cat, dim=-1)
@@ -185,4 +186,4 @@ class PNALayerEdgeUpdate(nn.Module):
 
 
         out = F.relu(edge + node_in + node_out)
-        return {'feat': self.pretrans(out)}
+        return {'feat': (1 + self.edge_eps) * edges.data['feat'] + self.pretrans(out)}

@@ -64,13 +64,15 @@ from trainer.trainer import Trainer
 
 # turn on for debugging C code like Segmentation Faults
 import faulthandler
+
 faulthandler.enable()
 install()
 seaborn.set_theme()
 
+
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'),default='configs/ot.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/ot.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
@@ -118,7 +120,8 @@ def parse_arguments():
     p.add_argument('--exclude_from_transfer', default=[],
                    help='parameters that usually should not be transferred like batchnorm params')
     p.add_argument('--transferred_lr', type=float, default=None, help='set to use a different LR for transfer layers')
-    p.add_argument('--num_epochs_local_only', type=int, default=1, help='when training with OptimalTransportTrainer, this specifies for how many epochs only the local predictions will get a loss')
+    p.add_argument('--num_epochs_local_only', type=int, default=1,
+                   help='when training with OptimalTransportTrainer, this specifies for how many epochs only the local predictions will get a loss')
 
     p.add_argument('--required_data', default=[],
                    help='what will be included in a batch like [dgl_graph, targets, dgl_graph3d]')
@@ -131,6 +134,8 @@ def parse_arguments():
 
     p.add_argument('--dist_embedding', type=bool, default=False, help='add dist embedding to complete graphs edges')
     p.add_argument('--num_radial', type=int, default=6, help='number of frequencies for distance embedding')
+    p.add_argument('--models_to_save', type=list, default=[],
+                   help='specify after which epochs to remember the best model')
 
     p.add_argument('--model_type', type=str, default='MPNN', help='Classname of one of the models in the models dir')
     p.add_argument('--model_parameters', type=dict, help='dictionary of model parameters')
@@ -263,7 +268,6 @@ def train(args):
         return train_ogbg(args, device, metrics_dict)
 
 
-
 def train_geomol(args, device, metrics_dict):
     if args.dataset == 'bace_geomol':
         dataset = BACEGeomol
@@ -374,8 +378,9 @@ def train_qm9_geomol_featurization(args, device, metrics_dict):
         return val_metrics, test_metrics, trainer.writer.log_dir
     return val_metrics
 
+
 def train_pcqm4m(args, device, metrics_dict):
-    dataset = DglPCQM4MDataset(smiles2graph = smiles2graph)
+    dataset = DglPCQM4MDataset(smiles2graph=smiles2graph)
     split_idx = dataset.get_idx_split()
     split_idx["train"] = split_idx["train"][:args.num_train]
     collate_function = globals()[args.collate_function] if args.collate_params == {} else globals()[
@@ -400,6 +405,7 @@ def train_pcqm4m(args, device, metrics_dict):
         test_metrics = trainer.evaluation(test_loader, data_split='test')
         return val_metrics, test_metrics, trainer.writer.log_dir
     return val_metrics
+
 
 def train_ogbg(args, device, metrics_dict):
     dataset = OGBGDatasetExtension(return_types=args.required_data, device=device, name=args.dataset)
@@ -473,7 +479,7 @@ def train_geom(args, device, metrics_dict):
                        num_conformers=args.num_conformers)
     all_idx = get_random_indices(len(all_data), args.seed_data)
     if args.dataset == 'drugs':
-        model_idx = all_idx[:280000] # 304293 in all data
+        model_idx = all_idx[:280000]  # 304293 in all data
     elif args.dataset in ['geom_qm9', 'qm9_geomol_feat']:
         model_idx = all_idx[:100000]
     elif args.dataset == 'qmugs':
@@ -607,7 +613,8 @@ if __name__ == '__main__':
                 args_copy = get_arguments()
                 args_copy.seed = seed
                 futures.append(executor.submit(train, args_copy))
-            results = [f.result() for f in futures] # list of tuples of dictionaries with the validation results first and the test results second
+            results = [f.result() for f in
+                       futures]  # list of tuples of dictionaries with the validation results first and the test results second
         all_val_metrics = defaultdict(list)
         all_test_metrics = defaultdict(list)
         log_dirs = []
@@ -625,12 +632,12 @@ if __name__ == '__main__':
                 file.write(f'\n{key:}\n')
                 file.write(f'mean: {metric.mean()}\n')
                 file.write(f'stddev: {metric.std()}\n')
-                file.write(f'stderr: {metric.std()/np.sqrt(len(metric))}\n')
+                file.write(f'stderr: {metric.std() / np.sqrt(len(metric))}\n')
                 file.write(f'values: {value}\n')
             print(f'\n{key}:')
             print(f'mean: {metric.mean()}')
             print(f'stddev: {metric.std()}')
-            print(f'stderr: {metric.std()/np.sqrt(len(metric))}')
+            print(f'stderr: {metric.std() / np.sqrt(len(metric))}')
             print(f'values: {value}')
         for file in files:
             file.close()

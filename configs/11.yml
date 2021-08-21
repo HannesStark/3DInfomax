@@ -1,5 +1,10 @@
-experiment_name: 'NTXentMultiplePositives_280000_random_conformer'
+experiment_name: 'NTXent_140000_random_conformer'
 
+models_to_save:
+  - 100
+  - 200
+  - 300
+  - 400
 dataset: drugs
 num_epochs: 1000
 batch_size: 500
@@ -8,7 +13,7 @@ patience: 35
 loss_func: NTXent
 loss_params:
   tau: 0.1
-num_train: 280000
+num_train: 140000
 
 required_data:
   - dgl_graph

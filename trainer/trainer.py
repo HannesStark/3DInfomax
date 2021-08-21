@@ -100,6 +100,8 @@ class Trainer():
                     print(
                         f'Early stopping criterion based on -{self.main_metric}- that should be {self.main_metric_goal} reached after {epoch} epochs. Best model checkpoint was in epoch {epoch - epochs_no_improve}.')
                     break
+                if epoch in self.args.models_to_save:
+                    shutil.copyfile(os.path.join(self.writer.log_dir, 'best_checkpoint.pt'), os.path.join(self.writer.log_dir, f'best_checkpoint_{epoch}epochs.pt'))
 
         # evaluate on best checkpoint
         checkpoint = torch.load(os.path.join(self.writer.log_dir, 'best_checkpoint.pt'), map_location=self.device)
