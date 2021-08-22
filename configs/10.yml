@@ -1,4 +1,4 @@
-experiment_name: 'NTXentMultiplePositives_140000_noVNode_lr8e4'
+experiment_name: 'NTXent_random_sample_140000_noVNode_lr8e4'
 
 models_to_save:
   - 10
@@ -14,7 +14,7 @@ num_epochs: 1000
 batch_size: 500
 log_iterations: 50
 patience: 35
-loss_func: NTXentMultiplePositives
+loss_func: NTXent
 loss_params:
   tau: 0.1
 num_train: 140000
@@ -33,7 +33,7 @@ metrics:
   - batch_variance
   - dimension_covariance
 main_metric: loss
-collate_function: conformer_collate
+collate_function: contrastive_collate
 num_conformers: 5
 
 
