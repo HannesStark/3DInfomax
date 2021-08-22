@@ -12,11 +12,12 @@ from models.base_layers import MLP
 
 
 class Net3D(nn.Module):
-    def __init__(self, node_dim, edge_dim, hidden_dim, target_dim, readout_aggregators: List[str], batch_norm=False,
+    def __init__(self, hidden_dim, target_dim, readout_aggregators: List[str], batch_norm=False,
                  node_wise_output_layers=2, readout_batchnorm=True, batch_norm_momentum=0.1, reduce_func='sum',
                  dropout=0.0, propagation_depth: int = 4, readout_layers: int = 2, readout_hidden_dim=None,
-                 fourier_encodings=0, activation: str = 'SiLU', update_net_layers=2, message_net_layers=2, use_node_features=False, **kwargs):
+                 fourier_encodings=0, activation: str = 'SiLU', update_net_layers=2, message_net_layers=2, use_node_features=False, edge_feat_skip_connection= False, **kwargs):
         super(Net3D, self).__init__()
+        self.edge_feat_skip_connection = edge_feat_skip_connection
         self.fourier_encodings = fourier_encodings
         edge_in_dim = 1 if fourier_encodings == 0 else 2 * fourier_encodings + 1
         self.edge_input = MLP(in_dim=edge_in_dim, hidden_size=hidden_dim, out_dim=hidden_dim, mid_batch_norm=batch_norm,
@@ -104,6 +105,7 @@ class Net3DLayer(nn.Module):
                                   )
 
         self.soft_edge_network = nn.Linear(hidden_dim, 1)
+        self.eps = nn.Parameter(torch.Tensor([0]))
 
     def forward(self, graph):
         graph.update_all(message_func=self.message_function, reduce_func=self.reduce_func(msg='m', out='m_sum'),
