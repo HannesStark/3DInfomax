@@ -50,7 +50,7 @@ lr_scheduler_params:
 
 
 # Model parameters
-model_type: 'GeomolGNNWrapperOGBFeat'
+model_type: 'GeomolGNNWrapperOGBFeatRandom'
 model_parameters:
   target_dim: 1
   readout_layers: 2
