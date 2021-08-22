@@ -1,6 +1,6 @@
 experiment_name: 'tune_drugs_NTXentMultiplePositives_280000_random_conformer'
 
-pretrain_checkpoint: runs/PNA_drugs_NTXentMultiplePositives_280000_random_conformer_123_20-08_08-11-07/best_checkpoint_100epochs.pt
+pretrain_checkpoint: runs/PNA_drugs_NTXentMultiplePositives_280000_random_conformer_123_20-08_08-11-07/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
