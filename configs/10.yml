@@ -1,18 +1,26 @@
-experiment_name: 'NTXent'
+experiment_name: 'NTXentMultiplePositives_140000_noVNode_lr8e4'
 
+models_to_save:
+  - 10
+  - 20
+  - 50
+  - 80
+  - 100
+  - 200
+  - 300
+  - 400
+dataset: drugs
 num_epochs: 1000
 batch_size: 500
 log_iterations: 50
 patience: 35
-loss_func: NTXent
+loss_func: NTXentMultiplePositives
 loss_params:
   tau: 0.1
-num_train: 50000
+num_train: 140000
 
 required_data:
   - dgl_graph
-  - raw_features
-  - positional_encoding
   - complete_graph3d
 metrics:
   - positive_similarity
@@ -25,17 +33,19 @@ metrics:
   - batch_variance
   - dimension_covariance
 main_metric: loss
-collate_function: pna_transformer_collate_contrastive
+collate_function: conformer_collate
+num_conformers: 5
+
 
 optimizer: Adam
 optimizer_params:
-  lr: 8.0e-5
+  lr: 8.0e-4
 
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [2000]
+  warmup_steps: [700]
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
   cooldown: 20
@@ -48,33 +58,15 @@ lr_scheduler_params:
 
 
 
-model_type: 'PNATransformer'
+# Model parameters
+model_type: 'OGBGNN'
 model_parameters:
   target_dim: 256
-  hidden_dim: 200
-  nhead: 10
-  dim_feedforward: 200
+  num_layers: 5
   dropout: 0.0
-  propagation_depth: 7
-
-  readout_batchnorm: True
-  readout_hidden_dim: 128
-  readout_layers: 2
-
-  mid_batch_norm: True
-  last_batch_norm: True
-  aggregators:
-    - mean
-    - max
-    - min
-    - std
-  scalers:
-    - identity
-    - amplification
-    - attenuation
-  pretrans_layers: 2
-  posttrans_layers: 1
-  residual: True
+  batch_norm_momentum: 0.93
+  emb_dim: 300
+  virtual_node: False
 
 # Model parameters
 model3d_type: 'Net3D'

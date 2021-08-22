@@ -1,6 +1,10 @@
-experiment_name: 'NTXentMultiplePositives_140000_noVNode'
+experiment_name: 'NTXentMultiplePositives_140000_noVNode_lr8e4'
 
 models_to_save:
+  - 10
+  - 20
+  - 50
+  - 80
   - 100
   - 200
   - 300
@@ -35,7 +39,7 @@ num_conformers: 5
 
 optimizer: Adam
 optimizer_params:
-  lr: 8.0e-5
+  lr: 8.0e-4
 
 
 scheduler_step_per_batch: False
