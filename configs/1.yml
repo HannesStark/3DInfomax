@@ -17,10 +17,7 @@ targets:
   - homo
 required_data:
   - dgl_graph
-  - raw_features
-  - positional_encoding
   - targets
-collate_function: pna_transformer_collate
 metrics:
   - mae_denormalized
   - pearsonr
