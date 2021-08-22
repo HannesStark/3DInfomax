@@ -16,9 +16,8 @@ log_iterations: 30
 patience: 40
 minimum_epochs: 30
 loss_func: BCEWithLogitsLoss
-collate_function: pytorch_geometric_collate
 required_data:
-  - pytorch_geometric_graph
+  - dgl_graph
   - targets
 metrics:
   - rsquared
