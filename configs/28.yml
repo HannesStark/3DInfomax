@@ -1,4 +1,4 @@
-experiment_name: 'virtual_node_baseline'
+experiment_name: 'tune_drugs_NTXentMultiplePositives_140000_noVNode_checkpoint100'
 
 multithreaded_seeds:
   - 1
@@ -7,7 +7,11 @@ multithreaded_seeds:
   - 4
   - 5
   - 6
-
+pretrain_checkpoint: runs/OGBGNN_drugs_NTXentMultiplePositives_140000_noVNode_123_22-08_08-18-35/best_checkpoint_100epochs.pt
+transfer_layers:
+  - gnn.
+exclude_from_transfer:
+  - batch_norm
 
 dataset: 'ogbg-molbbbp'
 num_epochs: 1000
