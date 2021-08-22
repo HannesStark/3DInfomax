@@ -1,4 +1,4 @@
-experiment_name: 'NTXentMultiplePositives_140000_noVNode_lr8e4'
+experiment_name: 'NTXent_ElectraSettings'
 
 models_to_save:
   - 10
@@ -14,14 +14,14 @@ num_epochs: 1000
 batch_size: 500
 log_iterations: 50
 patience: 35
-loss_func: NTXentMultiplePositives
+loss_func: NTXent
 loss_params:
   tau: 0.1
 num_train: 140000
 
 required_data:
   - dgl_graph
-  - complete_graph3d
+  - complete_graph_random_conformer
 metrics:
   - positive_similarity
   - negative_similarity
@@ -33,7 +33,7 @@ metrics:
   - batch_variance
   - dimension_covariance
 main_metric: loss
-collate_function: conformer_collate
+collate_function: contrastive_collate
 num_conformers: 5
 
 
@@ -59,14 +59,35 @@ lr_scheduler_params:
 
 
 # Model parameters
-model_type: 'OGBGNN'
+model_type: 'PNA'
 model_parameters:
   target_dim: 256
-  num_layers: 5
-  dropout: 0.0
+  hidden_dim: 50
+  mid_batch_norm: True
+  last_batch_norm: True
+  readout_batchnorm: True
+  # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
   batch_norm_momentum: 0.93
-  emb_dim: 300
-  virtual_node: False
+  readout_hidden_dim: 100
+  readout_layers: 1
+  dropout: 0.0
+  propagation_depth: 3
+  aggregators:
+    - mean
+    - max
+    - min
+    - std
+  scalers:
+    - identity
+    - amplification
+    - attenuation
+  readout_aggregators:
+    - min
+    - max
+    - mean
+  pretrans_layers: 2
+  posttrans_layers: 2
+  residual: True
 
 # Model parameters
 model3d_type: 'Net3D'
