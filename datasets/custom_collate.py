@@ -286,6 +286,17 @@ def pna_transformer_collate(batch):
     mask = torch.arange(features.shape[1])[None, :] >= n_atoms[:, None]  # [batch_size, n_atoms]
     return [dgl.batch(graphs), features, pos_enc, mask], torch.stack(targets).float()
 
+def pna_transformer_collate_contrastive(batch):
+    graphs, features, pos_enc, graphs3d = map(list, zip(*batch))
+    n_atoms = torch.tensor([len(feature) for feature in features])
+    features = pad_sequence(features, batch_first=True)
+    pos_enc = pad_sequence(pos_enc, batch_first=True)
+
+    # create mask corresponding to the zero padding used for the shorter sequences in the batch.
+    # All values corresponding to padding are True and the rest is False.
+    mask = torch.arange(features.shape[1])[None, :] >= n_atoms[:, None]  # [batch_size, n_atoms]
+    return [dgl.batch(graphs), features, pos_enc, mask], [dgl.batch(graphs3d)]
+
 
 def molhiv_padded_collate(batch: List[Tuple]):
     graphs, targets = map(list, zip(*batch))

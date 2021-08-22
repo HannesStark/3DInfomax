@@ -1,6 +1,5 @@
 experiment_name: 'NTXent'
 
-dataset: drugs
 num_epochs: 1000
 batch_size: 500
 log_iterations: 50
@@ -8,10 +7,12 @@ patience: 35
 loss_func: NTXent
 loss_params:
   tau: 0.1
-num_train: 120000
+num_train: 50000
 
 required_data:
   - dgl_graph
+  - raw_features
+  - positional_encoding
   - complete_graph3d
 metrics:
   - positive_similarity
@@ -24,7 +25,7 @@ metrics:
   - batch_variance
   - dimension_covariance
 main_metric: loss
-collate_function: contrastive_collate
+collate_function: pna_transformer_collate_contrastive
 
 optimizer: Adam
 optimizer_params:
@@ -34,7 +35,7 @@ optimizer_params:
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [700]
+  warmup_steps: [2000]
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
   cooldown: 20
@@ -47,22 +48,21 @@ lr_scheduler_params:
 
 
 
-# Model parameters
-model_type: 'PNAOriginalSimple'
+model_type: 'PNATransformer'
 model_parameters:
   target_dim: 256
-  hidden_dim: 80
-  last_layer_dim: 80
+  hidden_dim: 200
+  nhead: 10
+  dim_feedforward: 200
+  dropout: 0.0
+  propagation_depth: 7
+
+  readout_batchnorm: True
+  readout_hidden_dim: 128
+  readout_layers: 2
+
   mid_batch_norm: True
   last_batch_norm: True
-  readout_batchnorm: False
-  # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
-  batch_norm_momentum: 0.1
-  readout_hidden_dim: 40
-  readout_layers: 2
-  in_feat_dropout: 0.0
-  dropout: 0.3
-  propagation_depth: 4
   aggregators:
     - mean
     - max
@@ -72,8 +72,7 @@ model_parameters:
     - identity
     - amplification
     - attenuation
-  readout_aggregators:
-    - mean
+  pretrans_layers: 2
   posttrans_layers: 1
   residual: True
 

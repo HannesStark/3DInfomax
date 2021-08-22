@@ -1,7 +1,7 @@
 experiment_name: 'NTXent'
 
 num_epochs: 1000
-batch_size: 20
+batch_size: 500
 log_iterations: 50
 patience: 35
 loss_func: NTXent
@@ -11,6 +11,8 @@ num_train: 50000
 
 required_data:
   - dgl_graph
+  - raw_features
+  - positional_encoding
   - complete_graph3d
 metrics:
   - positive_similarity
@@ -23,7 +25,7 @@ metrics:
   - batch_variance
   - dimension_covariance
 main_metric: loss
-collate_function: contrastive_collate
+collate_function: pna_transformer_collate_contrastive
 
 optimizer: Adam
 optimizer_params:
