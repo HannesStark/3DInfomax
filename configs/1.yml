@@ -1,4 +1,4 @@
-experiment_name: 'tune_drugs_NTXentMMDSeparate2D'
+experiment_name: 'tune_drugs_checkpoint_100epochs'
 
 pretrain_checkpoint: runs/PNA_drugs_NTXent_140000_random_conformer_123_21-08_09-21-06/best_checkpoint_100epochs.pt
 transfer_layers:
