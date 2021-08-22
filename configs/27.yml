@@ -7,7 +7,11 @@ multithreaded_seeds:
   - 4
   - 5
   - 6
-
+pretrain_checkpoint: runs/GeomolGNNWrapperOGBFeat_drugTXent_19-07_07-31-35/best_checkpoint.pt
+transfer_layers:
+  - gnn.
+exclude_from_transfer:
+  - batch_norm
 
 dataset: 'ogbg-mollipo'
 num_epochs: 1000
