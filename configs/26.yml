@@ -52,7 +52,7 @@ model_parameters:
   dropout: 0.0
   batch_norm_momentum: 0.1
   emb_dim: 300
-  virtual_node: True
+  virtual_node: False
 
 
 
