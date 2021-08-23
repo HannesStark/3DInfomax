@@ -1,4 +1,4 @@
-experiment_name: 'tune_drugs_NTXent_random_conformer_140000_noVNode_lr8e4_checkpoint100'
+experiment_name: 'tune_drugs_NTXent_random_conformer_140000_noVNode_lr8e4_checkpoint100_replaceBN'
 
 multithreaded_seeds:
   - 1

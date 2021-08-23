@@ -40,7 +40,7 @@ lr_scheduler_params:
   factor: 0.5
   patience: 25
   min_lr: 1.0e-6
-  mode: 'min'
+  mode: 'max'
   verbose: True
 
 
