@@ -1,10 +1,11 @@
 experiment_name: 'baseline'
 
 num_epochs: 1000
-batch_size: 2
-log_iterations: 1
+batch_size: 128
+log_iterations: 30
 patience: 30
 loss_func: L1Loss
+num_train: 50000
 targets:
   - homo
 required_data:
@@ -12,37 +13,41 @@ required_data:
   - raw_features
   - positional_encoding
   - targets
-metrics:
-  - rsquared
-  - mean_predictor_loss
-  - pearsonr
 collate_function: pna_transformer_collate
+metrics:
+  - mae_denormalized
+  - pearsonr
+  - rsquared
+  - qm9_properties
 
-optimizer: AdamW
+optimizer: Adam
 optimizer_params:
-  lr: 2.0e-4
+  lr: 7.0e-5
+  weight_decay: 1.0e-11
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [20000]
+  warmup_steps: [3000]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
   factor: 0.5
   patience: 25
-  min_lr: 5.0e-6
+  min_lr: 1.0e-6
   mode: 'min'
   verbose: True
+
+
 
 model_type: 'PNATransformer'
 model_parameters:
   target_dim: 1
-  hidden_dim: 512
-  nhead: 32
-  dim_feedforward: 512
-  dropout: 0.1
-  propagation_depth: 6
+  hidden_dim: 200
+  nhead: 10
+  dim_feedforward: 200
+  dropout: 0.0
+  propagation_depth: 7
 
   readout_batchnorm: True
   readout_hidden_dim: 128
@@ -62,6 +67,9 @@ model_parameters:
   pretrans_layers: 2
   posttrans_layers: 1
   residual: True
+
+
+
 
 
 # continue training from checkpoint:

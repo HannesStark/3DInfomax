@@ -1,28 +1,33 @@
-experiment_name: 'tune'
+experiment_name: 'tune_drugs_NTXentMultiplePositives_140000_checkpoint80'
 
-seed: 6
-pretrain_checkpoint: runs2/geomol_qm9/best_model.pt
+pretrain_checkpoint: runs/PNA_drugs_NTXentMultiplePositives_140000_123_22-08_17-20-23/best_checkpoint_80.pt
 transfer_layers:
-  - gnn2
+  - gnn
 exclude_from_transfer:
   - batch_norm
 
-dataset: bbbp_geomol_qm9_featurization
+
 num_epochs: 1000
-batch_size: 32
+batch_size: 128
 log_iterations: 30
-patience: 50
-minimum_epochs: 100
-loss_func: BCEWithLogitsLoss
+patience: 30
+loss_func: L1Loss
+num_train: 50000
+targets:
+  - homo
+required_data:
+  - dgl_graph
+  - targets
 metrics:
-  - rsquared
-  - mean_predictor_loss
+  - mae_denormalized
   - pearsonr
-collate_function: pytorch_geometric_collate
+  - rsquared
+  - qm9_properties
 
 optimizer: Adam
 optimizer_params:
-  lr: 1.0e-3
+  lr: 7.0e-5
+  weight_decay: 1.0e-11
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
@@ -40,13 +45,38 @@ lr_scheduler_params:
 
 
 # Model parameters
-model_type: 'GeomolGNNWrapper'
+model_type: 'PNA'
 model_parameters:
-  hidden_dim: 50
-  readout_layers: 2
+  target_dim: 1
+  hidden_dim: 200
+  mid_batch_norm: True
+  last_batch_norm: True
   readout_batchnorm: True
-  depth: 3
-  n_layers: 2
+  # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
+  batch_norm_momentum: 0.1
+  readout_hidden_dim: 200
+  readout_layers: 2
+  dropout: 0.0
+  propagation_depth: 7
+  aggregators:
+    - mean
+    - max
+    - min
+    - std
+  scalers:
+    - identity
+    - amplification
+    - attenuation
+  readout_aggregators:
+    - min
+    - max
+    - mean
+    - sum
+  pretrans_layers: 2
+  posttrans_layers: 1
+  residual: True
+
+
 
 
 
