@@ -1,8 +1,8 @@
 import argparse
-import torch.multiprocessing as mp
+import concurrent.futures
+import copy
 import os
 import re
-from multiprocessing import Queue
 
 from icecream import install
 from ogb.lsc import DglPCQM4MDataset, PCQM4MEvaluator
@@ -72,7 +72,7 @@ seaborn.set_theme()
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/26.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/pnatransformer.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
@@ -603,21 +603,18 @@ def get_arguments():
 
     return args
 
-def train_wrapper(process_number, seeds,queue: Queue):
-    seed = seeds[process_number]
-    args_copy = get_arguments()
-    args_copy.seed = seed
-    queue.put(train(args_copy))
 
 if __name__ == '__main__':
     args = get_arguments()
-
     if args.multithreaded_seeds != []:
-        queue = mp.Queue()
-        p = mp.spawn(fn=train_wrapper, nprocs=len(args.multithreaded_seeds), args=(args.multithreaded_seeds, queue))
-        results = []
-        while not queue.empty():
-            results.append(queue.get())
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = []
+            for seed in args.multithreaded_seeds:
+                args_copy = get_arguments()
+                args_copy.seed = seed
+                futures.append(executor.submit(train, args_copy))
+            results = [f.result() for f in
+                       futures]  # list of tuples of dictionaries with the validation results first and the test results second
         all_val_metrics = defaultdict(list)
         all_test_metrics = defaultdict(list)
         log_dirs = []
