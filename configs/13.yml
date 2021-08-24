@@ -1,2 +1,17 @@
 # continue training from checkpoint:
 checkpoint: runs/PNA_drugs_NTXentMultiplePositives_140000_123_22-08_17-20-23/last_checkpoint.pt
+
+models_to_save:
+  - 5
+  - 10
+  - 20
+  - 35
+  - 50
+  - 65
+  - 80
+  - 100
+  - 125
+  - 150
+  - 200
+  - 300
+  - 400
