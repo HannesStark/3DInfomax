@@ -368,7 +368,7 @@ class PNAGNNSimpleRandom(nn.Module):
         self.pretrain_mode = pretrain_mode
         self.n_model_confs = n_model_confs
         self.in_feat_dropout = nn.Dropout(in_feat_dropout)
-        self.embedding_h = AtomEncoder(emb_dim=hidden_dim)
+        self.atom_encoder = AtomEncoder(emb_dim=hidden_dim)
         self.node_init = GeomolMLP(hidden_dim + random_vec_dim, hidden_dim, num_layers=2)
 
 
@@ -387,9 +387,9 @@ class PNAGNNSimpleRandom(nn.Module):
         self.output = MLPReadout(last_layer_dim, 1)  # 1 out dim since regression problem
 
     def forward(self, rand_x, rand_edge, dgl_graph: dgl.DGLGraph, **kwargs):
-        dgl_graph.ndata['feat'] = self.embedding_h(dgl_graph.ndata['feat'])
+        dgl_graph.ndata['feat'] = self.atom_encoder(dgl_graph.ndata['feat'])
         if self.pretrain_mode:
-            n_atoms, small_hidden_dim = dgl_graph.ndata['feat'].size()
+            n_atoms, hidden_dim = dgl_graph.ndata['feat'].size()
             graph_confs = []
             for i in range(self.n_model_confs):
                 graph_confs.append(dgl_graph.clone())
@@ -405,7 +405,7 @@ class PNAGNNSimpleRandom(nn.Module):
             h = conv(dgl_graph, h)
         dgl_graph.ndata['feat'] = h
         if self.pretrain_mode:
-            h = dgl_graph.ndata['feat'].view(n_atoms, -1, small_hidden_dim + self.random_vec_dim)
+            h = dgl_graph.ndata['feat'].view(n_atoms, -1, hidden_dim)
         else:
             h = dgl_graph.ndata['feat']
         return  h, None

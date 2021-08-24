@@ -66,6 +66,7 @@ class PNAGNNRandomEdgeUpdate(nn.Module):
         self.random_vec_dim = random_vec_dim
         self.n_model_confs = n_model_confs
         self.pretrain_mode = pretrain_mode
+        ic(self.pretrain_mode)
         for _ in range(propagation_depth):
             self.mp_layers.append(
                 PNALayerEdgeUpdate(in_dim=hidden_dim, out_dim=int(hidden_dim), in_dim_edges=hidden_dim,
@@ -91,7 +92,7 @@ class PNAGNNRandomEdgeUpdate(nn.Module):
         dgl_graph.ndata['feat'] = self.atom_encoder(dgl_graph.ndata['feat'])
         dgl_graph.edata['feat'] = self.bond_encoder(dgl_graph.edata['feat'])
         if self.pretrain_mode:
-            n_atoms, small_hidden_dim = dgl_graph.ndata['feat'].size()
+            n_atoms, hidden_dim = dgl_graph.ndata['feat'].size()
             graph_confs = []
             for i in range(self.n_model_confs):
                 graph_confs.append(dgl_graph.clone())
@@ -108,7 +109,7 @@ class PNAGNNRandomEdgeUpdate(nn.Module):
             mp_layer(dgl_graph)
 
         if self.pretrain_mode:
-            feat = dgl_graph.ndata['feat'].view(n_atoms, -1, small_hidden_dim + self.random_vec_dim)
+            feat = dgl_graph.ndata['feat'].view(n_atoms, -1, hidden_dim)
         else:
             feat = dgl_graph.ndata['feat']
         return feat, None

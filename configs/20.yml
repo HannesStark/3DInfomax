@@ -36,7 +36,7 @@ lr_scheduler_params:
 # Model parameters
 model_type: 'OptimalTransportModel'
 model_parameters:
-  gnn_model: GeomolGNNOGBFeat
+  gnn_model: GeomolGNNOGBFeatRandom
   use_two_gnns: True
   gnn_params:
     hidden_dim: 50
