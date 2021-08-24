@@ -18,7 +18,7 @@ targets:
   - ensemblefreeenergy
 
 required_data:
-  - mol_graph
+  - dgl_graph
   - targets
 metrics:
   - mae_denormalized
