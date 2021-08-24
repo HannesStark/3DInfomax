@@ -1,4 +1,4 @@
-experiment_name: 'tune_drugs_NTXent_random_conformer_140000_noVNode_lr8e4_checkpoint100_replaceBN'
+experiment_name: 'tune_drugs_NTXent_random_conformer_140000_noVNode_lr8e4_checkpoint100_keepBN'
 
 multithreaded_seeds:
   - 1
@@ -10,8 +10,6 @@ multithreaded_seeds:
 pretrain_checkpoint: runs/OGBGNN_drugs_NTXent_random_conformer_140000_noVNode_lr8e4_123_22-08_21-50-36/best_checkpoint_100epochs.pt
 transfer_layers:
   - gnn.
-exclude_from_transfer:
-  - batch_norm
 
 dataset: 'ogbg-molbace'
 num_epochs: 1000
