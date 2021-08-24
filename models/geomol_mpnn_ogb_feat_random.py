@@ -21,9 +21,9 @@ class GeomolGNNOGBFeatRandom(nn.Module):
         self.hidden_dim = hidden_dim
         self.bond_encoder = BondEncoder(hidden_dim)
         self.atom_encoder = AtomEncoder(hidden_dim)
-        self.node_init = GeomolMLP(hidden_dim + random_vec_dim, hidden_dim, num_layers=1,
+        self.node_init = GeomolMLP(hidden_dim + random_vec_dim, hidden_dim, num_layers=2,
                                    batch_norm_momentum=batch_norm_momentum)
-        self.edge_init = GeomolMLP(hidden_dim + random_vec_dim, hidden_dim, num_layers=1,
+        self.edge_init = GeomolMLP(hidden_dim + random_vec_dim, hidden_dim, num_layers=2,
                                    batch_norm_momentum=batch_norm_momentum)
         self.update = GeomolMetaLayer(EdgeModel(hidden_dim, n_layers, batch_norm_momentum=batch_norm_momentum),
                                       GeomolNodeModel(hidden_dim, n_layers, batch_norm_momentum=batch_norm_momentum))

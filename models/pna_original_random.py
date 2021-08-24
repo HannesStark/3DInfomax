@@ -5,6 +5,7 @@ import torch.nn.functional as F
 import dgl.function as fn
 
 from commons.mol_encoder import AtomEncoder, BondEncoder
+from models.geomol_mpnn import GeomolMLP
 
 EPS = 1e-5
 import numpy as np
@@ -367,7 +368,9 @@ class PNAGNNSimpleRandom(nn.Module):
         self.pretrain_mode = pretrain_mode
         self.n_model_confs = n_model_confs
         self.in_feat_dropout = nn.Dropout(in_feat_dropout)
-        self.embedding_h = AtomEncoder(emb_dim=hidden_dim - random_vec_dim)
+        self.embedding_h = AtomEncoder(emb_dim=hidden_dim)
+        self.node_init = GeomolMLP(hidden_dim + random_vec_dim, hidden_dim, num_layers=2)
+
 
         self.layers = nn.ModuleList(
             [PNASimpleLayer(in_dim=hidden_dim, out_dim=hidden_dim, dropout=dropout,
@@ -394,7 +397,7 @@ class PNAGNNSimpleRandom(nn.Module):
             n_all_atoms = graph_confs.number_of_nodes()
             dgl_graph = graph_confs
             rand_x = rand_x.view(n_all_atoms, -1)
-        dgl_graph.ndata['feat'] = torch.cat([dgl_graph.ndata['feat'], rand_x], dim=-1)
+        dgl_graph.ndata['feat'] = self.node_init(torch.cat([dgl_graph.ndata['feat'], rand_x], dim=-1))
         h = dgl_graph.ndata['feat']
         h = self.in_feat_dropout(h)
 

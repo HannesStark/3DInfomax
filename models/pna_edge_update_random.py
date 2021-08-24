@@ -7,6 +7,7 @@ from torch import nn
 
 from commons.mol_encoder import AtomEncoder, BondEncoder
 from models.base_layers import MLP
+from models.geomol_mpnn import GeomolMLP
 from models.pna import PNA_AGGREGATORS, PNA_SCALERS
 import torch.nn.functional as F
 
@@ -79,8 +80,12 @@ class PNAGNNRandomEdgeUpdate(nn.Module):
                                    ),
 
             )
-        self.atom_encoder = AtomEncoder(emb_dim=hidden_dim - self.random_vec_dim)
-        self.bond_encoder = BondEncoder(emb_dim=hidden_dim - self.random_vec_dim)
+        self.atom_encoder = AtomEncoder(emb_dim=hidden_dim)
+        self.bond_encoder = BondEncoder(emb_dim=hidden_dim)
+        self.node_init = GeomolMLP(hidden_dim + random_vec_dim, hidden_dim, num_layers=2,
+                                   batch_norm_momentum=batch_norm_momentum)
+        self.edge_init = GeomolMLP(hidden_dim + random_vec_dim, hidden_dim, num_layers=2,
+                                   batch_norm_momentum=batch_norm_momentum)
 
     def forward(self, rand_x, rand_edge, dgl_graph: dgl.DGLGraph, **kwargs):
         dgl_graph.ndata['feat'] = self.atom_encoder(dgl_graph.ndata['feat'])
@@ -96,8 +101,8 @@ class PNAGNNRandomEdgeUpdate(nn.Module):
             dgl_graph = graph_confs
             rand_x = rand_x.view(n_all_atoms, -1)
             rand_edge = rand_edge.view(n_all_edges, -1)
-        dgl_graph.ndata['feat'] = torch.cat([dgl_graph.ndata['feat'], rand_x], dim=-1)
-        dgl_graph.edata['feat'] = torch.cat([dgl_graph.edata['feat'], rand_edge], dim=-1)
+        dgl_graph.ndata['feat'] = self.node_init(torch.cat([dgl_graph.ndata['feat'], rand_x], dim=-1))
+        dgl_graph.edata['feat'] = self.edge_init(torch.cat([dgl_graph.edata['feat'], rand_edge], dim=-1))
 
         for mp_layer in self.mp_layers:
             mp_layer(dgl_graph)
