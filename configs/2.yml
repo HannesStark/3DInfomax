@@ -1,8 +1,10 @@
-experiment_name: 'tune_drugs_NTXent_140000_random_conformer_checkpoint_100_transferBN'
+experiment_name: 'tune_drugs_NTXentMultiplePositives_140000_checkpoint125'
 
-pretrain_checkpoint: runs/PNA_drugs_NTXent_140000_random_conformer_123_21-08_09-21-06/best_checkpoint_100epochs.pt
+pretrain_checkpoint: runs/PNA_drugs_NTXentMultiplePositives_140000_123_22-08_17-20-23/best_checkpoint_125epochs.pt
 transfer_layers:
   - gnn
+exclude_from_transfer:
+  - batch_norm
 
 
 num_epochs: 1000
