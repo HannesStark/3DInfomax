@@ -66,7 +66,6 @@ class PNAGNNRandomEdgeUpdate(nn.Module):
         self.random_vec_dim = random_vec_dim
         self.n_model_confs = n_model_confs
         self.pretrain_mode = pretrain_mode
-        ic(self.pretrain_mode)
         for _ in range(propagation_depth):
             self.mp_layers.append(
                 PNALayerEdgeUpdate(in_dim=hidden_dim, out_dim=int(hidden_dim), in_dim_edges=hidden_dim,

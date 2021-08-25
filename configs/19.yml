@@ -50,8 +50,8 @@ model_parameters:
       - sum
     scalers:
       - identity
-    pretrans_layers: 2
-    posttrans_layers: 2
+    pretrans_layers: 3
+    posttrans_layers: 3
     residual: False
 
   hyperparams:

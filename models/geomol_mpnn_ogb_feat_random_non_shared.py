@@ -11,10 +11,10 @@ from models.base_layers import MLP
 from models.geomol_mpnn import GeomolMLP, GeomolMetaLayer, EdgeModel, GeomolNodeModel
 
 
-class GeomolGNNOGBFeatRandom(nn.Module):
+class GeomolGNNOGBFeatRandomNonShared(nn.Module):
     def __init__(self, random_vec_dim, n_model_confs=None, hidden_dim=300, depth=3, n_layers=2, batch_norm_momentum=0.1,
                  pretrain_mode=False, **kwargs):
-        super(GeomolGNNOGBFeatRandom, self).__init__()
+        super(GeomolGNNOGBFeatRandomNonShared, self).__init__()
 
         self.n_model_confs = n_model_confs
         self.depth = depth
@@ -26,8 +26,10 @@ class GeomolGNNOGBFeatRandom(nn.Module):
                                    batch_norm_momentum=batch_norm_momentum)
         self.edge_init = GeomolMLP(hidden_dim + random_vec_dim, hidden_dim, num_layers=2,
                                    batch_norm_momentum=batch_norm_momentum)
-        self.update = GeomolMetaLayer(EdgeModel(hidden_dim, n_layers, batch_norm_momentum=batch_norm_momentum),
-                                      GeomolNodeModel(hidden_dim, n_layers, batch_norm_momentum=batch_norm_momentum))
+        self.layers = nn.ModuleList()
+        for i in range(depth):
+            self.layers.append(GeomolMetaLayer(EdgeModel(hidden_dim, n_layers, batch_norm_momentum=batch_norm_momentum),
+                                      GeomolNodeModel(hidden_dim, n_layers, batch_norm_momentum=batch_norm_momentum)))
 
     def forward(self, x, edge_index, edge_attr, rand_x, rand_edge, **kwargs):
         x = self.atom_encoder(x)
@@ -40,25 +42,24 @@ class GeomolGNNOGBFeatRandom(nn.Module):
 
         x = self.node_init(x)
         edge_attr = self.edge_init(edge_attr)
-        for _ in range(self.depth):
-            x, edge_attr = self.update(x, edge_index, edge_attr)
+        for i in range(self.depth):
+            x, edge_attr = self.layers[i](x, edge_index, edge_attr)
         return x, edge_attr
 
 
-class GeomolGNNWrapperOGBFeatRandom(nn.Module):
+class GeomolGNNWrapperOGBFeatRandomNonShared(nn.Module):
     def __init__(self, hidden_dim, target_dim, gnn_params, readout_hidden_dim=None, readout_layers=2,
                  readout_batchnorm=True, random_vec_dim=10, random_vec_std=1.0,
                  **kwargs):
-        super(GeomolGNNWrapperOGBFeatRandom, self).__init__()
+        super(GeomolGNNWrapperOGBFeatRandomNonShared, self).__init__()
 
         self.random_vec_dim = random_vec_dim
         self.random_vec_std = random_vec_std
         if readout_hidden_dim == None:
             readout_hidden_dim = hidden_dim
-        self.node_gnn = GeomolGNNOGBFeatRandom(random_vec_dim=random_vec_dim, **gnn_params)
-        self.output = MLP(in_dim=hidden_dim, hidden_size=readout_hidden_dim,
-                          mid_batch_norm=readout_batchnorm, out_dim=target_dim,
-                          layers=readout_layers, batch_norm_momentum=0.1)
+        self.node_gnn = GeomolGNNOGBFeatRandomNonShared(random_vec_dim=random_vec_dim, **gnn_params)
+        self.output = MLP(in_dim=hidden_dim, hidden_size=readout_hidden_dim, mid_batch_norm=readout_batchnorm,
+                          out_dim=target_dim, layers=readout_layers, batch_norm_momentum=0.1)
 
     def forward(self, data):
         x, edge_index, edge_attr, batch = data.z, data.edge_index, data.edge_attr, data.batch

@@ -1,4 +1,4 @@
-experiment_name: 'NTXent_70000_random_conformer'
+experiment_name: 'NTXentMultiplePositives_620000'
 
 models_to_save:
   - 5
@@ -9,23 +9,24 @@ models_to_save:
   - 65
   - 80
   - 100
+  - 125
   - 150
   - 200
   - 300
   - 400
-dataset: drugs
+dataset: qmugs
 num_epochs: 1000
 batch_size: 500
 log_iterations: 50
 patience: 35
-loss_func: NTXent
+loss_func: NTXentMultiplePositives
 loss_params:
   tau: 0.1
-num_train: 70000
+num_train: 620000
 
 required_data:
   - dgl_graph
-  - complete_graph_random_conformer
+  - conformations
 metrics:
   - positive_similarity
   - negative_similarity
@@ -37,8 +38,8 @@ metrics:
   - batch_variance
   - dimension_covariance
 main_metric: loss
-collate_function: contrastive_collate
-num_conformers: 5
+collate_function: conformer_collate
+num_conformers: 3
 
 
 optimizer: Adam
