@@ -39,13 +39,13 @@ model_type: 'OptimalTransportModel'
 model_parameters:
   gnn_model: PNAGNNRandomEdgeUpdate
   gnn_params:
-    hidden_dim: 50
+    hidden_dim: 100
     mid_batch_norm: False
     last_batch_norm: False
     # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
     batch_norm_momentum: 0.1
     dropout: 0.0
-    propagation_depth: 3
+    propagation_depth: 4
     aggregators:
       - sum
     scalers:

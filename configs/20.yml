@@ -1,4 +1,4 @@
-experiment_name: 'GeomolGNNOGBFeat_10000_hidden50_depth3_2Start_layers'
+experiment_name: 'GeomolGNNOGBFeatRandomNonShared_10000_hidden100_depth4_2Start_layers'
 
 dataset: file_loader_drugs
 num_epochs: 300
@@ -39,8 +39,8 @@ model_parameters:
   gnn_model: GeomolGNNOGBFeatRandomNonShared
   use_two_gnns: True
   gnn_params:
-    hidden_dim: 50
-    depth: 3
+    hidden_dim: 100
+    depth: 4
     n_layers: 2
 
   hyperparams:

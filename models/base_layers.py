@@ -110,11 +110,6 @@ class FCLayer(nn.Module):
                 h = self.batch_norm(h)
         return h
 
-    def __repr__(self):
-        return self.__class__.__name__ + ' (' \
-               + str(self.in_dim) + ' -> ' \
-               + str(self.out_dim) + ')'
-
 
 class MLP(nn.Module):
     """
@@ -150,11 +145,6 @@ class MLP(nn.Module):
         for fc in self.fully_connected:
             x = fc(x)
         return x
-
-    def __repr__(self):
-        return self.__class__.__name__ + ' (' \
-               + str(self.in_dim) + ' -> ' \
-               + str(self.out_dim) + ')'
 
 class MLPReadout(nn.Module):
 

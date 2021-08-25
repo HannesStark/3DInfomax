@@ -66,6 +66,13 @@ class PNAGNNRandomEdgeUpdate(nn.Module):
         self.random_vec_dim = random_vec_dim
         self.n_model_confs = n_model_confs
         self.pretrain_mode = pretrain_mode
+
+        self.atom_encoder = AtomEncoder(emb_dim=hidden_dim)
+        self.bond_encoder = BondEncoder(emb_dim=hidden_dim)
+        self.node_init = GeomolMLP(hidden_dim + random_vec_dim, hidden_dim, num_layers=2,
+                                   batch_norm_momentum=batch_norm_momentum)
+        self.edge_init = GeomolMLP(hidden_dim + random_vec_dim, hidden_dim, num_layers=2,
+                                   batch_norm_momentum=batch_norm_momentum)
         for _ in range(propagation_depth):
             self.mp_layers.append(
                 PNALayerEdgeUpdate(in_dim=hidden_dim, out_dim=int(hidden_dim), in_dim_edges=hidden_dim,
@@ -80,12 +87,7 @@ class PNAGNNRandomEdgeUpdate(nn.Module):
                                    ),
 
             )
-        self.atom_encoder = AtomEncoder(emb_dim=hidden_dim)
-        self.bond_encoder = BondEncoder(emb_dim=hidden_dim)
-        self.node_init = GeomolMLP(hidden_dim + random_vec_dim, hidden_dim, num_layers=2,
-                                   batch_norm_momentum=batch_norm_momentum)
-        self.edge_init = GeomolMLP(hidden_dim + random_vec_dim, hidden_dim, num_layers=2,
-                                   batch_norm_momentum=batch_norm_momentum)
+
 
     def forward(self, rand_x, rand_edge, dgl_graph: dgl.DGLGraph, **kwargs):
         dgl_graph.ndata['feat'] = self.atom_encoder(dgl_graph.ndata['feat'])
@@ -165,8 +167,6 @@ class PNALayerEdgeUpdate(nn.Module):
         g.update_all(self.message_func, self.reduce_func)
         # post-transformation
         h = (1 + self.node_eps) * h_in + self.posttrans_2(g.ndata['feat'])
-        if self.residual:
-            h = h + h_in
 
         g.ndata['feat'] = h
 
@@ -184,11 +184,11 @@ class PNALayerEdgeUpdate(nn.Module):
         h_in = nodes.data['feat']
         h = self.posttrans_1(nodes.mailbox['e'])
         D = h.shape[-2]
-        h_to_cat = [aggr(h=h, h_in=h_in) for aggr in self.aggregators]
-        h = torch.cat(h_to_cat, dim=-1)
-
-        if len(self.scalers) > 1:
-            h = torch.cat([scale(h, D=D, avg_d=self.avg_d) for scale in self.scalers], dim=-1)
+        #h_to_cat = [aggr(h=h, h_in=h_in) for aggr in self.aggregators]
+        #h = torch.cat(h_to_cat, dim=-1)
+#
+        #if len(self.scalers) > 1:
+        #    h = torch.cat([scale(h, D=D, avg_d=self.avg_d) for scale in self.scalers], dim=-1)
 
         return {'feat': h}
 

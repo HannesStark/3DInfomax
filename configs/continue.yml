@@ -1,2 +1,2 @@
 # continue training from checkpoint:
-checkpoint: runs/EGNNEdges_edge_feat_correctLR_scheduling_14-06_16-02-06/last_checkpoint.pt
+checkpoint: runs/OptimalTransportModel_file_loader_drugs_GeomolGNNOGBFeat_10000_hidden50_depth3_2Start_layers_123_24-08_16-46-47/last_checkpoint.pt

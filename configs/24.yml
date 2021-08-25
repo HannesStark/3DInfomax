@@ -1,4 +1,4 @@
-experiment_name: 'tune_drugs_GeomolGNNOGBFeat_120000_hidden50_depth3'
+experiment_name: 'baseline_hidden100_depth4'
 
 multithreaded_seeds:
   - 1
@@ -7,11 +7,7 @@ multithreaded_seeds:
   - 4
   - 5
   - 6
-pretrain_checkpoint: runs/OptimalTransportModel_file_loader_drugs_GeomolGNNOGBFeat_120000_hidden50_depth3_123_15-08_07-55-19/best_checkpoint.pt
-transfer_layers:
-  - gnn2.
-exclude_from_transfer:
-  - batch_norm
+
 
 dataset: 'ogbg-molbace'
 num_epochs: 1000
@@ -50,17 +46,17 @@ lr_scheduler_params:
 
 
 # Model parameters
-model_type: 'GeomolGNNWrapperOGBFeatRandom'
+model_type: 'GeomolGNNWrapperOGBFeatRandomNonShared'
 model_parameters:
   target_dim: 1
   readout_layers: 2
-  hidden_dim: 50
+  hidden_dim: 100
   readout_batchnorm: True
   random_vec_std: 1.0
   random_vec_dim: 10
   gnn_params:
-    hidden_dim: 50
-    depth: 3
+    hidden_dim: 100
+    depth: 4
     n_layers: 2
 
 
