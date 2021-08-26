@@ -2,7 +2,7 @@ experiment_name: 'GeomolGNNOGBFeatRandomNonShared_10000_hidden100_depth4_2Start_
 
 dataset: file_loader_drugs
 num_epochs: 300
-batch_size: 16
+batch_size: 2
 trainer: optimal_transport
 log_iterations: 10
 patience: 80
