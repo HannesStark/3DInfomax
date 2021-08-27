@@ -7,7 +7,7 @@ transfer_layers:
 
 num_epochs: 1000
 batch_size: 128
-log_iterations: 30
+log_iterations: 1
 patience: 30
 loss_func: L1Loss
 num_train: 50000
@@ -30,7 +30,7 @@ optimizer_params:
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [700,0,0]
+  warmup_steps: [700,1,1]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
