@@ -33,8 +33,12 @@ optimizer_params:
   lr: 1.0e-3
 
 scheduler_step_per_batch: False
-lr_scheduler: ReduceLROnPlateau
+lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
+  warmup_steps: [700,700,390]
+  interpolation: 'linear'
+  # parameters of scheduler to run after warmup
+  wrapped_scheduler: ReduceLROnPlateau
   factor: 0.5
   patience: 25
   min_lr: 1.0e-6
