@@ -1,4 +1,4 @@
-experiment_name: 'NTXent_140000_random_conformer_BNmomentum01'
+experiment_name: 'NTXent_140000_random_conformer_10conformers'
 
 models_to_save:
   - 5
@@ -39,7 +39,7 @@ metrics:
   - dimension_covariance
 main_metric: loss
 collate_function: contrastive_collate
-num_conformers: 5
+num_conformers: 10
 
 
 optimizer: Adam
@@ -72,7 +72,7 @@ model_parameters:
   last_batch_norm: True
   readout_batchnorm: True
   # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
-  batch_norm_momentum: 0.1
+  batch_norm_momentum: 0.93
   readout_hidden_dim: 200
   readout_layers: 2
   dropout: 0.0
