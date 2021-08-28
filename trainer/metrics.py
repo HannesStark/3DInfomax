@@ -104,15 +104,13 @@ class OGBEvaluator(nn.Module):
     def __init__(self, d_name, metric='rocauc'):
         super().__init__()
         self.evaluator = Evaluator(name=d_name)
-        self.val_only = True
+        self.val_only = metric  == 'rocauc'
         self.metric = metric
 
     def forward(self, preds, targets):
-        ic(preds.shape)
-        ic(self.evaluator.num_tasks)
         if preds.shape[1] != self.evaluator.num_tasks:
             return torch.tensor(float('NaN'))
-        input_dict = {"y_true": targets.long(), "y_pred": preds}
+        input_dict = {"y_true": targets, "y_pred": preds}
         return torch.tensor(self.evaluator.eval(input_dict)[self.metric])
 
 class PCQM4MEvaluatorWrapper(nn.Module):
