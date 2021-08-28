@@ -1,4 +1,4 @@
-experiment_name: 'tune_drugs_NTXent_140000_random_conformer_checkpoint_100_transferBN_onlyBNwarmup'
+experiment_name: 'tune_drugs_NTXent_140000_random_conformer_checkpoint_100_transferBN_BNandReadoutwarmup'
 
 pretrain_checkpoint: runs/PNA_drugs_NTXent_140000_random_conformer_123_21-08_09-21-06/best_checkpoint_100epochs.pt
 transfer_layers:
@@ -30,7 +30,7 @@ optimizer_params:
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [700,1,1]
+  warmup_steps: [700,700,1]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau

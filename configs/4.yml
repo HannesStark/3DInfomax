@@ -1,6 +1,6 @@
-experiment_name: 'tune_qmugs_NTXentMultiplePositives_620000_checkpoint150'
+experiment_name: 'tune_qmugs_NTXentMultiplePositives_620000_checkpoint35'
 
-pretrain_checkpoint: runs/PNA_qmugs_NTXentMultiplePositives_620000_123_25-08_09-19-52/best_checkpoint_150epochs.pt
+pretrain_checkpoint: runs/PNA_qmugs_NTXentMultiplePositives_620000_123_25-08_09-19-52/best_checkpoint_35epochs.pt
 transfer_layers:
   - gnn
 
