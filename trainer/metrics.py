@@ -108,6 +108,8 @@ class OGBEvaluator(nn.Module):
         self.metric = metric
 
     def forward(self, preds, targets):
+        ic(preds.shape)
+        ic(self.evaluator.num_tasks)
         if preds.shape[1] != self.evaluator.num_tasks:
             return torch.tensor(float('NaN'))
         input_dict = {"y_true": targets.long(), "y_pred": preds}

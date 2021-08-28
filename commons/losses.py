@@ -10,14 +10,25 @@ import numpy as np
 import torch.nn.functional as F
 
 
-class MultiTargetBCEWithLogitsLoss(_Loss):
+class OGBNanLabelBCEWithLogitsLoss(_Loss):
     def __init__(self) -> None:
-        super(MultiTargetBCEWithLogitsLoss, self).__init__()
+        super(OGBNanLabelBCEWithLogitsLoss, self).__init__()
         self.bce_loss = BCEWithLogitsLoss()
+    def forward(self, pred, target, **kwargs):
+        is_labeled = ~torch.isnan(target)
 
-    def forward(self, preds, targets, **kwargs):
-        return self.bce_loss(preds.view(-1), targets.view(-1))
+        loss = self.bce_loss(pred[is_labeled], target[is_labeled])
+        return loss
 
+class OGBNanLabelMSELoss(_Loss):
+    def __init__(self) -> None:
+        super(OGBNanLabelMSELoss, self).__init__()
+        self.mse_loss = MSELoss()
+    def forward(self, pred, target, **kwargs):
+        is_labeled = ~torch.isnan(target)
+
+        loss = self.mse_loss(pred[is_labeled], target[is_labeled])
+        return loss
 
 class CriticLoss(_Loss):
     def __init__(self) -> None:

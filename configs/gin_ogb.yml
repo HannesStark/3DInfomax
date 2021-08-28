@@ -1,12 +1,12 @@
 experiment_name: 'baseline'
 
-dataset: 'ogbg-molbace'
+dataset: 'ogbg-molpcba'
 num_epochs: 1000
 batch_size: 32
 log_iterations: 30
 patience: 40
 minimum_epochs: 120
-loss_func: BCEWithLogitsLoss
+loss_func: OGBNanLabelMSELoss
 required_data:
   - dgl_graph
   - targets
@@ -30,19 +30,19 @@ lr_scheduler_params:
   factor: 0.5
   patience: 25
   min_lr: 1.0e-6
-  mode: 'min'
+  mode: 'max'
   verbose: True
 
 
 
 # Model parameters
-model_type: 'OGBGNNRandom'
+model_type: 'OGBGNN'
 model_parameters:
-  target_dim: 1
+  target_dim: 128
   num_layers: 5
   dropout: 0.5
   hidden_dim: 300
-  virtual_node: True
+  virtual_node: False
 
 
 

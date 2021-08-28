@@ -1,4 +1,4 @@
-experiment_name: 'tune_drugs_NTXent_random_conformer_140000_noVNode_lr8e4_checkpoint50_keepBN_noWarmup'
+experiment_name: 'baseline'
 
 multithreaded_seeds:
   - 1
@@ -7,18 +7,13 @@ multithreaded_seeds:
   - 4
   - 5
   - 6
-pretrain_checkpoint: runs/OGBGNN_drugs_NTXent_random_conformer_140000_noVNode_lr8e4_123_22-08_21-50-36/best_checkpoint_50epochs.pt
-transfer_layers:
-  - gnn.
-
-
-dataset: 'ogbg-molbbbp'
+dataset: 'ogbg-moltox21'
 num_epochs: 1000
 batch_size: 32
 log_iterations: 30
 patience: 40
 minimum_epochs: 120
-loss_func: BCEWithLogitsLoss
+loss_func: OGBNanLabelBCEWithLogitsLoss
 required_data:
   - dgl_graph
   - targets
@@ -33,8 +28,12 @@ optimizer_params:
   lr: 1.0e-3
 
 scheduler_step_per_batch: False
-lr_scheduler: ReduceLROnPlateau
+lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
+  warmup_steps: [700,700,350]
+  interpolation: 'linear'
+  # parameters of scheduler to run after warmup
+  wrapped_scheduler: ReduceLROnPlateau
   factor: 0.5
   patience: 25
   min_lr: 1.0e-6
@@ -46,11 +45,10 @@ lr_scheduler_params:
 # Model parameters
 model_type: 'OGBGNN'
 model_parameters:
-  target_dim: 1
+  target_dim: 12
   num_layers: 5
-  dropout: 0.0
-  batch_norm_momentum: 0.1
-  emb_dim: 300
+  dropout: 0.5
+  hidden_dim: 300
   virtual_node: False
 
 

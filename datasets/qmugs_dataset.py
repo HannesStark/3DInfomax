@@ -36,7 +36,9 @@ class QMugsDataset(Dataset):
         # load the data and get normalization values
         if not os.path.exists(os.path.join(self.root, 'processed', self.processed_file)):
             self.process()
+        print('loading')
         data_dict = torch.load(os.path.join(self.root, 'processed', self.processed_file))
+        print('finish loading')
 
         self.features_tensor = data_dict['atom_features']
 

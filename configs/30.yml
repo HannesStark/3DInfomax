@@ -1,4 +1,4 @@
-experiment_name: 'tune_drugs_NTXent_random_conformer_140000_noVNode_lr8e4_checkpoint100_keepBN_BNandReadoutWarmup'
+experiment_name: 'tune_drugs_NTXent_random_conformer_140000_noVNode_lr8e4_checkpoint50_keepBN_noWarmup'
 
 multithreaded_seeds:
   - 1
@@ -7,7 +7,7 @@ multithreaded_seeds:
   - 4
   - 5
   - 6
-pretrain_checkpoint: runs/OGBGNN_drugs_NTXent_random_conformer_140000_noVNode_lr8e4_123_22-08_21-50-36/best_checkpoint_100epochs.pt
+pretrain_checkpoint: runs/OGBGNN_drugs_NTXent_random_conformer_140000_noVNode_lr8e4_123_22-08_21-50-36/best_checkpoint_50epochs.pt
 transfer_layers:
   - gnn.
 
@@ -33,12 +33,8 @@ optimizer_params:
   lr: 1.0e-3
 
 scheduler_step_per_batch: False
-lr_scheduler: WarmUpWrapper
+lr_scheduler: ReduceLROnPlateau
 lr_scheduler_params:
-  warmup_steps: [700,700,1]
-  interpolation: 'linear'
-  # parameters of scheduler to run after warmup
-  wrapped_scheduler: ReduceLROnPlateau
   factor: 0.5
   patience: 25
   min_lr: 1.0e-6
