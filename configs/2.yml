@@ -1,17 +1,20 @@
-experiment_name: 'tune_qmugs_NTXentMultiplePositives_620000_checkpoint80'
+experiment_name: 'tune_drugs_NTXent_140000_random_conformer_10conformers_checkpoint100'
 
-pretrain_checkpoint: runs/PNA_qmugs_NTXentMultiplePositives_620000_123_25-08_09-19-52/best_checkpoint_80epochs.pt
+pretrain_checkpoint: runs/PNA_drugs_NTXent_140000_random_conformer_10conformers_123_27-08_09-31-19/best_checkpoint_100epochs.pt
 transfer_layers:
   - gnn
 
+
+dataset: drugs
 num_epochs: 1000
 batch_size: 128
 log_iterations: 30
 patience: 30
 loss_func: L1Loss
-num_train: 50000
+num_train: 140000
 targets:
-  - homo
+  - ensemblefreeenergy
+
 required_data:
   - dgl_graph
   - targets
@@ -19,7 +22,6 @@ metrics:
   - mae_denormalized
   - pearsonr
   - rsquared
-  - qm9_properties
 
 optimizer: Adam
 optimizer_params:

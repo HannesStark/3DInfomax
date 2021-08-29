@@ -1,6 +1,6 @@
-experiment_name: 'tune_drugs_NTXent_140000_random_conformer_BNmomentum01'
+experiment_name: 'tune_drugs_NTXent_140000_random_conformer_10conformers_checkpoint100'
 
-pretrain_checkpoint: runs/PNA_drugs_NTXent_140000_random_conformer_BNmomentum01_123_26-08_12-27-14/best_checkpoint_100epochs.pt
+pretrain_checkpoint: runs/PNA_drugs_NTXent_140000_random_conformer_10conformers_123_27-08_09-31-19/best_checkpoint_100epochs.pt
 transfer_layers:
   - gnn
 

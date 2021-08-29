@@ -1,4 +1,4 @@
-experiment_name: 'NTXentMultiplePositives_280000'
+experiment_name: 'NTXentMultiplePositives_280000_4conformers'
 
 models_to_save:
   - 5
