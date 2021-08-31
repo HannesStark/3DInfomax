@@ -39,7 +39,7 @@ metrics:
   - dimension_covariance
 main_metric: loss
 collate_function: conformer_collate
-num_conformers: 5
+num_conformers: 4
 
 
 optimizer: Adam
