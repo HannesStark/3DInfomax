@@ -1,4 +1,4 @@
-experiment_name: 'NTXentMultiplePositives_280000_3conformers'
+experiment_name: 'NTXentMultiplePositives_280000_4conformers'
 
 models_to_save:
   - 5
@@ -39,7 +39,7 @@ metrics:
   - dimension_covariance
 main_metric: loss
 collate_function: conformer_collate
-num_conformers: 3
+num_conformers: 5
 
 
 optimizer: Adam
@@ -64,35 +64,14 @@ lr_scheduler_params:
 
 
 # Model parameters
-model_type: 'PNA'
+model_type: 'OGBGNN'
 model_parameters:
   target_dim: 256
-  hidden_dim: 200
-  mid_batch_norm: True
-  last_batch_norm: True
-  readout_batchnorm: True
-  # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
-  batch_norm_momentum: 0.93
-  readout_hidden_dim: 200
-  readout_layers: 2
+  num_layers: 5
   dropout: 0.0
-  propagation_depth: 7
-  aggregators:
-    - mean
-    - max
-    - min
-    - std
-  scalers:
-    - identity
-    - amplification
-    - attenuation
-  readout_aggregators:
-    - min
-    - max
-    - mean
-  pretrans_layers: 2
-  posttrans_layers: 1
-  residual: True
+  batch_norm_momentum: 0.93
+  emb_dim: 300
+  virtual_node: False
 
 
 # Model parameters
