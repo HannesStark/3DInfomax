@@ -35,6 +35,7 @@ from trainer.byol_wrapper import BYOLwrapper
 
 import seaborn
 
+from trainer.graphcl_trainer import GraphCLTrainer
 from trainer.optimal_transport_trainer import OptimalTransportTrainer
 from trainer.philosophy_trainer import PhilosophyTrainer
 
@@ -72,7 +73,7 @@ seaborn.set_theme()
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/27.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/contrastive_training_graphCL.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
@@ -181,6 +182,8 @@ def get_trainer(args, model, data, device, metrics):
     else:
         if args.trainer == 'optimal_transport':
             trainer = OptimalTransportTrainer
+        elif args.trainer == 'graphcl_trainer':
+            trainer = GraphCLTrainer
         else:
             trainer = Trainer
         return trainer(model=model, args=args, metrics=metrics, main_metric=args.main_metric,

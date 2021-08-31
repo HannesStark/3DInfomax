@@ -13,7 +13,7 @@ def graph_collate(batch: List[Tuple]):
     graphs, targets = map(list, zip(*batch))
     batched_graph = dgl.batch(graphs)
     targets = torch.stack(targets).float()
-    if len(targets.shape) ==1:
+    if len(targets.shape) == 1:
         targets = targets.unsqueeze(-1)
     return [batched_graph], targets
 
@@ -23,11 +23,13 @@ def pytorch_geometric_collate(batch: List[Tuple]):
     batched_graph = torch_geometric.data.batch.Batch.from_data_list(graphs)
     return [batched_graph], torch.stack(targets).float()
 
+
 def pyg_and_dgl_graph_collate(batch: List[Tuple]):
     graphs = [item[0] for item in batch]
     dgl_graphs = [item[1] for item in batch]
     batched_graph = torch_geometric.data.batch.Batch.from_data_list(graphs)
     return [batched_graph, dgl.batch(dgl_graphs)]
+
 
 def pyg_graph_only_collate(batch: List[Tuple]):
     graphs = [item[0] for item in batch]
@@ -59,6 +61,7 @@ def pairwise_distance_collate(batch: List[Tuple]):
     mask = torch.arange(n_atoms.max(), device=distances[0].device)[None, :] >= n_atoms[:, None]  # [batch_size, n_atoms]
     return [batched_dgl_graph, torch.cat(pairwise_indices, dim=-1), mask], torch.cat(distances)
 
+
 def contrastive_graphs_with_mask_collate(batch: List[Tuple]):
     dgl_graphs, complete_graph3d = map(list, zip(*batch))
 
@@ -66,7 +69,8 @@ def contrastive_graphs_with_mask_collate(batch: List[Tuple]):
     n_atoms = batched_dgl_graph.batch_num_nodes()
     # create mask corresponding to the zero padding used for the shorter sequences in the batch.
     # All values corresponding to padding are True and the rest is False.
-    mask = torch.arange(n_atoms.max(), device=batched_dgl_graph.device)[None, :] >= n_atoms[:, None]  # [batch_size, n_atoms]
+    mask = torch.arange(n_atoms.max(), device=batched_dgl_graph.device)[None, :] >= n_atoms[:,
+                                                                                    None]  # [batch_size, n_atoms]
     return [batched_dgl_graph, mask], [dgl.batch(complete_graph3d)]
 
 
@@ -82,7 +86,6 @@ def s_norm_contrastive_collate(batch: List[Tuple]):
     return [batched_graph, snorm_n], [batched_graph3d]
 
 
-
 def contrastive_collate(batch: List[Tuple]):
     # optionally take targets
     graphs, graphs3d, *targets = map(list, zip(*batch))
@@ -94,17 +97,19 @@ def contrastive_collate(batch: List[Tuple]):
     else:
         return [batched_graph], [batched_graph3d]
 
+
 def pytorch_geometric3d_contrastive_collate(batch: List[Tuple]):
-    graphs, graphs3d  = map(list, zip(*batch))
+    graphs, graphs3d = map(list, zip(*batch))
     batched_graph3d = torch_geometric.data.batch.Batch.from_data_list(graphs3d)
     batched_graph = dgl.batch(graphs)
-    return [batched_graph],  [batched_graph3d]
+    return [batched_graph], [batched_graph3d]
+
 
 def pytorch_geometric2d_contrastive_collate(batch: List[Tuple]):
-    graphs, graphs3d  = map(list, zip(*batch))
+    graphs, graphs3d = map(list, zip(*batch))
     batched_graph = torch_geometric.data.batch.Batch.from_data_list(graphs)
     batched_graph3d = dgl.batch(graphs3d)
-    return [batched_graph],  [batched_graph3d]
+    return [batched_graph], [batched_graph3d]
 
 
 class NoisedDistancesCollate(object):
@@ -134,7 +139,6 @@ class NoisedDistancesCollate(object):
 def conformer_collate(batch: List[Tuple]):
     graphs, conformers = map(list, zip(*batch))
     return [dgl.batch(graphs)], [dgl.batch(conformers)]
-
 
 
 class NoisedCoordinatesCollate(object):
@@ -184,6 +188,42 @@ class NodeDrop3dCollate(object):
         return [batched_graph], [batched_graph3d]
 
 
+class NodeDropCollate(object):
+    def __init__(self, drop_ratio):
+        self.drop_ratio = drop_ratio
+
+    def __call__(self, batch: List[Tuple]):
+        graphs = [tuple[0] for tuple in batch]
+        device = graphs[0].device
+        graphs2 = copy.deepcopy(graphs)
+
+        for graph in graphs:
+            n_atoms = graph.num_nodes()
+            perm = torch.randperm(n_atoms, device=device)
+            remove_indices = perm[:int(self.drop_ratio * n_atoms)]
+            graph.remove_nodes(remove_indices)
+        for graph in graphs2:
+            n_atoms = graph.num_nodes()
+            perm = torch.randperm(n_atoms, device=device)
+            remove_indices = perm[:int(self.drop_ratio * n_atoms)]
+            graph.remove_nodes(remove_indices)
+
+        batched_graph = dgl.batch(graphs)
+        batched_graph2 = dgl.batch(graphs2)
+       #device = batched_graph.device
+       #n_atoms = batched_graph.num_nodes()
+
+        #perm = torch.randperm(n_atoms, device=device)
+        #remove_indices = perm[:int(self.drop_ratio * n_atoms)]
+        #batched_graph.remove_nodes(remove_indices)
+#
+        #perm = torch.randperm(n_atoms, device=device)
+        #remove_indices = perm[:int(self.drop_ratio * n_atoms)]
+        #batched_graph2.remove_nodes(remove_indices)
+
+        return [batched_graph], [batched_graph2]
+
+
 class NodeDrop2dCollate(object):
     def __init__(self, num_drop):
         self.num_drop = num_drop
@@ -213,6 +253,7 @@ def padded_collate(batch):
     mask = torch.arange(features.shape[1])[None, :] >= n_atoms[:, None]  # [batch_size, n_atoms]
     return [features, mask], targets.float()
 
+
 def egnn_padded_collate3d(batch):
     graphs, features, coordinates = map(list, zip(*batch))
     batched_graph = dgl.batch(graphs)
@@ -239,6 +280,7 @@ def egnn_padded_collate3d(batch):
     atom_mask = atom_mask.view(batch_size * n_nodes, -1).float()
     return [batched_graph], [features, coordinates, edges, None, atom_mask, edge_mask, n_nodes]
 
+
 def egnn_padded_collate(batch):
     features, coordinates, targets = map(list, zip(*batch))
 
@@ -264,6 +306,7 @@ def egnn_padded_collate(batch):
     atom_mask = atom_mask.view(batch_size * n_nodes, -1).float()
     return [features, coordinates, edges, None, atom_mask, edge_mask, n_nodes], torch.stack(targets).float()
 
+
 def padded_collate_positional_encoding(batch):
     features, pos_enc, targets = map(list, zip(*batch))
     features = pad_sequence(features, batch_first=True)
@@ -275,6 +318,7 @@ def padded_collate_positional_encoding(batch):
     mask = torch.arange(features.shape[1])[None, :] >= n_atoms[:, None]  # [batch_size, n_atoms]
     return [features, pos_enc, mask], torch.stack(targets).float()
 
+
 def pna_transformer_collate(batch):
     graphs, features, pos_enc, targets = map(list, zip(*batch))
     n_atoms = torch.tensor([len(feature) for feature in features])
@@ -285,6 +329,7 @@ def pna_transformer_collate(batch):
     # All values corresponding to padding are True and the rest is False.
     mask = torch.arange(features.shape[1])[None, :] >= n_atoms[:, None]  # [batch_size, n_atoms]
     return [dgl.batch(graphs), features, pos_enc, mask], torch.stack(targets).float()
+
 
 def pna_transformer_collate_contrastive(batch):
     graphs, features, pos_enc, graphs3d = map(list, zip(*batch))
@@ -305,6 +350,7 @@ def molhiv_padded_collate(batch: List[Tuple]):
     n_atoms = torch.tensor([graph.number_of_nodes() for graph in graphs])
     mask = torch.arange(features.shape[1])[None, :] >= n_atoms[:, None]  # [batch_size, n_atoms]
     return [features, None, mask], torch.stack(targets).float()
+
 
 def padded_distances_collate(batch):
     graphs, distances = map(list, zip(*batch))

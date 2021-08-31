@@ -1,20 +1,17 @@
-experiment_name: 'tune_drugs_NTXent_140000_random_conformer_100epochs'
+experiment_name: 'tune_qm9_NTXent_batchsize200'
 
-pretrain_checkpoint: runs/PNA_drugs_NTXent_140000_random_conformer_123_21-08_09-21-06/best_checkpoint_100epochs.pt
+pretrain_checkpoint: runs/PNA_qm9_NTXent_batchsize200_123_29-08_09-40-46/best_checkpoint.pt
 transfer_layers:
   - gnn
 
-
-dataset: drugs
 num_epochs: 1000
 batch_size: 128
 log_iterations: 30
 patience: 30
 loss_func: L1Loss
-num_train: 140000
+num_train: 50000
 targets:
-  - ensemblefreeenergy
-
+  - homo
 required_data:
   - dgl_graph
   - targets
@@ -22,6 +19,7 @@ metrics:
   - mae_denormalized
   - pearsonr
   - rsquared
+  - qm9_properties
 
 optimizer: Adam
 optimizer_params:

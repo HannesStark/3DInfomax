@@ -1,4 +1,4 @@
-experiment_name: 'NTXent_140000_random_conformer_10conformers'
+experiment_name: 'NTXent_15000_random_conformer'
 
 models_to_save:
   - 5
@@ -22,7 +22,7 @@ patience: 35
 loss_func: NTXent
 loss_params:
   tau: 0.1
-num_train: 140000
+num_train: 15000
 
 required_data:
   - dgl_graph
@@ -39,7 +39,7 @@ metrics:
   - dimension_covariance
 main_metric: loss
 collate_function: contrastive_collate
-num_conformers: 3
+num_conformers: 5
 
 
 optimizer: Adam

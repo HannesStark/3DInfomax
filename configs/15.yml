@@ -1,57 +1,78 @@
-experiment_name: 'tune_drugs_NTXent_random_conformer_140000_noVNode_lr8e4_checkpoint50_keepBN_noWarmup'
+experiment_name: 'tune_drugs_NTXentMultiplePositives_280000_4conformers'
 
-multithreaded_seeds:
-  - 1
-  - 2
-  - 3
-  - 4
-  - 5
-  - 6
-
-pretrain_checkpoint: runs/OGBGNN_drugs_NTXent_random_conformer_140000_noVNode_lr8e4_123_22-08_21-50-36/best_checkpoint_50epochs.pt
+pretrain_checkpoint: runs/PNA_drugs_NTXentMultiplePositives_280000_4conformers_123_29-08_09-29-28/best_checkpoint.pt
 transfer_layers:
-  - gnn.
+  - gnn
 
-dataset: 'ogbg-moltox21'
 num_epochs: 1000
-batch_size: 32
+batch_size: 128
 log_iterations: 30
-patience: 40
-minimum_epochs: 120
-loss_func: OGBNanLabelBCEWithLogitsLoss
+patience: 30
+loss_func: L1Loss
+num_train: 50000
+targets:
+  - homo
 required_data:
   - dgl_graph
   - targets
 metrics:
-  - rsquared
-  - mean_predictor_loss
+  - mae_denormalized
   - pearsonr
-
+  - rsquared
+  - qm9_properties
 
 optimizer: Adam
 optimizer_params:
-  lr: 1.0e-3
+  lr: 7.0e-5
+  weight_decay: 1.0e-11
 
 scheduler_step_per_batch: False
-lr_scheduler: ReduceLROnPlateau
+lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
+  warmup_steps: [700,700,390]
+  interpolation: 'linear'
+  # parameters of scheduler to run after warmup
+  wrapped_scheduler: ReduceLROnPlateau
   factor: 0.5
   patience: 25
   min_lr: 1.0e-6
-  mode: 'max'
+  mode: 'min'
   verbose: True
 
 
 
 # Model parameters
-model_type: 'OGBGNN'
+model_type: 'PNA'
 model_parameters:
-  target_dim: 12
-  num_layers: 5
-  dropout: 0.0
+  target_dim: 1
+  hidden_dim: 200
+  mid_batch_norm: True
+  last_batch_norm: True
+  readout_batchnorm: True
+  # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
   batch_norm_momentum: 0.1
-  emb_dim: 300
-  virtual_node: False
+  readout_hidden_dim: 200
+  readout_layers: 2
+  dropout: 0.0
+  propagation_depth: 7
+  aggregators:
+    - mean
+    - max
+    - min
+    - std
+  scalers:
+    - identity
+    - amplification
+    - attenuation
+  readout_aggregators:
+    - min
+    - max
+    - mean
+    - sum
+  pretrans_layers: 2
+  posttrans_layers: 1
+  residual: True
+
 
 
 

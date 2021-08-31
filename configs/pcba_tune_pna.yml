@@ -1,42 +1,33 @@
-experiment_name: 'tune_qm9_NTXent_batchsize400'
+experiment_name: 'baseline'
 
-pretrain_checkpoint: runs/PNA_qm9_NTXent_batchsize400_123_29-08_09-40-41/best_checkpoint.pt
-transfer_layers:
-  - gnn
 
+dataset: 'ogbg-molpcba'
 num_epochs: 1000
-batch_size: 128
+batch_size: 32
 log_iterations: 30
-patience: 30
-loss_func: L1Loss
-num_train: 50000
-targets:
-  - homo
+patience: 40
+minimum_epochs: 120
+loss_func: OGBNanLabelMSELoss
 required_data:
   - dgl_graph
   - targets
 metrics:
-  - mae_denormalized
-  - pearsonr
   - rsquared
-  - qm9_properties
+  - mean_predictor_loss
+  - pearsonr
+
 
 optimizer: Adam
 optimizer_params:
-  lr: 7.0e-5
-  weight_decay: 1.0e-11
+  lr: 1.0e-3
 
 scheduler_step_per_batch: False
-lr_scheduler: WarmUpWrapper
+lr_scheduler: ReduceLROnPlateau
 lr_scheduler_params:
-  warmup_steps: [700,700,390]
-  interpolation: 'linear'
-  # parameters of scheduler to run after warmup
-  wrapped_scheduler: ReduceLROnPlateau
   factor: 0.5
   patience: 25
   min_lr: 1.0e-6
-  mode: 'min'
+  mode: 'max'
   verbose: True
 
 
@@ -44,7 +35,7 @@ lr_scheduler_params:
 # Model parameters
 model_type: 'PNA'
 model_parameters:
-  target_dim: 1
+  target_dim: 128
   hidden_dim: 200
   mid_batch_norm: True
   last_batch_norm: True

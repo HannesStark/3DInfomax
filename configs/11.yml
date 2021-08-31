@@ -1,4 +1,4 @@
-experiment_name: 'NTXentMultiplePositives_280000_4conformers'
+experiment_name: 'NTXent_140000'
 
 models_to_save:
   - 5
@@ -15,14 +15,14 @@ models_to_save:
   - 300
   - 400
 dataset: drugs
-num_epochs: 82
+num_epochs: 102
 batch_size: 500
 log_iterations: 50
 patience: 35
-loss_func: NTXentMultiplePositives
+loss_func: NTXent
 loss_params:
   tau: 0.1
-num_train: 280000
+num_train: 140000
 
 required_data:
   - dgl_graph
@@ -38,8 +38,8 @@ metrics:
   - batch_variance
   - dimension_covariance
 main_metric: loss
-collate_function: conformer_collate
-num_conformers: 5
+collate_function: contrastive_collate
+
 
 
 optimizer: Adam
