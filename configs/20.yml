@@ -1,4 +1,4 @@
-experiment_name: 'tune_qm9_NTXent_batchsize100'
+experiment_name: 'tune_qm9_NTXent_batchsize100_no_decay'
 
 pretrain_checkpoint: runs/PNA_qm9_NTXent_batchsize100_123_29-08_09-40-47/best_checkpoint.pt
 transfer_layers:
