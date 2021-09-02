@@ -1,8 +1,10 @@
-experiment_name: 'tune_drugs_NTXent_15000_random_conformer_checkpoint100'
+experiment_name: 'mu_tune_qm9_NTXent_batchsize500'
 
-pretrain_checkpoint: runs/PNA_drugs_NTXent_15000_random_conformer_123_31-08_11-46-34/best_checkpoint_100epochs.pt
+pretrain_checkpoint: runs/PNA_qm9_NTXent_batchsize500_123_29-08_09-40-39/best_checkpoint.pt
 transfer_layers:
   - gnn
+exclude_from_transfer:
+  - batch_norm
 
 num_epochs: 1000
 batch_size: 128
@@ -11,7 +13,7 @@ patience: 30
 loss_func: L1Loss
 num_train: 50000
 targets:
-  - homo
+  - mu
 required_data:
   - dgl_graph
   - targets

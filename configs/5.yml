@@ -1,20 +1,19 @@
-experiment_name: 'tune_qmugs_NTXentMultiplePositives_620000_checkpoint200'
+experiment_name: 'gap_tune_qm9_NTXent_batchsize500'
 
-pretrain_checkpoint: runs/PNA_qmugs_NTXentMultiplePositives_620000_123_25-08_09-19-52/best_checkpoint_200epochs.pt
+pretrain_checkpoint: runs/PNA_qm9_NTXent_batchsize500_123_29-08_09-40-39/best_checkpoint.pt
 transfer_layers:
   - gnn
+exclude_from_transfer:
+  - batch_norm
 
-
-dataset: drugs
 num_epochs: 1000
 batch_size: 128
 log_iterations: 30
 patience: 30
 loss_func: L1Loss
-num_train: 140000
+num_train: 50000
 targets:
-  - ensemblefreeenergy
-
+  - gap
 required_data:
   - dgl_graph
   - targets
@@ -22,11 +21,12 @@ metrics:
   - mae_denormalized
   - pearsonr
   - rsquared
+  - qm9_properties
 
 optimizer: Adam
 optimizer_params:
   lr: 7.0e-5
-
+  weight_decay: 1.0e-11
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper

@@ -1,8 +1,10 @@
-experiment_name: 'tune_qm9_NTXent_batchsize500_no_decay'
+experiment_name: 'cv_g298_tune_qm9_NTXent_batchsize500'
 
 pretrain_checkpoint: runs/PNA_qm9_NTXent_batchsize500_123_29-08_09-40-39/best_checkpoint.pt
 transfer_layers:
   - gnn
+exclude_from_transfer:
+  - batch_norm
 
 num_epochs: 1000
 batch_size: 128
@@ -11,7 +13,7 @@ patience: 30
 loss_func: L1Loss
 num_train: 50000
 targets:
-  - homo
+  - cv
 required_data:
   - dgl_graph
   - targets
@@ -24,7 +26,7 @@ metrics:
 optimizer: Adam
 optimizer_params:
   lr: 7.0e-5
-
+  weight_decay: 1.0e-11
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
