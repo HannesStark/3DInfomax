@@ -7,7 +7,7 @@ multithreaded_seeds:
   - 4
   - 5
   - 6
-pretrain_checkpoint: runs/OGBGNN_drugs_NTXent_random_conformer_140000_noVNode_lr8e4_123_22-08_21-50-36/best_checkpoint_50epochs.pt
+pretrain_checkpoint: runs/OGBGNN_drugs_NTXentMultiplePositives_280000_4conformers_123_31-08_11-52-26/best_checkpoint.pt
 transfer_layers:
   - gnn.
 
