@@ -15,7 +15,7 @@ models_to_save:
   - 300
   - 400
 dataset: drugs
-num_epochs: 82
+num_epochs: 102
 batch_size: 500
 log_iterations: 50
 patience: 35
