@@ -1,4 +1,4 @@
-experiment_name: 'tune_drugs_NTXent_random_conformer_140000_noVNode_lr8e4_checkpoint50_keepBN_noWarmup'
+experiment_name: 'tune_drugs_NTXentMultiplePositives_280000_4conformers'
 
 multithreaded_seeds:
   - 1
