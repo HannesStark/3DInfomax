@@ -1,8 +1,10 @@
-experiment_name: 'tune_qm9_NTXent_batchsize200_no_decay'
+experiment_name: 'tune_drugs_NTXentMultiplePositives_280000_3conformers_80epochs'
 
-pretrain_checkpoint: runs/PNA_qm9_NTXent_batchsize200_123_29-08_09-40-46/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_drugs_NTXentMultiplePositives_280000_3conformers_123_02-09_12-45-01/best_checkpoint_80epochs.pt
 transfer_layers:
   - gnn
+exclude_from_transfer:
+  - batch_norm
 
 num_epochs: 1000
 batch_size: 128
@@ -24,7 +26,7 @@ metrics:
 optimizer: Adam
 optimizer_params:
   lr: 7.0e-5
-
+  weight_decay: 1.0e-11
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper

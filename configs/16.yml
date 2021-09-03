@@ -1,6 +1,6 @@
-experiment_name: 'cv_tune_qm9_NTXent_batchsize500'
+experiment_name: 'tune_drugs_NTXent_140000_single_conformer'
 
-pretrain_checkpoint: runs/PNA_qm9_NTXent_batchsize500_123_29-08_09-40-39/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_drugs_NTXent_140000_single_conformer_123_02-09_10-17-57/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
@@ -13,7 +13,7 @@ patience: 30
 loss_func: L1Loss
 num_train: 50000
 targets:
-  - cv
+  - homo
 required_data:
   - dgl_graph
   - targets

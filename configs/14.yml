@@ -1,6 +1,6 @@
-experiment_name: 'h298_tune_qm9_NTXent_batchsize500'
+experiment_name: 'tune_drugs_NTXentMultiplePositives_280000_3conformers_80epochs'
 
-pretrain_checkpoint: runs/PNA_qm9_NTXent_batchsize500_123_29-08_09-40-39/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_drugs_NTXentMultiplePositives_280000_3conformers_123_02-09_12-45-01/best_checkpoint_80epochs.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
@@ -13,7 +13,7 @@ patience: 30
 loss_func: L1Loss
 num_train: 50000
 targets:
-  - h298
+  - homo
 required_data:
   - dgl_graph
   - targets

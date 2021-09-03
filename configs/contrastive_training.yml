@@ -1,7 +1,7 @@
 experiment_name: 'NTXent_tiny_20hidden'
 
 num_epochs: 1000
-batch_size: 20
+batch_size: 500
 log_iterations: 50
 patience: 35
 loss_func: NTXent
