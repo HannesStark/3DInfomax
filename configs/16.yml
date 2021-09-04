@@ -1,8 +1,6 @@
-experiment_name: 'cv_tune_qm9_NTXent_batchsize500_graphCL'
+experiment_name: 'cv_baseline'
 
-pretrain_checkpoint: runs/PNA_drugs_graphcl_123_31-08_11-46-34/best_checkpoint.pt
-transfer_layers:
-  - gnn
+
 
 
 num_epochs: 1000
