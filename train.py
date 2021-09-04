@@ -73,7 +73,7 @@ seaborn.set_theme()
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/contrastive_training.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/21.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
@@ -149,6 +149,7 @@ def parse_arguments():
     p.add_argument('--train_sampler', type=str, default=None, help='any of pytorchs samplers or a custom sampler')
 
     p.add_argument('--eval_on_test', type=bool, default=True, help='runs evaluation on test set if true')
+    p.add_argument('--force_random_split', type=bool, default=False, help='use random split for ogb')
     return p.parse_args()
 
 
@@ -413,6 +414,11 @@ def train_pcqm4m(args, device, metrics_dict):
 def train_ogbg(args, device, metrics_dict):
     dataset = OGBGDatasetExtension(return_types=args.required_data, device=device, name=args.dataset)
     split_idx = dataset.get_idx_split()
+    if args.force_random_split == True:
+        all_idx = get_random_indices(len(dataset), args.seed_data)
+        split_idx["train"] = all_idx[:len(split_idx["train"])]
+        split_idx["train"] = all_idx[len(split_idx["train"]):len(split_idx["train"])+len(split_idx["val"])]
+        split_idx["train"] = all_idx[len(split_idx["train"])+len(split_idx["val"]):]
     collate_function = globals()[args.collate_function] if args.collate_params == {} else globals()[
         args.collate_function](**args.collate_params)
 
