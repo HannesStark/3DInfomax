@@ -3,8 +3,7 @@ experiment_name: 'mu_tune_drugs_NTXentMultiplePositives_280000_4conformers_50epo
 pretrain_checkpoint: runs/PNA_drugs_NTXentMultiplePositives_280000_4conformers_123_29-08_09-29-28/best_checkpoint_50epochs.pt
 transfer_layers:
   - gnn
-exclude_from_transfer:
-  - batch_norm
+
 
 
 

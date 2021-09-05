@@ -3,8 +3,7 @@ experiment_name: 'h298_tune_drugs_NTXentMultiplePositives_280000_4conformers_50e
 pretrain_checkpoint: runs/PNA_drugs_NTXentMultiplePositives_280000_4conformers_123_29-08_09-29-28/best_checkpoint_50epochs.pt
 transfer_layers:
   - gnn
-exclude_from_transfer:
-  - batch_norm
+
 
 
 
@@ -29,7 +28,6 @@ metrics:
 optimizer: Adam
 optimizer_params:
   lr: 7.0e-5
-  weight_decay: 1.0e-11
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
