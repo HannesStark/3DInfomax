@@ -26,7 +26,7 @@ num_train: 140000
 
 required_data:
   - dgl_graph
-  - conformations
+  - complete_graph3d
 metrics:
   - positive_similarity
   - negative_similarity

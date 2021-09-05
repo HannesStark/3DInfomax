@@ -1,12 +1,10 @@
-experiment_name: 'mu_tune_drugs_NTXentMultiplePositives_280000_4conformers_50epochs'
+experiment_name: 'tune_qm9_NTXent_3DDepth2'
 
-pretrain_checkpoint: runs/PNA_drugs_NTXentMultiplePositives_280000_4conformers_123_29-08_09-29-28/best_checkpoint_50epochs.pt
+pretrain_checkpoint: runs/PNA_qm9_NTXent_3DDepth2_123_03-09_11-45-21/best_checkpoint.pt
 transfer_layers:
   - gnn
-
-
-
-
+exclude_from_transfer:
+  - batch_norm
 
 num_epochs: 1000
 batch_size: 128
@@ -15,7 +13,7 @@ patience: 30
 loss_func: L1Loss
 num_train: 50000
 targets:
-  - mu
+  - homo
 required_data:
   - dgl_graph
   - targets
