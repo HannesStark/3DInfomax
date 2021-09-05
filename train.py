@@ -65,7 +65,6 @@ from trainer.trainer import Trainer
 
 # turn on for debugging C code like Segmentation Faults
 import faulthandler
-
 faulthandler.enable()
 install()
 seaborn.set_theme()
@@ -417,8 +416,8 @@ def train_ogbg(args, device, metrics_dict):
     if args.force_random_split == True:
         all_idx = get_random_indices(len(dataset), args.seed_data)
         split_idx["train"] = all_idx[:len(split_idx["train"])]
-        split_idx["train"] = all_idx[len(split_idx["train"]):len(split_idx["train"])+len(split_idx["val"])]
-        split_idx["train"] = all_idx[len(split_idx["train"])+len(split_idx["val"]):]
+        split_idx["train"] = all_idx[len(split_idx["train"]):len(split_idx["train"])+len(split_idx["valid"])]
+        split_idx["train"] = all_idx[len(split_idx["train"])+len(split_idx["valid"]):]
     collate_function = globals()[args.collate_function] if args.collate_params == {} else globals()[
         args.collate_function](**args.collate_params)
 
