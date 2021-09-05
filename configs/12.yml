@@ -1,4 +1,4 @@
-experiment_name: 'NTXent_15000_random_conformer'
+experiment_name: 'NTXentMultiplePositives_280000_2conformers'
 
 models_to_save:
   - 5
@@ -15,18 +15,18 @@ models_to_save:
   - 300
   - 400
 dataset: drugs
-num_epochs: 1000
+num_epochs: 102
 batch_size: 500
 log_iterations: 50
 patience: 35
-loss_func: NTXent
+loss_func: NTXentMultiplePositives
 loss_params:
   tau: 0.1
-num_train: 15000
+num_train: 280000
 
 required_data:
   - dgl_graph
-  - complete_graph_random_conformer
+  - conformations
 metrics:
   - positive_similarity
   - negative_similarity
@@ -38,8 +38,8 @@ metrics:
   - batch_variance
   - dimension_covariance
 main_metric: loss
-collate_function: contrastive_collate
-num_conformers: 5
+collate_function: conformer_collate
+num_conformers: 2
 
 
 optimizer: Adam
@@ -93,6 +93,7 @@ model_parameters:
   pretrans_layers: 2
   posttrans_layers: 1
   residual: True
+
 
 # Model parameters
 model3d_type: 'Net3D'

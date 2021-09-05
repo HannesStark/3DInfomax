@@ -1,4 +1,4 @@
-experiment_name: 'NTXentMultiplePositives_280000_2conformers'
+experiment_name: 'NTXentMultiplePositives_280000_3conformers'
 
 models_to_save:
   - 5
@@ -39,7 +39,7 @@ metrics:
   - dimension_covariance
 main_metric: loss
 collate_function: conformer_collate
-num_conformers: 2
+num_conformers: 3
 
 
 optimizer: Adam
