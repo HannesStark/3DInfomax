@@ -1,6 +1,6 @@
-experiment_name: 'tune_qm9_NTXent_hidden40_50epochs'
+experiment_name: 'tune_drugs_NTXentMultiplePositives_280000_2conformers_50epochs'
 
-pretrain_checkpoint: runs/PNA_qm9_NTXent_hidden40_123_03-09_11-45-26/best_checkpoint_50epochs.pt
+pretrain_checkpoint: runs/PNA_drugs_NTXentMultiplePositives_280000_2conformers_123_05-09_08-48-00/best_checkpoint_50epochs.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:

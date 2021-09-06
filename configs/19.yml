@@ -1,10 +1,9 @@
-experiment_name: 'tune_qm9_NTXent_hidden40_100epochs'
+experiment_name: 'tune_drugs_NTXent_140000_single_conformer'
 
-pretrain_checkpoint: runs/PNA_qm9_NTXent_hidden40_123_03-09_11-45-26/best_checkpoint_100epochs.pt
+pretrain_checkpoint: runs/PNA_drugs_NTXent_140000_single_conformer_123_05-09_08-39-02/best_checkpoint_50epochs.pt
 transfer_layers:
   - gnn
-exclude_from_transfer:
-  - batch_norm
+
 
 num_epochs: 1000
 batch_size: 128
