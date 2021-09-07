@@ -1,8 +1,4 @@
-experiment_name: 'tune_drugs_NTXent_140000_single_conformer'
-
-pretrain_checkpoint: runs/PNA_drugs_NTXent_140000_single_conformer_123_05-09_08-39-02/best_checkpoint_50epochs.pt
-transfer_layers:
-  - gnn
+experiment_name: 'pretrain_qm9_property_pred'
 
 
 num_epochs: 1000

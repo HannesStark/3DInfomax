@@ -1,19 +1,15 @@
-experiment_name: 'tune_drugs_NTXentMultiplePositives_280000_2conformers_50epochs'
+experiment_name: 'pretrain_drugs_property_pred'
 
-pretrain_checkpoint: runs/PNA_drugs_NTXentMultiplePositives_280000_2conformers_123_05-09_08-48-00/best_checkpoint_50epochs.pt
-transfer_layers:
-  - gnn
-exclude_from_transfer:
-  - batch_norm
-
+dataset: drugs
 num_epochs: 1000
 batch_size: 128
 log_iterations: 30
 patience: 30
 loss_func: L1Loss
-num_train: 50000
+num_train: 140000
 targets:
-  - homo
+  - ensemblefreeenergy
+
 required_data:
   - dgl_graph
   - targets
@@ -21,7 +17,6 @@ metrics:
   - mae_denormalized
   - pearsonr
   - rsquared
-  - qm9_properties
 
 optimizer: Adam
 optimizer_params:
