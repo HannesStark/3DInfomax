@@ -1,4 +1,4 @@
-experiment_name: 'NTXent_280000_random_conformer_5conformers_ElectraSettings'
+experiment_name: 'NTXent_qmugs_620000_single_conformer_ElectraSettings'
 
 models_to_save:
   - 5
@@ -14,19 +14,19 @@ models_to_save:
   - 200
   - 300
   - 400
-dataset: drugs
-num_epochs: 1000
-batch_size: 500
+dataset: qmugs
+num_epochs: 52
+batch_size: 50
 log_iterations: 50
 patience: 35
 loss_func: NTXent
 loss_params:
   tau: 0.1
-num_train: 280000
+num_train: 620000
 
 required_data:
   - dgl_graph
-  - complete_graph_random_conformer
+  - complete_graph3d
 metrics:
   - positive_similarity
   - negative_similarity
@@ -39,7 +39,7 @@ metrics:
   - dimension_covariance
 main_metric: loss
 collate_function: contrastive_collate
-num_conformers: 5
+
 
 
 optimizer: Adam
