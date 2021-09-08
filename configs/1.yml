@@ -1,19 +1,15 @@
-experiment_name: 'mu_tune_qmugs_NTXent_qmugs_620000_single_conformer_35epochs'
+experiment_name: 'ensembleenergy_baseline'
 
-pretrain_checkpoint: runs/PNA_qmugs_NTXent_qmugs_620000_single_conformer_123_07-09_08-42-30/best_checkpoint_35epochs.pt
-transfer_layers:
-  - gnn
-exclude_from_transfer:
-  - batch_norm
-
+dataset: drugs
 num_epochs: 1000
 batch_size: 128
 log_iterations: 30
 patience: 30
 loss_func: L1Loss
-num_train: 50000
+num_train: 140000
 targets:
-  - mu
+  - ensembleenergy
+
 required_data:
   - dgl_graph
   - targets
@@ -21,7 +17,6 @@ metrics:
   - mae_denormalized
   - pearsonr
   - rsquared
-  - qm9_properties
 
 optimizer: Adam
 optimizer_params:
@@ -29,12 +24,8 @@ optimizer_params:
   weight_decay: 1.0e-11
 
 scheduler_step_per_batch: False
-lr_scheduler: WarmUpWrapper
+lr_scheduler: ReduceLROnPlateau
 lr_scheduler_params:
-  warmup_steps: [700,700,390]
-  interpolation: 'linear'
-  # parameters of scheduler to run after warmup
-  wrapped_scheduler: ReduceLROnPlateau
   factor: 0.5
   patience: 25
   min_lr: 1.0e-6

@@ -1,19 +1,19 @@
-experiment_name: 'zpve_tune_qmugs_NTXent_qmugs_620000_single_conformer_35epochs'
+experiment_name: 'freeenergy_tune_qm9_NTXent_3DDepth4'
 
-pretrain_checkpoint: runs/PNA_qmugs_NTXent_qmugs_620000_single_conformer_123_07-09_08-42-30/best_checkpoint_35epochs.pt
+pretrain_checkpoint: runs/PNA_qm9_NTXent_3DDepth4_123_03-09_11-45-22/best_checkpoint.pt
 transfer_layers:
   - gnn
-exclude_from_transfer:
-  - batch_norm
 
+dataset: drugs
 num_epochs: 1000
 batch_size: 128
 log_iterations: 30
 patience: 30
 loss_func: L1Loss
-num_train: 50000
+num_train: 140000
 targets:
-  - zpve
+  - ensemblefreeenergy
+
 required_data:
   - dgl_graph
   - targets
@@ -21,7 +21,6 @@ metrics:
   - mae_denormalized
   - pearsonr
   - rsquared
-  - qm9_properties
 
 optimizer: Adam
 optimizer_params:

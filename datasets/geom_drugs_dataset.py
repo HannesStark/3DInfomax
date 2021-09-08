@@ -205,6 +205,10 @@ class GEOMDrugs(Dataset):
             src, dst = self.get_pairwise(n_atoms)
             g.edata['feat'] = e_features[src * n_atoms + dst]
             return g
+        elif return_type == 'pytorch_geometric_smp_graph':
+            R_i = self.coordinates[start: start + n_atoms].to(self.device)
+            z_i = self.features_tensor[start: start + n_atoms].to(self.device)
+            return torch_geometric.data.Data(pos=R_i, z=z_i)
         elif return_type == 'complete_graph3d':
             g = self.get_complete_graph(idx, n_atoms, start)
             return g
