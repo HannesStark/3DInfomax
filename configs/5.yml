@@ -1,5 +1,6 @@
 experiment_name: 'ensembleenergy_baseline'
 
+dataset: drugs
 num_epochs: 1000
 batch_size: 32
 
