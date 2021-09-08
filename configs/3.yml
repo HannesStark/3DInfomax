@@ -1,9 +1,10 @@
-experiment_name: 'tune_drugs_pretrain_drugs_property_pred'
+experiment_name: 'homo_tune_drugs_pretrain_drugs_property_pred'
 
 pretrain_checkpoint: runs/PNA_drugs_pretrain_drugs_property_pred_123_07-09_07-29-23/best_checkpoint.pt
 transfer_layers:
   - gnn
-
+exclude_from_transfer:
+  - batch_norm
 
 num_epochs: 1000
 batch_size: 128
