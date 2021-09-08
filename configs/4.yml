@@ -1,6 +1,6 @@
-experiment_name: 'lumo_tune_qm9_NTXent_3DDepth4'
+experiment_name: 'tune_qm9_pretrain_qm9_property_pred'
 
-pretrain_checkpoint: runs/PNA_qm9_NTXent_3DDepth4_123_03-09_11-45-22/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_qm9_pretrain_qm9_property_pred_123_07-09_07-29-20/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
@@ -13,7 +13,7 @@ patience: 30
 loss_func: L1Loss
 num_train: 50000
 targets:
-  - lumo
+  - homo
 required_data:
   - dgl_graph
   - targets

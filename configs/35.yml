@@ -1,4 +1,4 @@
-experiment_name: 'baseline'
+experiment_name: 'tune_qmugs_NTXent_qmugs_620000_single_conformer_ElectraSettings'
 
 multithreaded_seeds:
   - 1
@@ -7,7 +7,11 @@ multithreaded_seeds:
   - 4
   - 5
   - 6
-
+pretrain_checkpoint: runs/PNA_qmugs_NTXent_qmugs_620000_single_conformer_ElectraSettings_123_07-09_08-42-30/best_checkpoint.pt
+transfer_layers:
+  - gnn
+exclude_from_transfer:
+  - batch_norm
 
 dataset: 'ogbg-molhiv'
 num_epochs: 1000
