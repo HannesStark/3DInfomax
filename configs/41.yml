@@ -1,12 +1,13 @@
 experiment_name: 'baseline'
 
-dataset: 'ogbg-moltox21'
+
+dataset: 'ogbg-molfreesolv'
 num_epochs: 1000
-batch_size: 128
+batch_size: 32
 log_iterations: 30
 patience: 40
-minimum_epochs: 30
-loss_func: OGBNanLabelBCEWithLogitsLoss
+minimum_epochs: 120
+loss_func: L1Loss
 required_data:
   - dgl_graph
   - targets
@@ -29,16 +30,15 @@ lr_scheduler_params:
   wrapped_scheduler: ReduceLROnPlateau
   factor: 0.5
   patience: 25
-  min_lr: 1.0e-4
-  mode: 'max'
+  min_lr: 1.0e-6
+  mode: 'min'
   verbose: True
-
 
 
 # Model parameters
 model_type: 'PNA'
 model_parameters:
-  target_dim: 12
+  target_dim: 1
   hidden_dim: 50
   mid_batch_norm: True
   last_batch_norm: True

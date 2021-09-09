@@ -1,25 +1,12 @@
-experiment_name: 'tune_drugs_NTXent_280000_random_conformer_5conformers_ElectraSettings_50epochs'
+experiment_name: 'baseline'
 
-multithreaded_seeds:
-  - 1
-  - 2
-  - 3
-  - 4
-  - 5
-  - 6
-pretrain_checkpoint: runs/PNA_drugs_NTXent_280000_random_conformer_5conformers_ElectraSettings_123_06-09_07-11-21/best_checkpoint_50epochs.pt
-transfer_layers:
-  - gnn
-exclude_from_transfer:
-  - batch_norm
-
-dataset: 'ogbg-molhiv'
+dataset: 'ogbg-molsider'
 num_epochs: 1000
 batch_size: 128
 log_iterations: 30
 patience: 40
 minimum_epochs: 30
-loss_func: BCEWithLogitsLoss
+loss_func: OGBNanLabelBCEWithLogitsLoss
 required_data:
   - dgl_graph
   - targets
@@ -51,17 +38,17 @@ lr_scheduler_params:
 # Model parameters
 model_type: 'PNA'
 model_parameters:
-  target_dim: 1
-  hidden_dim: 200
+  target_dim: 27
+  hidden_dim: 50
   mid_batch_norm: True
   last_batch_norm: True
   readout_batchnorm: True
   # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
   batch_norm_momentum: 0.1
-  readout_hidden_dim: 200
-  readout_layers: 2
+  readout_hidden_dim: 100
+  readout_layers: 1
   dropout: 0.0
-  propagation_depth: 7
+  propagation_depth: 3
   aggregators:
     - mean
     - max
@@ -77,7 +64,7 @@ model_parameters:
     - mean
     - sum
   pretrans_layers: 2
-  posttrans_layers: 1
+  posttrans_layers: 2
   residual: True
 
 
