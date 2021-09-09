@@ -1,4 +1,4 @@
-experiment_name: 'baseline'
+experiment_name: 'tune_drugs_NTXent_280000_random_conformer_5conformers_ElectraSettings'
 pretrain_checkpoint: runs/PNA_drugs_NTXent_280000_random_conformer_5conformers_ElectraSettings_123_06-09_07-11-21/best_checkpoint_50epochs.pt
 transfer_layers:
   - gnn
