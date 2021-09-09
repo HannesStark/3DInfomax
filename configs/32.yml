@@ -1,5 +1,13 @@
 experiment_name: 'baseline'
 
+multithreaded_seeds:
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+
 
 dataset: 'ogbg-mollipo'
 num_epochs: 1000
