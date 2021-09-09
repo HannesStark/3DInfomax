@@ -1,6 +1,6 @@
-experiment_name: 'tune_qm9_NTXent_3DDepth4'
+experiment_name: 'tune_qmugs_NTXentMultiplePositives_620000_35epochs'
 
-pretrain_checkpoint: runs/PNA_qmugs_NTXent_qmugs_620000_single_conformer_123_07-09_08-42-30/best_checkpoint_35epochs.pt
+pretrain_checkpoint: runs/PNA_qmugs_NTXentMultiplePositives_620000_123_25-08_09-19-52/best_checkpoint_35epochs.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:

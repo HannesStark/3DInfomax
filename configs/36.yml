@@ -1,44 +1,49 @@
-experiment_name: 'zpve_tune_qmugs_NTXentMultiplePositives_620000_35epochs'
+experiment_name: 'tune_drugs_NTXent_280000_random_conformer_5conformers_ElectraSettings_50epochs'
 
-pretrain_checkpoint: runs/PNA_qmugs_NTXentMultiplePositives_620000_123_25-08_09-19-52/best_checkpoint_35epochs.pt
+multithreaded_seeds:
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+pretrain_checkpoint: runs/PNA_drugs_NTXent_280000_random_conformer_5conformers_ElectraSettings_123_06-09_07-11-21/best_checkpoint_50epochs.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
   - batch_norm
 
+dataset: 'ogbg-moltox21'
 num_epochs: 1000
 batch_size: 128
 log_iterations: 30
-patience: 30
-loss_func: L1Loss
-num_train: 50000
-targets:
-  - zpve
+patience: 40
+minimum_epochs: 30
+loss_func: OGBNanLabelBCEWithLogitsLoss
 required_data:
   - dgl_graph
   - targets
 metrics:
-  - mae_denormalized
-  - pearsonr
   - rsquared
-  - qm9_properties
+  - mean_predictor_loss
+  - pearsonr
+
 
 optimizer: Adam
 optimizer_params:
-  lr: 7.0e-5
-  weight_decay: 1.0e-11
+  lr: 1.0e-3
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
 lr_scheduler_params:
-  warmup_steps: [700,700,390]
+  warmup_steps: [700,700,350]
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
   factor: 0.5
   patience: 25
-  min_lr: 1.0e-6
-  mode: 'min'
+  min_lr: 1.0e-4
+  mode: 'max'
   verbose: True
 
 
