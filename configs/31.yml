@@ -1,4 +1,4 @@
-experiment_name: 'tune_drugs_NTXent_ElectraSettings_50epochs'
+experiment_name: 'tune_drugs_NTXent_ElectraSettings_50epochs_nowarmup'
 
 multithreaded_seeds:
   - 1
@@ -10,8 +10,7 @@ multithreaded_seeds:
 pretrain_checkpoint: runs/PNA_drugs_NTXent_ElectraSettings_123_22-08_16-45-45/best_checkpoint_50epochs.pt
 transfer_layers:
   - gnn.
-exclude_from_transfer:
-  - batch_norm
+
 
 dataset: 'ogbg-molesol'
 num_epochs: 1000
@@ -34,12 +33,8 @@ optimizer_params:
   lr: 1.0e-3
 
 scheduler_step_per_batch: False
-lr_scheduler: WarmUpWrapper
+lr_scheduler: ReduceLROnPlateau
 lr_scheduler_params:
-  warmup_steps: [700,700,350]
-  interpolation: 'linear'
-  # parameters of scheduler to run after warmup
-  wrapped_scheduler: ReduceLROnPlateau
   factor: 0.5
   patience: 25
   min_lr: 1.0e-6
