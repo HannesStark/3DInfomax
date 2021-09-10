@@ -1,10 +1,11 @@
-experiment_name: 'zpve_tune_qmugs_NTXentMultiplePositives_620000_35epochs'
+experiment_name: 'zpve_tune_OptimalTransportModel_file_loader_drugs_PNA_120000_hidden200_depth7_5localEpochs'
 
-pretrain_checkpoint: runs/PNA_qmugs_NTXentMultiplePositives_620000_123_25-08_09-19-52/best_checkpoint_35epochs.pt
+pretrain_checkpoint: runs/OptimalTransportModel_file_loader_drugs_PNA_120000_hidden200_depth7_5localEpochs_123_08-08_06-27-21/best_checkpoint.pt
 transfer_layers:
   - gnn
 exclude_from_transfer:
   - batch_norm
+  - output_mlp
 
 num_epochs: 1000
 batch_size: 128
@@ -44,9 +45,11 @@ lr_scheduler_params:
 
 
 # Model parameters
-model_type: 'PNA'
+model_type: 'PNARandom'
 model_parameters:
   target_dim: 1
+  random_vec_dim: 10
+  random_vec_std: 1.0
   hidden_dim: 200
   mid_batch_norm: True
   last_batch_norm: True

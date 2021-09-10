@@ -72,7 +72,7 @@ seaborn.set_theme()
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/39.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/1.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
@@ -210,6 +210,8 @@ def load_model(args, data, device):
                 transfer_layer in k for transfer_layer in args.transfer_layers) and 'teacher' not in k and not any(
                 to_exclude in k for to_exclude in args.exclude_from_transfer)}
         model_state_dict = model.state_dict()
+        ic(model_state_dict.keys())
+        ic(pretrained_gnn_dict.keys())
         model_state_dict.update(pretrained_gnn_dict)  # update the gnn layers with the pretrained weights
         model.load_state_dict(model_state_dict)
         return model, pretrain_args.num_train, pretrain_args.dataset == args.dataset
