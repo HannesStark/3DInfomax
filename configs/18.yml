@@ -1,6 +1,6 @@
-experiment_name: 'tune_drugs_NTXent_140000_single_conformer'
+experiment_name: 'freeenergy_tune_drugs_graphcl'
 
-pretrain_checkpoint: runs/PNA_drugs_NTXent_140000_single_conformer_123_05-09_08-39-02/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_drugs_graphcl_123_31-08_11-46-34/best_checkpoint.pt
 transfer_layers:
   - gnn
 
