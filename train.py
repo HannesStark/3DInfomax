@@ -149,6 +149,7 @@ def parse_arguments():
 
     p.add_argument('--eval_on_test', type=bool, default=True, help='runs evaluation on test set if true')
     p.add_argument('--force_random_split', type=bool, default=False, help='use random split for ogb')
+    p.add_argument('--reuse_pre_train_data', type=bool, default=False, help='use random split for ogb')
     return p.parse_args()
 
 
@@ -212,7 +213,10 @@ def load_model(args, data, device):
         model_state_dict = model.state_dict()
         model_state_dict.update(pretrained_gnn_dict)  # update the gnn layers with the pretrained weights
         model.load_state_dict(model_state_dict)
-        return model, pretrain_args.num_train, pretrain_args.dataset == args.dataset
+        if args.reuse_pre_train_data:
+            return model, 0, pretrain_args.dataset == args.dataset
+        else:
+            return model, pretrain_args.num_train, pretrain_args.dataset == args.dataset
     return model, None, False
 
 
