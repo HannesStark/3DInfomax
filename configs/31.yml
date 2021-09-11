@@ -1,4 +1,4 @@
-experiment_name: 'baseline'
+experiment_name: 'tune_drugs_NTXent_280000_random_conformer_5conformers_no_sum_ElectraSettings_50epochs'
 
 multithreaded_seeds:
   - 1
@@ -7,6 +7,11 @@ multithreaded_seeds:
   - 4
   - 5
   - 6
+pretrain_checkpoint: runs/PNA_drugs_NTXent_280000_random_conformer_5conformers_no_sum_ElectraSettings_123_10-09_14-24-18/best_checkpoint_50epochs.pt
+transfer_layers:
+  - gnn.
+exclude_from_transfer:
+  - batch_norm
 
 dataset: 'ogbg-molesol'
 num_epochs: 1000
