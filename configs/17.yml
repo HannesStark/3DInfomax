@@ -4,7 +4,7 @@ pretrain_checkpoint: runs/PNA_drugs_graphcl_123_31-08_11-46-34/best_checkpoint.p
 transfer_layers:
   - gnn
 
-
+reuse_pre_train_data: True
 dataset: drugs
 num_epochs: 1000
 batch_size: 128
