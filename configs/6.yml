@@ -1,11 +1,10 @@
-experiment_name: 'r2_tune_OptimalTransportModel_file_loader_drugs_PNA_120000_hidden200_depth7_5localEpochs'
+experiment_name: 'zpve_baseline'
 
-pretrain_checkpoint: runs/OptimalTransportModel_file_loader_drugs_PNA_120000_hidden200_depth7_5localEpochs_123_08-08_06-27-21/best_checkpoint.pt
-transfer_layers:
-  - gnn
-exclude_from_transfer:
-  - batch_norm
-  - output_mlp
+multithreaded_seeds:
+  - 1
+  - 2
+  - 3
+  - 4
 
 num_epochs: 1000
 batch_size: 128
@@ -14,7 +13,7 @@ patience: 30
 loss_func: L1Loss
 num_train: 50000
 targets:
-  - r2
+  - zpve
 required_data:
   - dgl_graph
   - targets
@@ -45,11 +44,9 @@ lr_scheduler_params:
 
 
 # Model parameters
-model_type: 'PNARandom'
+model_type: 'PNA'
 model_parameters:
   target_dim: 1
-  random_vec_dim: 10
-  random_vec_std: 1.0
   hidden_dim: 200
   mid_batch_norm: True
   last_batch_norm: True
