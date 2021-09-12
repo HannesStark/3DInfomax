@@ -1,5 +1,6 @@
 experiment_name: 'graphcl_ELECTRAsettings'
 
+dataset: drugs
 num_epochs: 1000
 batch_size: 500
 log_iterations: 50
