@@ -52,7 +52,6 @@ lr_scheduler_params:
 model_type: 'PNA'
 model_parameters:
   target_dim: 27
-  hidden_dim: 50
   mid_batch_norm: True
   last_batch_norm: True
   readout_batchnorm: True
@@ -61,7 +60,7 @@ model_parameters:
   readout_hidden_dim: 100
   readout_layers: 1
   dropout: 0.0
-  propagation_depth: 3
+  propagation_depth: 5
   aggregators:
     - mean
     - max
