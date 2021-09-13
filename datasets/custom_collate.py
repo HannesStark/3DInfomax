@@ -187,6 +187,29 @@ class NodeDrop3dCollate(object):
 
         return [batched_graph], [batched_graph3d]
 
+class NodeDrop2d3DCollate(object):
+    def __init__(self, drop_ratio):
+        self.drop_ratio = drop_ratio
+
+    def __call__(self, batch: List[Tuple]):
+        graphs, graphs3d = map(list, zip(*batch))
+        device = graphs3d[0].device
+        for graph3d in graphs3d:
+            n_atoms = graph3d.num_nodes()
+            perm = torch.randperm(n_atoms, device=device)
+            remove_indices = perm[:int(self.drop_ratio * n_atoms)]
+            graph3d.remove_nodes(remove_indices)
+
+        for graph in graphs:
+            n_atoms = graph.num_nodes()
+            perm = torch.randperm(n_atoms, device=device)
+            remove_indices = perm[:int(self.drop_ratio * n_atoms)]
+            graph.remove_nodes(remove_indices)
+
+        batched_graph = dgl.batch(graphs)
+        batched_graph3d = dgl.batch(graphs3d)
+
+        return [batched_graph], [batched_graph3d]
 
 class NodeDropCollate(object):
     def __init__(self, drop_ratio):

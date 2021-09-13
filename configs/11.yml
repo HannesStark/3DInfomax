@@ -1,4 +1,4 @@
-experiment_name: 'NTXent_280000_random_conformer_5conformers_no_sum_ElectraSettings'
+experiment_name: 'NTXent_280000_random_conformer_2conformers_NodeDrop2d3DCollate'
 
 models_to_save:
   - 5
@@ -15,7 +15,7 @@ models_to_save:
   - 300
   - 400
 dataset: drugs
-num_epochs: 1000
+num_epochs: 102
 batch_size: 500
 log_iterations: 50
 patience: 35
@@ -38,8 +38,10 @@ metrics:
   - batch_variance
   - dimension_covariance
 main_metric: loss
-collate_function: contrastive_collate
-num_conformers: 5
+num_conformers: 2
+collate_function: NodeDrop2d3DCollate
+collate_params:
+  drop_ratio: 0.2
 
 
 optimizer: Adam
