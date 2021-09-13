@@ -52,6 +52,7 @@ model_type: 'PNA'
 model_parameters:
   target_dim: 1
   hidden_dim: 80
+  hidden_dim: 80
   mid_batch_norm: True
   last_batch_norm: True
   readout_batchnorm: True
