@@ -4,7 +4,7 @@ experiment_name: 'mu_baseline'
   - 1
   - 2
   - 3
-  - 4>
+  - 4
 
 num_epochs: 1000
 batch_size: 128
