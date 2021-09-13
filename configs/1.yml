@@ -1,6 +1,6 @@
 experiment_name: 'mu_baseline'
 
-<multithreaded_seeds:
+multithreaded_seeds:
   - 1
   - 2
   - 3
