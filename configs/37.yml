@@ -1,4 +1,4 @@
-experiment_name: 'tune_drugs_NTXent_280000_random_conformer_5conformers_hidden80_depth5_50epochs'
+experiment_name: 'tune_drugs_graphcl_ELECTRAsettings'
 
 multithreaded_seeds:
   - 1
@@ -7,7 +7,7 @@ multithreaded_seeds:
   - 4
   - 5
   - 6
-pretrain_checkpoint: runs/PNA_drugs_NTXent_280000_random_conformer_5conformers_hidden80_depth5_123_11-09_14-59-51/best_checkpoint_50epochs.pt
+pretrain_checkpoint: runs/PNA_drugs_graphcl_ELECTRAsettings_123_12-09_07-06-09/best_checkpoint.pt
 transfer_layers:
   - gnn.
 exclude_from_transfer:
@@ -58,7 +58,7 @@ model_parameters:
   readout_batchnorm: True
   # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
   batch_norm_momentum: 0.1
-  readout_hidden_dim: 200
+  readout_hidden_dim: 300
   readout_layers: 1
   dropout: 0.0
   propagation_depth: 3
