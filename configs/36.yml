@@ -1,4 +1,4 @@
-experiment_name: 'tune_drugs_graphcl_ELECTRAsettings'
+experiment_name: 'tune_drugs_NTXent_280000_random_conformer_2conformers_NodeDrop2d3DCollate_50epochs'
 
 multithreaded_seeds:
   - 1
@@ -7,11 +7,10 @@ multithreaded_seeds:
   - 4
   - 5
   - 6
-pretrain_checkpoint: runs/PNA_drugs_graphcl_ELECTRAsettings_123_12-09_07-06-09/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_drugs_NTXent_280000_random_conformer_2conformers_NodeDrop2d3DCollate_123_13-09_06-55-14/best_checkpoint_50epochs.pt
 transfer_layers:
   - gnn.
-exclude_from_transfer:
-  - batch_norm
+
 
 dataset: 'ogbg-moltox21'
 num_epochs: 1000
