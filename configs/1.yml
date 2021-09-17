@@ -1,10 +1,9 @@
-experiment_name: 'mu_baseline'
+experiment_name: 'mu_tune_drugs_NTXent_280000_random_conformer_2conformers_NodeDrop2d3DCollate_50epochs'
 
-multithreaded_seeds:
-  - 1
-  - 2
-  - 3
-  - 4
+pretrain_checkpoint: runs/PNA_drugs_NTXent_280000_random_conformer_2conformers_NodeDrop2d3DCollate_123_13-09_06-55-14/best_checkpoint_50epochs.pt
+transfer_layers:
+  - gnn
+
 
 num_epochs: 1000
 batch_size: 128
