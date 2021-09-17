@@ -1,4 +1,4 @@
-experiment_name: 'tune_drugs_NTXent_280000_random_conformer_2conformers_NodeDrop2d3DCollate_50epochs'
+experiment_name: 'tune_drugs_NTXent_280000_random_conformer_2conformers_NodeDrop2d3DCollate_80epochs'
 
 multithreaded_seeds:
   - 1
@@ -7,7 +7,7 @@ multithreaded_seeds:
   - 4
   - 5
   - 6
-pretrain_checkpoint: runs/PNA_drugs_NTXent_280000_random_conformer_2conformers_NodeDrop2d3DCollate_123_13-09_06-55-14/best_checkpoint_50epochs.pt
+pretrain_checkpoint: runs/PNA_drugs_NTXent_280000_random_conformer_2conformers_NodeDrop2d3DCollate_123_13-09_06-55-14/best_checkpoint_80epochs.pt
 transfer_layers:
   - gnn.
 
