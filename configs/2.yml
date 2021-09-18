@@ -1,6 +1,6 @@
 experiment_name: 'alpha_tune_drugs_NTXent_280000_random_conformer_2conformers_NodeDrop2d3DCollate_50epochs'
 
-pretrain_checkpoint: runs/PNA_drugs_NTXent_280000_random_conformer_2conformers_NodeDrop2d3DCollate_123_13-09_06-55-14/best_checkpoint_50epochs.pt
+pretrain_checkpoint: runs/PNA_drugs_NTXent_280000_random_conformer_2conformers_NodeDrop2d3DCollate_qm9_net_123_17-09_06-58-02/best_checkpoint_50epochs.pt
 transfer_layers:
   - gnn
 
