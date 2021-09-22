@@ -14,8 +14,8 @@ First, clone the repository, then move to the repository and install the depende
 
 Clone the current repo
 
-    git clone https://github.com/HannesStark/self-supervised-graphs
-    cd self-supervised-graphs
+    git clone https://github.com/HannesStark/3D-graph-ssl
+    cd 3D-graph-ssl
 
 Create a new environment with all required packages using `environment.yml` (this can take a while)
 
