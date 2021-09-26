@@ -1,5 +1,4 @@
-#DO not ignore:
-!PNA_qmugs_NTXentMultiplePositives_620000_123_25-08_09-19-52
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -112,8 +111,6 @@ images_out/
 
 *.zip
 
-runs/
-runs2
 
 
 
@@ -124,8 +121,9 @@ dataset/COLL/
 dataset/QM9Geomol/
 dataset/QMugs/
 dataset/MASIF/
-dataset/
-dataset
+!/dataset
+/dataset/*
+!/dataset/QM9
 
 
 .idea/
@@ -138,3 +136,10 @@ stdout*
 /dataset/ZINC/
 /dataset/ogbg_molhiv/
 /dataset/GEOM/
+
+runs2
+!/runs
+/runs/*
+!/runs/PNA_qmugs_NTXentMultiplePositives_620000_123_25-08_09-19-52/
+!/runs/PNA_qmugs_NTXentMultiplePositives_620000_123_25-08_09-19-52/best_checkpoint_35epochs.pt
+!/runs/PNA_qmugs_NTXentMultiplePositives_620000_123_25-08_09-19-52
