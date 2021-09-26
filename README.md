@@ -15,12 +15,8 @@ Latent", "Barlow Twins", or "VICReg".
 
 ## Step 1: Setup Environment
 
-If you don't have a conda environment, we highly suggest to create one.
-
-First, clone the repository, then move to the repository and install the dependencies. We highly recommend installing a
-new environment using conda.
-
-Clone the current repo
+We will set up the environment using [Anaconda](https://docs.anaconda.com/anaconda/install/index.html). Clone the
+current repo
 
     git clone https://https://github.com/HannesStark/3D-graph-ssl
     cd 3D-graph-ssl
