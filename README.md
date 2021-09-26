@@ -11,7 +11,7 @@ or [social media](https://hannes-stark.com/). I am happy to hear from you!
 This repository additionally adapts different self-supervised learning methods to graphs such as "Bootstrap your own
 Latent", "Barlow Twins", or "VICReg".
 
-![](.visual_abstract.png)
+![](.visual_abstract_white_background.png)
 
 ## Step 1: Setup Environment
 
