@@ -1,0 +1,136 @@
+batch_size: 500
+checkpoint:
+collate_function: conformer_collate
+collate_params: {}
+config: runs/PNA_qmugs_NTXentMultiplePositives_620000_123_25-08_09-19-52/12.yml
+critic_loss: MSELoss
+critic_loss_params: {}
+critic_parameters:
+critic_type:
+dataset: qmugs
+device: cuda
+dist_embedding: false
+eval_on_test: true
+eval_per_epochs: 0
+exclude_from_transfer: []
+expensive_log_iterations: 100
+experiment_name: NTXentMultiplePositives_620000
+linear_probing_samples: 500
+log_iterations: 50
+logdir: runs
+loss_func: NTXentMultiplePositives
+loss_params:
+  tau: 0.1
+lr_scheduler: WarmUpWrapper
+lr_scheduler_params:
+  cooldown: 20
+  factor: 0.6
+  min_lr: 1.0e-06
+  mode: min
+  patience: 25
+  threshold: 0.0001
+  verbose: true
+  warmup_steps:
+    - 700
+  wrapped_scheduler: ReduceLROnPlateau
+main_metric: loss
+main_metric_goal: min
+metrics:
+  - positive_similarity
+  - negative_similarity
+  - contrastive_accuracy
+  - true_negative_rate
+  - true_positive_rate
+  - uniformity
+  - alignment
+  - batch_variance
+  - dimension_covariance
+minimum_epochs: 0
+model3d_parameters:
+  batch_norm: true
+  batch_norm_momentum: 0.93
+  dropout: 0.0
+  fourier_encodings: 4
+  hidden_dim: 20
+  hidden_edge_dim: 20
+  message_net_layers: 1
+  node_wise_output_layers: 0
+  propagation_depth: 1
+  readout_aggregators:
+    - min
+    - max
+    - mean
+  readout_batchnorm: true
+  readout_hidden_dim: 20
+  readout_layers: 1
+  reduce_func: mean
+  target_dim: 256
+  update_net_layers: 1
+model3d_type: Net3D
+model_parameters:
+  aggregators:
+    - mean
+    - max
+    - min
+    - std
+  batch_norm_momentum: 0.93
+  dropout: 0.0
+  hidden_dim: 200
+  last_batch_norm: true
+  mid_batch_norm: true
+  posttrans_layers: 1
+  pretrans_layers: 2
+  propagation_depth: 7
+  readout_aggregators:
+    - min
+    - max
+    - mean
+  readout_batchnorm: true
+  readout_hidden_dim: 200
+  readout_layers: 2
+  residual: true
+  scalers:
+    - identity
+    - amplification
+    - attenuation
+  target_dim: 256
+model_type: PNA
+models_to_save:
+  - 5
+  - 10
+  - 20
+  - 35
+  - 50
+  - 65
+  - 80
+  - 100
+  - 125
+  - 150
+  - 200
+  - 300
+  - 400
+multithreaded_seeds: []
+num_conformers: 3
+num_epochs: 1000
+num_epochs_local_only: 1
+num_radial: 6
+num_train: 620000
+optimizer: Adam
+optimizer_params:
+  lr: 8.0e-05
+patience: 35
+pretrain_checkpoint:
+required_data:
+  - dgl_graph
+  - conformations
+scheduler_step_per_batch: false
+seed: 123
+seed_data: 123
+targets: []
+tensorboard_functions: []
+train_sampler:
+trainer: contrastive
+transfer_layers: []
+transferred_lr:
+use_e_features: true
+val_per_batch: true
