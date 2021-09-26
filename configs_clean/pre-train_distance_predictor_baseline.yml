@@ -1,0 +1,75 @@
+experiment_name: 'baseline'
+
+num_epochs: 1000
+batch_size: 100
+log_iterations: 2
+patience: 30
+num_train: 50000
+loss_func: L1Loss
+required_data:
+  - dgl_graph
+  - pairwise_indices
+  - pairwise_distances
+metrics:
+  - pearsonr
+  - rsquared
+  - mean_predictor_loss
+collate_function: pairwise_distance_collate
+main_metric: 'loss'
+
+optimizer: Adam
+optimizer_params:
+  lr: 1.0e-3
+
+scheduler_step_per_batch: False
+lr_scheduler: WarmUpWrapper
+lr_scheduler_params:
+  warmup_steps: [1500]
+  interpolation: 'linear'
+  # parameters of scheduler to run after warmup
+  wrapped_scheduler: ReduceLROnPlateau
+  factor: 0.5
+  patience: 25
+  min_lr: 5.0e-6
+  mode: 'min'
+  verbose: True
+
+# Model parameters
+model_type: 'DistancePredictor'
+model_parameters:
+  target_dim: 1
+  projection_dim: 0
+  distance_net: True
+  projection_layers: 1
+  transformer_layer: True
+  nhead: 2
+  dim_feedforward: 200
+  pna_args:
+    hidden_dim: 200
+    mid_batch_norm: True
+    last_batch_norm: True
+    # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
+    batch_norm_momentum: 0.1
+    dropout: 0.0
+    propagation_depth: 7
+    aggregators:
+      - mean
+      - max
+      - min
+      - std
+    scalers:
+      - identity
+      - amplification
+      - attenuation
+    readout_aggregators:
+      - min
+      - max
+      - mean
+      - sum
+    pretrans_layers: 2
+    posttrans_layers: 1
+    residual: True
+
+
+# continue training from checkpoint:
+#checkpoint: runs/PNAReadout_2_layer_03-04_15-29-07/last_checkpoint.pt

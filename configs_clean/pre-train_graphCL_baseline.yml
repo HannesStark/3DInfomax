@@ -1,0 +1,88 @@
+experiment_name: 'graphcl'
+
+dataset: drugs
+num_epochs: 1000
+batch_size: 500
+log_iterations: 2
+patience: 35
+loss_func: NTXent
+loss_params:
+  tau: 0.1
+num_train: 280000
+trainer: graphcl_trainer
+required_data:
+  - dgl_graph
+metrics:
+  - positive_similarity
+  - negative_similarity
+  - contrastive_accuracy
+  - true_negative_rate
+  - true_positive_rate
+  - uniformity
+  - alignment
+  - batch_variance
+  - dimension_covariance
+main_metric: loss
+collate_function: NodeDropCollate
+collate_params:
+  drop_ratio: 0.2
+
+optimizer: Adam
+optimizer_params:
+  lr: 8.0e-5
+
+
+scheduler_step_per_batch: False
+lr_scheduler: WarmUpWrapper
+lr_scheduler_params:
+  warmup_steps: [700]
+  # parameters of scheduler to run after warmup
+  wrapped_scheduler: ReduceLROnPlateau
+  cooldown: 20
+  factor: 0.6
+  patience: 25
+  min_lr: 1.0e-6
+  threshold: 1.0e-4
+  mode: 'min'
+  verbose: True
+
+
+
+# Model parameters
+model_type: 'PNA'
+model_parameters:
+  target_dim: 256
+  hidden_dim: 200
+  mid_batch_norm: True
+  last_batch_norm: True
+  readout_batchnorm: True
+  # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
+  batch_norm_momentum: 0.93
+  readout_hidden_dim: 200
+  readout_layers: 2
+  dropout: 0.0
+  propagation_depth: 7
+  aggregators:
+    - mean
+    - max
+    - min
+    - std
+  scalers:
+    - identity
+    - amplification
+    - attenuation
+  readout_aggregators:
+    - min
+    - max
+    - mean
+  pretrans_layers: 2
+  posttrans_layers: 1
+  residual: True
+
+
+
+
+
+
+# continue training from checkpoint:
+#checkpoint: runs/PNAReadout_2_layer_03-04_15-29-07/last_checkpoint.pt
