@@ -19,7 +19,7 @@ We will set up the environment using [Anaconda](https://docs.anaconda.com/anacon
 current repo
 
     git clone https://https://github.com/HannesStark/3D-graph-ssl
-    cd 3D-graph-ssl
+    cd "the repository"
 
 Create a new environment with all required packages using `environment.yml` (this can take a while)
 
