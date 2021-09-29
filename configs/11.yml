@@ -1,4 +1,4 @@
-experiment_name: 'NTXent_280000_random_conformer_2conformers_NodeDrop2d3DCollate_qm9_net'
+experiment_name: 'Net3DAE_210_metric_2encoder_0decoder_1reg'
 
 models_to_save:
   - 5
@@ -15,18 +15,22 @@ models_to_save:
   - 300
   - 400
 dataset: drugs
-num_epochs: 202
+num_epochs: 102
+trainer: 'autoencoder'
 batch_size: 500
 log_iterations: 50
 patience: 35
-loss_func: NTXent
+loss_func: NTXentAE
 loss_params:
   tau: 0.1
-num_train: 280000
+  reconstruction_reg: 1
+num_train: 140000
 
 required_data:
   - dgl_graph
   - complete_graph_random_conformer
+  - pairwise_indices
+  - pairwise_distances
 metrics:
   - positive_similarity
   - negative_similarity
@@ -38,11 +42,8 @@ metrics:
   - batch_variance
   - dimension_covariance
 main_metric: loss
-num_conformers: 2
-collate_function: NodeDrop2d3DCollate
-collate_params:
-  drop_ratio: 0.2
-
+collate_function: contrastive_vae_collate
+num_conformers: 5
 
 optimizer: Adam
 optimizer_params:
@@ -68,7 +69,7 @@ lr_scheduler_params:
 # Model parameters
 model_type: 'PNA'
 model_parameters:
-  target_dim: 256
+  target_dim: 210
   hidden_dim: 200
   mid_batch_norm: True
   last_batch_norm: True
@@ -76,7 +77,7 @@ model_parameters:
   # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
   batch_norm_momentum: 0.93
   readout_hidden_dim: 200
-  readout_layers: 1
+  readout_layers: 2
   dropout: 0.0
   propagation_depth: 7
   aggregators:
@@ -97,24 +98,25 @@ model_parameters:
   residual: True
 
 # Model parameters
-model3d_type: 'Net3D'
+model3d_type: 'Net3DAE'
 model3d_parameters:
-  target_dim: 256
-  hidden_dim: 20
+  projection_dim: 70
+  projection_layers: 2
+  distance_net: True
+  hidden_dim: 70
   hidden_edge_dim: 20
+  node_wise_encoder_layers: 0
   node_wise_output_layers: 0
   message_net_layers: 1
   update_net_layers: 1
   reduce_func: 'mean'
   fourier_encodings: 4
-  propagation_depth: 1
+  encoder_depth: 2
+  decoder_depth: 0
   dropout: 0.0
   batch_norm: True
-  readout_batchnorm: True
   # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
   batch_norm_momentum: 0.93
-  readout_hidden_dim: 20
-  readout_layers: 1
   readout_aggregators:
     - min
     - max
