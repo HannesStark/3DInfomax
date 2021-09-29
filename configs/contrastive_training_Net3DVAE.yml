@@ -1,4 +1,4 @@
-experiment_name: 'NTXent_tiny_20hidden'
+experiment_name: '210_metric_2layers'
 
 num_epochs: 1000
 batch_size: 500
