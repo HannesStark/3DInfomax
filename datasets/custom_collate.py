@@ -46,6 +46,19 @@ def s_norm_graph_collate(batch: List[Tuple]):
     return [batched_graph, snorm_n], torch.stack(targets).float()
 
 
+def contrastive_vae_collate(batch: List[Tuple]):
+    # optionally take targets
+    graphs, graphs3d, pairwise_indices, distances = map(list, zip(*batch))
+    batched_graph = dgl.batch(graphs)
+    batched_graph3d = dgl.batch(graphs3d)
+
+    cumulative_length = 0
+    for i, pairwise_index in enumerate(pairwise_indices):
+        pairwise_index += cumulative_length
+        cumulative_length += graphs[i].number_of_nodes()
+
+    return [batched_graph], [batched_graph3d, torch.cat(pairwise_indices, dim=-1)], torch.cat(distances)
+
 def pairwise_distance_collate(batch: List[Tuple]):
     dgl_graphs, pairwise_indices, distances = map(list, zip(*batch))
 

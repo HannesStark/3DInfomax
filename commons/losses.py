@@ -162,6 +162,46 @@ class NTXent(_Loss):
             loss += self.uniformity_reg * uniformity_loss(z1, z2)
         return loss
 
+class NTXentAE(_Loss):
+    '''
+        Normalized Temperature-scaled Cross Entropy Loss from SimCLR paper
+        Args:
+            z1, z2: Tensor of shape [batch_size, z_dim]
+            tau: Float. Usually in (0,1].
+            norm: Boolean. Whether to apply normlization.
+        '''
+
+    def __init__(self, norm: bool = True, tau: float = 0.5, uniformity_reg=0, variance_reg=0, covariance_reg=0, reconstruction_reg = 1) -> None:
+        super(NTXentAE, self).__init__()
+        self.norm = norm
+        self.tau = tau
+        self.uniformity_reg = uniformity_reg
+        self.variance_reg = variance_reg
+        self.covariance_reg = covariance_reg
+        self.mse_loss = MSELoss()
+        self.reconstruction_reg = reconstruction_reg
+
+    def forward(self, z1, z2, distances, distance_pred, **kwargs):
+        batch_size, _ = z1.size()
+        sim_matrix = torch.einsum('ik,jk->ij', z1, z2)
+
+        if self.norm:
+            z1_abs = z1.norm(dim=1)
+            z2_abs = z2.norm(dim=1)
+            sim_matrix = sim_matrix / (torch.einsum('i,j->ij', z1_abs, z2_abs) + 1e-8)
+
+        sim_matrix = torch.exp(sim_matrix / self.tau)
+        pos_sim = torch.diagonal(sim_matrix)
+        loss = pos_sim / (sim_matrix.sum(dim=1) - pos_sim)
+        loss = - torch.log(loss).mean()
+
+        if self.variance_reg > 0:
+            loss += self.variance_reg * (std_loss(z1) + std_loss(z2))
+        if self.covariance_reg > 0:
+            loss += self.covariance_reg * (cov_loss(z1) + cov_loss(z2))
+        if self.uniformity_reg > 0:
+            loss += self.uniformity_reg * uniformity_loss(z1, z2)
+        return loss, self.reconstruction_reg * self.mse_loss(distances, distance_pred)
 
 class NTXentMultiplePositives(_Loss):
     '''

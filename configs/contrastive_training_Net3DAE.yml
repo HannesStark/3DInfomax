@@ -1,17 +1,21 @@
 experiment_name: '210_metric_2layers'
 
+trainer: 'autoencoder'
 num_epochs: 1000
-batch_size: 500
-log_iterations: 50
+batch_size: 50
+log_iterations: 1
 patience: 35
-loss_func: NTXent
+loss_func: NTXentAE
 loss_params:
   tau: 0.1
+  reconstruction_reg: 1
 num_train: 50000
 
 required_data:
   - dgl_graph
   - complete_graph3d
+  - pairwise_indices
+  - pairwise_distances
 metrics:
   - positive_similarity
   - negative_similarity
@@ -23,7 +27,7 @@ metrics:
   - batch_variance
   - dimension_covariance
 main_metric: loss
-collate_function: contrastive_collate
+collate_function: contrastive_vae_collate
 
 optimizer: Adam
 optimizer_params:
@@ -78,16 +82,21 @@ model_parameters:
   residual: True
 
 # Model parameters
-model3d_type: 'Net3DVAE'
+model3d_type: 'Net3DAE'
 model3d_parameters:
+  projection_dim: 70
+  projection_layers: 2
+  distance_net: True
   hidden_dim: 70
   hidden_edge_dim: 20
+  node_wise_encoder_layers: 0
   node_wise_output_layers: 0
   message_net_layers: 2
   update_net_layers: 2
   reduce_func: 'mean'
   fourier_encodings: 4
-  propagation_depth: 1
+  encoder_depth: 2
+  decoder_depth: 0
   dropout: 0.0
   batch_norm: True
   # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
