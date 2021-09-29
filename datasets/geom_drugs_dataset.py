@@ -82,6 +82,7 @@ class GEOMDrugs(Dataset):
         self.complete_graphs = {}
         self.mol_complete_graphs = {}
         self.conformer_graphs = {}
+        self.pairwise_distances = {}
 
         self.avg_degree = data_dict['avg_degree']
         # indices of the tasks that should be retrieved
@@ -261,6 +262,18 @@ class GEOMDrugs(Dataset):
             R_i = self.coordinates[start: start + n_atoms].to(self.device)
             z_i = self.features_tensor[start: start + n_atoms].to(self.device)
             return torch_geometric.data.Data(pos=R_i, z=z_i, edge_attr=edge_features, edge_index=edge_indices)
+        elif return_type == 'pairwise_indices':
+            src, dst = self.get_pairwise(n_atoms)
+            return torch.stack([src, dst], dim=0)
+        elif return_type == 'pairwise_distances':
+            if idx in self.pairwise_distances:
+                return self.pairwise_distances[idx].to(self.device)
+            else:
+                src, dst = self.get_pairwise(n_atoms)
+                coords = self.coordinates[start: start + n_atoms].to(self.device)
+                distances = torch.norm(coords[src] - coords[dst], p=2, dim=-1).unsqueeze(-1).detach()
+                self.pairwise_distances[idx] = distances.to('cpu')
+                return distances
         elif return_type == 'raw_features':
             return self.features_tensor[start: start + n_atoms]
         elif return_type == 'coordinates':

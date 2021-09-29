@@ -59,6 +59,7 @@ class QMugsDataset(Dataset):
         self.complete_graphs = {}
         self.mol_complete_graphs = {}
         self.conformer_graphs = {}
+        self.pairwise_distances = {}
 
         self.avg_degree = data_dict['avg_degree']
         # indices of the tasks that should be retrieved
@@ -201,6 +202,18 @@ class QMugsDataset(Dataset):
             if self.e_features_tensor != None and return_type == 'se3Transformer_graph':
                 g.edata['feat'] = self.e_features_tensor[e_start: e_end].to(self.device)
             return g
+        elif return_type == 'pairwise_indices':
+            src, dst = self.get_pairwise(n_atoms)
+            return torch.stack([src, dst], dim=0)
+        elif return_type == 'pairwise_distances':
+            if idx in self.pairwise_distances:
+                return self.pairwise_distances[idx].to(self.device)
+            else:
+                src, dst = self.get_pairwise(n_atoms)
+                coords = self.coordinates[start: start + n_atoms].to(self.device)
+                distances = torch.norm(coords[src] - coords[dst], p=2, dim=-1).unsqueeze(-1).detach()
+                self.pairwise_distances[idx] = distances.to('cpu')
+                return distances
         elif return_type == 'raw_features':
             return self.features_tensor[start: start + n_atoms]
         elif return_type == 'coordinates':
