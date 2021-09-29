@@ -1,4 +1,4 @@
-experiment_name: 'NTXent_280000_random_conformer_5conformers_hidden80_depth5'
+experiment_name: 'Net3DAE_210_metric_2encoder_0decoder_1reg'
 
 models_to_save:
   - 5
