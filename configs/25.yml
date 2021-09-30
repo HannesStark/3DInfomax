@@ -3,6 +3,9 @@ experiment_name: 'homo_tune_qm9_210_metric_2layers_2prop'
 pretrain_checkpoint: runs/PNA_qm9_210_metric_2layers_2prop_123_29-09_08-58-07/best_checkpoint.pt
 transfer_layers:
   - gnn
+exclude_from_transfer:
+  - batch_norm
+
 
 num_epochs: 1000
 batch_size: 128

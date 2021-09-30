@@ -3,6 +3,8 @@ experiment_name: 'homo_tune_qm9_Net3DAE_210_metric_2encoder_0decoder_1reg'
 pretrain_checkpoint: runs/PNA_qm9_Net3DAE_210_metric_2encoder_0decoder_1reg_123_29-09_10-40-21/best_checkpoint.pt
 transfer_layers:
   - gnn
+exclude_from_transfer:
+  - batch_norm
 
 num_epochs: 1000
 batch_size: 128
