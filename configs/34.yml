@@ -1,4 +1,4 @@
-experiment_name: 'tune_drugs_Net3DAE_210_metric_2encoder_0decoder_1reg'
+experiment_name: 'tune_drugs_Net3DAE_210_metric_2encoder_0decoder_1reg_100epochs'
 
 multithreaded_seeds:
   - 1

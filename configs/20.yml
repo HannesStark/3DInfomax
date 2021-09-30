@@ -1,6 +1,6 @@
 experiment_name: 'homo_drugs_Net3DAE_210_metric_2encoder_0decoder_1reg'
 
-pretrain_checkpoint: runs/PNA_drugs_Net3DAE_210_metric_2encoder_0decoder_1reg_123_29-09_17-37-36/best_checkpoint_50epochs.pt
+pretrain_checkpoint: runs/PNA_drugs_Net3DAE_210_metric_2encoder_0decoder_1reg_123_29-09_17-37-36/best_checkpoint_100epochs.pt
 transfer_layers:
   - gnn
 
