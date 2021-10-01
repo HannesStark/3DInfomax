@@ -2,8 +2,8 @@
 
 ### [Video](https://youtu.be/K0QX1ZrxquM) | [Paper](https://hannes-stark.com/assets/Hannes_Thesis.pdf)
 
-We pre-train a GNNs to understand the geometry of molecules given only their 2D molecular graph such that they can
-then make better molecular property predictions. Below is a 3 step guide for how to use the code and how to reproduce
+We pre-train GNNs to understand the geometry of molecules given only their 2D molecular graph which they can
+use for better molecular property predictions. Below is a 3 step guide for how to use the code and how to reproduce
 our results. If you have questions, don't hesitate to open an issue or ask me
 via [hannes.staerk@tum.de](hannes.staerk@tum.de)
 or [social media](https://hannes-stark.com/). I am happy to hear from you!
