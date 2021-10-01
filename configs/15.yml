@@ -1,14 +1,14 @@
-experiment_name: 'Net3DAE_210_metric_2encoder_0decoder_01reg'
+experiment_name: 'Net3DAE_210_nodewise_readout'
 
 trainer: 'autoencoder'
 num_epochs: 1000
 batch_size: 500
-log_iterations: 50
+log_iterations: 1
 patience: 35
 loss_func: NTXentAE
 loss_params:
   tau: 0.1
-  reconstruction_reg: 0.1
+  reconstruction_reg: 1
 num_train: 50000
 
 required_data:
@@ -90,7 +90,7 @@ model3d_parameters:
   hidden_dim: 70
   hidden_edge_dim: 20
   node_wise_encoder_layers: 0
-  node_wise_output_layers: 0
+  node_wise_output_layers: 2
   message_net_layers: 1
   update_net_layers: 1
   reduce_func: 'mean'

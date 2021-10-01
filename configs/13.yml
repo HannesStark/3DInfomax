@@ -1,4 +1,4 @@
-experiment_name: 'Net3DAE_210_metric_2encoder_0decoder_1reg'
+experiment_name: 'Net3DAE_210_nodewise_output'
 
 models_to_save:
   - 5
@@ -24,7 +24,7 @@ loss_func: NTXentAE
 loss_params:
   tau: 0.1
   reconstruction_reg: 1
-num_train: 140000
+num_train: 280000
 
 required_data:
   - dgl_graph
@@ -43,7 +43,7 @@ metrics:
   - dimension_covariance
 main_metric: loss
 collate_function: contrastive_vae_collate
-num_conformers: 5
+num_conformers: 3
 
 optimizer: Adam
 optimizer_params:
@@ -70,16 +70,16 @@ lr_scheduler_params:
 model_type: 'PNA'
 model_parameters:
   target_dim: 210
-  hidden_dim: 200
+  hidden_dim: 50
   mid_batch_norm: True
   last_batch_norm: True
   readout_batchnorm: True
   # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
   batch_norm_momentum: 0.93
-  readout_hidden_dim: 200
-  readout_layers: 2
+  readout_hidden_dim: 100
+  readout_layers: 1
   dropout: 0.0
-  propagation_depth: 7
+  propagation_depth: 3
   aggregators:
     - mean
     - max
@@ -94,8 +94,9 @@ model_parameters:
     - max
     - mean
   pretrans_layers: 2
-  posttrans_layers: 1
+  posttrans_layers: 2
   residual: True
+
 
 # Model parameters
 model3d_type: 'Net3DAE'
@@ -106,7 +107,7 @@ model3d_parameters:
   hidden_dim: 70
   hidden_edge_dim: 20
   node_wise_encoder_layers: 0
-  node_wise_output_layers: 0
+  node_wise_output_layers: 2
   message_net_layers: 1
   update_net_layers: 1
   reduce_func: 'mean'
