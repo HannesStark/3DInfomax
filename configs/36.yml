@@ -1,4 +1,4 @@
-experiment_name: 'tune_drugs_Net3DAE_210_metric_2encoder_0decoder_1reg_100epochs'
+experiment_name: 'tune_drugs_Net3DAE_210_metric_2encoder_0decoder_1reg_20epochs'
 
 multithreaded_seeds:
   - 1
@@ -7,7 +7,7 @@ multithreaded_seeds:
   - 4
   - 5
   - 6
-pretrain_checkpoint: runs/PNA_drugs_Net3DAE_210_metric_2encoder_0decoder_1reg_123_29-09_17-37-36/best_checkpoint_100epochs.pt
+pretrain_checkpoint: runs/PNA_drugs_Net3DAE_210_metric_2encoder_0decoder_1reg_123_29-09_17-37-36/best_checkpoint_20epochs.pt
 transfer_layers:
   - gnn.
 
