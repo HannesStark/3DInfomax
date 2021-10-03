@@ -1,4 +1,4 @@
-experiment_name: 'tune_drugs_Net3DAE_210_nodewise_output'
+experiment_name: 'tune_drugs_Net3DAE_210_nodewise_output_50epochs_50epochs'
 
 multithreaded_seeds:
   - 1
