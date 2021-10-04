@@ -133,6 +133,7 @@ class Trainer():
         epoch_predictions = torch.tensor([]).to(self.device)
         epoch_loss = 0
         for i, batch in enumerate(data_loader):
+            #ic(self.optim.param_groups)
             batch = move_to_device(list(batch), self.device)
             loss, predictions, targets = self.process_batch(batch, optim)
             with torch.no_grad():
@@ -216,11 +217,13 @@ class Trainer():
         transferred_keys = [k for k in self.model.state_dict().keys() if
                             any(transfer_layer in k for transfer_layer in self.args.transfer_layers) and not any(
                                 to_exclude in k for to_exclude in self.args.exclude_from_transfer)]
+        frozen_keys = [k for k in self.model.state_dict().keys() if any(to_freeze in k for to_freeze in self.args.frozen_layers)]
+        frozen_params = [v for k, v in self.model.named_parameters() if k in frozen_keys]
         transferred_params = [v for k, v in self.model.named_parameters() if k in transferred_keys]
         new_params = [v for k, v in self.model.named_parameters() if
-                      k not in transferred_keys and 'batch_norm' not in k]
+                      k not in transferred_keys and 'batch_norm' not in k and k not in frozen_keys]
         batch_norm_params = [v for k, v in self.model.named_parameters() if
-                             'batch_norm' in k and k not in transferred_keys]
+                             'batch_norm' in k and k not in transferred_keys and k not in frozen_keys]
 
         transfer_lr = self.args.optimizer_params['lr'] if self.args.transferred_lr == None else self.args.transferred_lr
         # the order of the params here determines in which order they will start being updated during warmup when using ordered warmup in the warmupwrapper
@@ -228,8 +231,12 @@ class Trainer():
         if batch_norm_params != []:
             param_groups.append({'params': batch_norm_params, 'weight_decay': 0})
         param_groups.append({'params': new_params})
+        ic(len(transferred_params))
         if transferred_params != []:
             param_groups.append({'params': transferred_params, 'lr': transfer_lr})
+        ic(len(frozen_params))
+        if frozen_params != []:
+            param_groups.append({'params': frozen_params, 'lr': 0})
         self.optim = optim(param_groups, **self.args.optimizer_params)
 
     def step_schedulers(self, metrics=None):

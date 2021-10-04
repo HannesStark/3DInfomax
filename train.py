@@ -73,7 +73,7 @@ seaborn.set_theme()
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/15.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/3.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
@@ -118,6 +118,8 @@ def parse_arguments():
     p.add_argument('--pretrain_checkpoint', type=str, help='Specify path to finetune from a pretrained checkpoint')
     p.add_argument('--transfer_layers', default=[],
                    help='strings contained in the keys of the weights that are transferred')
+    p.add_argument('--frozen_layers', default=[],
+                   help='strings contained in the keys of the weights that are transferred')
     p.add_argument('--exclude_from_transfer', default=[],
                    help='parameters that usually should not be transferred like batchnorm params')
     p.add_argument('--transferred_lr', type=float, default=None, help='set to use a different LR for transfer layers')
@@ -150,7 +152,8 @@ def parse_arguments():
 
     p.add_argument('--eval_on_test', type=bool, default=True, help='runs evaluation on test set if true')
     p.add_argument('--force_random_split', type=bool, default=False, help='use random split for ogb')
-    p.add_argument('--reuse_pre_train_data', type=bool, default=False, help='use random split for ogb')
+    p.add_argument('--reuse_pre_train_data', type=bool, default=False, help='use all data instead of ignoring that used during pre-training')
+    p.add_argument('--transfer_3d', type=bool, default=False, help='set true to load the 3d network instead of the 2d network')
     return p.parse_args()
 
 
@@ -209,11 +212,14 @@ def load_model(args, data, device):
         checkpoint = torch.load(args.pretrain_checkpoint, map_location=device)
         # get all the weights that have something from 'args.transfer_layers' in their keys name
         # but only if they do not contain 'teacher' and remove 'student.' which we need for loading from BYOLWrapper
+        weights_key = 'model3d_state_dict' if args.transfer_3d == True else 'model_state_dict'
         pretrained_gnn_dict = {re.sub('^gnn\.|^gnn2\.', 'node_gnn.', k.replace('student.', '')): v
-                               for k, v in checkpoint['model_state_dict'].items() if any(
+                               for k, v in checkpoint[weights_key].items() if any(
                 transfer_layer in k for transfer_layer in args.transfer_layers) and 'teacher' not in k and not any(
                 to_exclude in k for to_exclude in args.exclude_from_transfer)}
         model_state_dict = model.state_dict()
+        ic(pretrained_gnn_dict.keys())
+        ic(model_state_dict.keys())
         model_state_dict.update(pretrained_gnn_dict)  # update the gnn layers with the pretrained weights
         model.load_state_dict(model_state_dict)
         if args.reuse_pre_train_data:

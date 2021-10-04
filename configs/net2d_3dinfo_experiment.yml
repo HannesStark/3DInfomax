@@ -1,6 +1,6 @@
-experiment_name: 'graphcl'
+experiment_name: 'baseline'
 
-pretrain_checkpoint: runs/PNA_qm9_graphcl_123_06-09_07-11-41/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_qm9_NTXent_3DDepth2_123_03-09_11-45-21/best_checkpoint.pt
 transfer_layers:
   - gnn
 
@@ -9,7 +9,7 @@ transfer_lr: 0.0
 reuse_pre_train_data: True
 num_epochs: 1000
 batch_size: 128
-log_iterations: 20
+log_iterations: 1
 patience: 30
 num_train: 50000
 loss_func: MSELoss
@@ -33,7 +33,7 @@ model_type: 'PNADistancePredictor'
 model_parameters:
   target_dim: 256
   hidden_dim: 200
-  projection_dim: 200
+  projection_dim: 100
   projection_layers: 2
   mid_batch_norm: True
   last_batch_norm: True

@@ -12,12 +12,12 @@ from models.base_layers import MLP
 from models.net3d import Net3DLayer
 
 
-class Net3DAE(nn.Module):
-    def __init__(self, node_dim, edge_dim, hidden_dim, readout_aggregators: List[str], batch_norm=False,
+class Net3DDistancePredictor(nn.Module):
+    def __init__(self, hidden_dim, readout_aggregators: List[str], batch_norm=False,
                  node_wise_encoder_layers=0, node_wise_output_layers = 0, batch_norm_momentum=0.1, reduce_func='sum',
-                 dropout=0.0, encoder_depth: int = 4, decoder_depth: int = 4, projection_dim=3, distance_net=True, projection_layers=1,
+                 dropout=0.0, propagation_depth: int = 4, decoder_depth: int = 0, projection_dim=3, distance_net=True, projection_layers=1,
                  fourier_encodings=0, activation: str = 'SiLU', update_net_layers=2, message_net_layers=2, use_node_features=False, **kwargs):
-        super(Net3DAE, self).__init__()
+        super(Net3DDistancePredictor, self).__init__()
         self.fourier_encodings = fourier_encodings
         edge_in_dim = 1 if fourier_encodings == 0 else 2 * fourier_encodings + 1
         self.edge_input = MLP(in_dim=edge_in_dim, hidden_size=hidden_dim, out_dim=hidden_dim, mid_batch_norm=batch_norm,
@@ -32,9 +32,9 @@ class Net3DAE(nn.Module):
             self.node_embedding = nn.Parameter(torch.empty((hidden_dim,)))
             nn.init.normal_(self.node_embedding)
 
-        self.encoder_layers = nn.ModuleList()
-        for _ in range(encoder_depth):
-            self.encoder_layers.append(
+        self.mp_layers = nn.ModuleList()
+        for _ in range(propagation_depth):
+            self.mp_layers.append(
                 Net3DLayer(edge_dim=hidden_dim, hidden_dim=hidden_dim, batch_norm=batch_norm,
                            batch_norm_momentum=batch_norm_momentum, dropout=dropout, mid_activation=activation,
                            reduce_func=reduce_func, message_net_layers=message_net_layers,
@@ -76,7 +76,7 @@ class Net3DAE(nn.Module):
             self.distance_net = None
 
 
-    def forward(self, graph: dgl.DGLGraph, pairwise_indices: torch.Tensor):
+    def forward(self, graph: dgl.DGLGraph, pairwise_indices: torch.Tensor, mask):
         if self.use_node_features:
             graph.ndata['feat'] = self.atom_encoder(graph.ndata['feat'])
         else:
@@ -86,7 +86,7 @@ class Net3DAE(nn.Module):
             graph.edata['d'] = fourier_encode_dist(graph.edata['d'], num_encodings=self.fourier_encodings)
         graph.apply_edges(self.input_edge_func)
 
-        for mp_layer in self.encoder_layers:
+        for mp_layer in self.mp_layers:
             mp_layer(graph)
 
         if self.node_wise_encoder_layers > 0:
@@ -122,7 +122,7 @@ class Net3DAE(nn.Module):
 
         # for debugging
         #distances = torch.norm(src_x - dst_x, p=2, dim=-1).unsqueeze(-1)
-        return latent_vector, distances
+        return distances
 
 
     def node_projection(self, nodes):

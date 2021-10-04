@@ -1,20 +1,23 @@
-experiment_name: 'graphcl'
+experiment_name: 'baseline'
 
-pretrain_checkpoint: runs/PNA_qm9_graphcl_123_06-09_07-11-41/best_checkpoint.pt
-transfer_layers:
-  - gnn
+
+frozen_layers:
+  - mp
+  - input
+  - node_embedding
 
 
 transfer_lr: 0.0
+transfer_3d: True
 reuse_pre_train_data: True
 num_epochs: 1000
 batch_size: 128
-log_iterations: 20
+log_iterations: 1
 patience: 30
 num_train: 50000
 loss_func: MSELoss
 required_data:
-  - dgl_graph
+  - complete_graph3d
   - pairwise_indices
   - pairwise_distances
 metrics:
@@ -29,38 +32,31 @@ optimizer_params:
   lr: 1.0e-3
 
 
-model_type: 'PNADistancePredictor'
+# Model parameters
+model_type: 'Net3DDistancePredictor'
 model_parameters:
   target_dim: 256
-  hidden_dim: 200
-  projection_dim: 200
+  projection_dim: 100
   projection_layers: 2
-  mid_batch_norm: True
-  last_batch_norm: True
+  hidden_dim: 20
+  hidden_edge_dim: 20
+  node_wise_output_layers: 0
+  message_net_layers: 1
+  update_net_layers: 1
+  reduce_func: 'mean'
+  fourier_encodings: 4
+  propagation_depth: 2
+  dropout: 0.0
+  batch_norm: True
   readout_batchnorm: True
   # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
-  batch_norm_momentum: 0.1
-  readout_hidden_dim: 200
-  readout_layers: 2
-  dropout: 0.0
-  propagation_depth: 7
-  aggregators:
-    - mean
-    - max
-    - min
-    - std
-  scalers:
-    - identity
-    - amplification
-    - attenuation
+  batch_norm_momentum: 0.93
+  readout_hidden_dim: 20
+  readout_layers: 1
   readout_aggregators:
     - min
     - max
     - mean
-  pretrans_layers: 2
-  posttrans_layers: 1
-  residual: True
-
 
 
 
