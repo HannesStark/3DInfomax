@@ -1,17 +1,18 @@
 experiment_name: '3DInfomax'
 
-pretrain_checkpoint: runs/PNA_qm9_NTXent_3DDepth2_123_03-09_11-45-21/best_checkpoint.pt
+pretrain_checkpoint: runs/PNA_drugs_NTXentMultiplePositives_140000_123_22-08_17-20-23/best_checkpoint.pt
 transfer_layers:
   - gnn
 
 
 transfer_lr: 0.0
+dataset: drugs
 reuse_pre_train_data: True
 num_epochs: 1000
 batch_size: 128
 log_iterations: 20
 patience: 30
-num_train: 50000
+num_train: 140000
 loss_func: MSELoss
 required_data:
   - dgl_graph

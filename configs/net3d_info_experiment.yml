@@ -1,7 +1,7 @@
-experiment_name: 'baseline'
+experiment_name: '3DInfoMax'
 
-
-frozen_layers:
+pretrain_checkpoint: runs/PNA_qm9_NTXent_3DDepth2_123_03-09_11-45-21/best_checkpoint.pt
+transfer_layers:
   - mp
   - input
   - node_embedding
@@ -12,7 +12,7 @@ transfer_3d: True
 reuse_pre_train_data: True
 num_epochs: 1000
 batch_size: 128
-log_iterations: 1
+log_iterations: 30
 patience: 30
 num_train: 50000
 loss_func: MSELoss
