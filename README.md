@@ -94,7 +94,7 @@ and `summary.csv` files), unzip the `structures.tar`, and place the resulting `s
 file into a new folder `QMugs` that you have to create NEXT TO the repository root. Not in the repository root (sorry
 for this).
 
-## 4. Reference 
+## Reference 
 
 :page_with_curl: Paper [on arXiv](https://arxiv.org/abs/2110.04126)
 ```
