@@ -26,7 +26,7 @@ Create a new environment with all required packages using `environment.yml` (thi
 
 Activate the environment
 
-    conda activate graphssl
+    conda activate 3DInfomax
 
 ## Step 2: 3D Pre-train a model
 
@@ -93,3 +93,15 @@ QMugs: Download QMugs [here](https://libdrive.ethz.ch/index.php/s/X5vOBNSITAG5vz
 and `summary.csv` files), unzip the `structures.tar`, and place the resulting `structures` folder and the `summary.csv`
 file into a new folder `QMugs` that you have to create NEXT TO the repository root. Not in the repository root (sorry
 for this).
+
+## 4. Reference 
+
+:page_with_curl: Paper [on arXiv](https://arxiv.org/abs/2110.04126)
+```
+@article{stark2021_3dinfomax,
+  title={3D Infomax improves GNNs for Molecular Property Prediction},
+  author={Hannes Stärk and Dominique Beaini and Gabriele Corso and Prudencio Tossou and Christian Dallago and Stephan Günnemann and Pietro Liò},
+  journal={arXiv preprint arXiv:2110.04126},
+  year={2021}
+}
+```
