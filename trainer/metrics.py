@@ -1,4 +1,3 @@
-
 from typing import Union
 
 import torch
@@ -7,7 +6,6 @@ from ogb.lsc import PCQM4MEvaluator
 from torch import Tensor
 from torch.nn import functional as F
 import torch.nn as nn
-
 
 from commons.losses import cov_loss, uniformity_loss
 from datasets.geom_drugs_dataset import GEOMDrugs
@@ -32,6 +30,7 @@ class PearsonR(nn.Module):
         pearson = torch.clamp(pearson, min=-1, max=1)
         pearson = pearson.mean()
         return pearson
+
 
 class QM9SingleTargetDenormalizedL1(nn.Module):
     """
@@ -100,11 +99,12 @@ class QM9DenormalizedL2(nn.Module):
         targets = denormalize(targets, self.means, self.stds, self.eV2meV)
         return F.mse_loss(preds, targets)
 
+
 class OGBEvaluator(nn.Module):
     def __init__(self, d_name, metric='rocauc'):
         super().__init__()
         self.evaluator = Evaluator(name=d_name)
-        self.val_only = metric  == 'rocauc'
+        self.val_only = metric == 'rocauc'
         self.metric = metric
 
     def forward(self, preds, targets):
@@ -112,6 +112,7 @@ class OGBEvaluator(nn.Module):
             return torch.tensor(float('NaN'))
         input_dict = {"y_true": targets, "y_pred": preds}
         return torch.tensor(self.evaluator.eval(input_dict)[self.metric])
+
 
 class PCQM4MEvaluatorWrapper(nn.Module):
     def __init__(self):
@@ -169,7 +170,8 @@ class BatchVariance(nn.Module):
         super(BatchVariance, self).__init__()
 
     def forward(self, x1: Tensor, x2: Tensor, pos_mask: Tensor = None) -> Tensor:
-        return x1.std(dim=0).mean() +x2.std(dim=0).mean()
+        return x1.std(dim=0).mean() + x2.std(dim=0).mean()
+
 
 class Conformer3DVariance(nn.Module):
     def __init__(self, normalize=False) -> None:
@@ -188,6 +190,7 @@ class Conformer3DVariance(nn.Module):
         z2_vars = z2.var(1)  # [batch_size, metric_dim]
         return z2_vars.mean()
 
+
 class Conformer2DVariance(nn.Module):
     def __init__(self, normalize=False) -> None:
         super(Conformer2DVariance, self).__init__()
@@ -203,6 +206,7 @@ class Conformer2DVariance(nn.Module):
             z1 = F.normalize(z1, dim=2)
         z1_vars = torch.exp(z1[:, 1, :])  # [batch_size, metric_dim]
         return z1_vars.mean()
+
 
 class Alignment(nn.Module):
     def __init__(self, alpha=2) -> None:
@@ -302,7 +306,6 @@ class ContrastiveAccuracy(nn.Module):
         return (true_positives / num_positives + true_negatives / num_negatives) / 2
 
 
-
 class PositiveSimilarity(nn.Module):
     """
         https://en.wikipedia.org/wiki/Cosine_similarity
@@ -328,6 +331,7 @@ class PositiveSimilarity(nn.Module):
         pos_sim = (pos_sim + 1) / 2
         return pos_sim.mean(dim=0)
 
+
 class PositiveProb(nn.Module):
     def __init__(self) -> None:
         super(PositiveProb, self).__init__()
@@ -336,7 +340,7 @@ class PositiveProb(nn.Module):
         batch_size, _ = z1.size()
         _, metric_dim = z2.size()
 
-        if batch_size == metric_dim == 2: # for the dictionary init in the beginning in the trainer
+        if batch_size == metric_dim == 2:  # for the dictionary init in the beginning in the trainer
             return torch.tensor(float('Nan'))
 
         z1 = z1.view(batch_size, 2, metric_dim)
@@ -358,6 +362,7 @@ class PositiveProb(nn.Module):
         pos_sim = torch.diagonal(likelihood_kernel)
         return pos_sim.mean(dim=0)
 
+
 class NegativeProb(nn.Module):
     def __init__(self) -> None:
         super(NegativeProb, self).__init__()
@@ -366,7 +371,7 @@ class NegativeProb(nn.Module):
         batch_size, _ = z1.size()
         _, metric_dim = z2.size()
 
-        if batch_size == metric_dim == 2: # for the dictionary init in the beginning in the trainer
+        if batch_size == metric_dim == 2:  # for the dictionary init in the beginning in the trainer
             return torch.tensor(float('Nan'))
 
         z1 = z1.view(batch_size, 2, metric_dim)
@@ -387,7 +392,6 @@ class NegativeProb(nn.Module):
         likelihood_kernel = likelihood_kernel.view(batch_size, batch_size)
         neg_sim = (likelihood_kernel.sum(dim=1) - torch.diagonal(likelihood_kernel))
         return neg_sim.mean(dim=0)
-
 
 
 class PositiveSimilarityMultiplePositivesSeparate2d(nn.Module):
@@ -456,16 +460,3 @@ class NegativeSimilarity(nn.Module):
         neg_sim = (sim_matrix.sum(dim=1) - pos_sim) / (batch_size - 1)
         neg_sim = (neg_sim + 1) / 2
         return neg_sim.mean(dim=0)
-
-
-class MetricFunctionToClass(nn.Module):
-    def __init__(self, function, name=None, **kwargs):
-        super().__init__()
-        self.name = name if name is not None else function.__name__
-        self.function = function
-        self.kwargs = kwargs
-
-    def forward(self,
-                preds: torch.Tensor,
-                target: torch.Tensor, ):
-        return self.function(preds=preds, target=target, **self.kwargs)

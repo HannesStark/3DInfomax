@@ -43,7 +43,6 @@ class PyGGeomolGeomQM9(InMemoryDataset):
         self.return_types = return_types
 
         self.data, self.slices = torch.load(self.processed_paths[0])
-        ic(len(self.data))
 
 
     @property

@@ -231,10 +231,8 @@ class Trainer():
         if batch_norm_params != []:
             param_groups.append({'params': batch_norm_params, 'weight_decay': 0})
         param_groups.append({'params': new_params})
-        ic(len(transferred_params))
         if transferred_params != []:
             param_groups.append({'params': transferred_params, 'lr': transfer_lr})
-        ic(len(frozen_params))
         if frozen_params != []:
             param_groups.append({'params': frozen_params, 'lr': 0})
         self.optim = optim(param_groups, **self.args.optimizer_params)
