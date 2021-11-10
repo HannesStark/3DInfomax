@@ -1,6 +1,6 @@
 experiment_name: 'freeenergy_baseline'
 
-dataset: drugs
+dataset: qm9_rdkit
 num_epochs: 1000
 batch_size: 32
 

@@ -1,80 +1,51 @@
-experiment_name: 'r2_tune_drugs_NTXent_280000_random_conformer_2conformers_NodeDrop2d3DCollate_50epochs'
+experiment_name: 'r2_rdkit'
 
-pretrain_checkpoint: runs/PNA_drugs_NTXent_280000_random_conformer_2conformers_NodeDrop2d3DCollate_qm9_net_123_17-09_06-58-02/best_checkpoint_50epochs.pt
-transfer_layers:
-  - gnn
-
+dataset: qm9_rdkit
 num_epochs: 1000
-batch_size: 128
+batch_size: 32
+
 log_iterations: 30
 patience: 30
-loss_func: L1Loss
 num_train: 50000
+loss_func: L1Loss
 targets:
   - r2
 required_data:
-  - dgl_graph
+  - pytorch_geometric_smp_graph
   - targets
 metrics:
   - mae_denormalized
   - pearsonr
   - rsquared
   - qm9_properties
+  - mean_predictor_loss
+collate_function: pytorch_geometric_collate
 
 optimizer: Adam
 optimizer_params:
-  lr: 7.0e-5
-  weight_decay: 1.0e-11
+  lr: 0.0005
 
 scheduler_step_per_batch: False
-lr_scheduler: WarmUpWrapper
+lr_scheduler: StepLR
 lr_scheduler_params:
-  warmup_steps: [700,700,390]
-  interpolation: 'linear'
-  # parameters of scheduler to run after warmup
-  wrapped_scheduler: ReduceLROnPlateau
-  factor: 0.5
-  patience: 25
-  min_lr: 1.0e-6
-  mode: 'min'
-  verbose: True
+  step_size: 15
+  gamma: 0.5
 
-
-
-# Model parameters
-model_type: 'PNA'
+model_type: 'SMP'
 model_parameters:
   target_dim: 1
-  hidden_dim: 200
-  mid_batch_norm: True
-  last_batch_norm: True
-  readout_batchnorm: True
-  # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
-  batch_norm_momentum: 0.1
-  readout_hidden_dim: 200
-  readout_layers: 2
-  dropout: 0.0
-  propagation_depth: 7
-  aggregators:
-    - mean
-    - max
-    - min
-    - std
-  scalers:
-    - identity
-    - amplification
-    - attenuation
-  readout_aggregators:
-    - min
-    - max
-    - mean
-    - sum
-  pretrans_layers: 2
-  posttrans_layers: 1
-  residual: True
-
-
-
+  hidden_dim: 128
+  use_node_features: True
+  energy_and_force: False
+  output_init: zeros # in DimeNet++, for QM9, 'zeros' for mu, homo, lumo, and zpve; 'GlorotOrthogonal' for alpha, R2, U0, U, H, G, and Cv
+  num_spherical: 3
+  num_radial: 6
+  out_emb_size: 256
+  basis_emb_size: 8
+  int_emb_size: 64
+  propagation_depth: 4
+  hidden_channels: 128
+  cutoff: 5.0
 
 
 # continue training from checkpoint:

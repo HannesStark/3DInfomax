@@ -26,6 +26,7 @@ from datasets.geomol_geom_qm9_dataset import QM9GeomolFeatDataset
 from datasets.lipo_geomol_feat import LIPOGeomol
 from datasets.lipo_geomol_featurization_of_qm9 import LIPOGeomolQM9Featurization
 from datasets.ogbg_dataset_extension import OGBGDatasetExtension
+from datasets.qm9_dataset_rdkit_conformers import QM9DatasetRDKITConformers
 
 from datasets.qm9_geomol_featurization import QM9GeomolFeaturization
 from datasets.qmugs_dataset import QMugsDataset
@@ -73,7 +74,7 @@ seaborn.set_theme()
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/2.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/1.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
@@ -218,8 +219,6 @@ def load_model(args, data, device):
                 transfer_layer in k for transfer_layer in args.transfer_layers) and 'teacher' not in k and not any(
                 to_exclude in k for to_exclude in args.exclude_from_transfer)}
         model_state_dict = model.state_dict()
-        ic(pretrained_gnn_dict.keys())
-        ic(model_state_dict.keys())
         model_state_dict.update(pretrained_gnn_dict)  # update the gnn layers with the pretrained weights
         model.load_state_dict(model_state_dict)
         if args.reuse_pre_train_data:
@@ -266,7 +265,7 @@ def train(args):
                     'dimension_covariance': DimensionCovariance()
                     }
     print('using device: ', device)
-    if args.dataset == 'qm9':
+    if args.dataset == 'qm9' or args.dataset == 'qm9_rdkit':
         return train_qm9(args, device, metrics_dict)
     elif args.dataset == 'zinc':
         return train_zinc(args, device, metrics_dict)
@@ -550,7 +549,11 @@ def train_geom(args, device, metrics_dict):
 
 
 def train_qm9(args, device, metrics_dict):
-    all_data = QM9Dataset(return_types=args.required_data, target_tasks=args.targets, device=device,
+    if args.dataset == 'qm9_rdkit':
+        all_data = QM9DatasetRDKITConformers(return_types=args.required_data, target_tasks=args.targets, device=device,
+                              dist_embedding=args.dist_embedding, num_radial=args.num_radial)
+    else:
+        all_data = QM9Dataset(return_types=args.required_data, target_tasks=args.targets, device=device,
                           dist_embedding=args.dist_embedding, num_radial=args.num_radial)
 
     all_idx = get_random_indices(len(all_data), args.seed_data)
