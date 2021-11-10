@@ -116,6 +116,7 @@ images_out/
 
 dataset/QM9/processed/
 dataset/QM9/processed_rdkit_conformers/
+dataset/QM9/processed_rdkit_conformers2/
 dataset/ZINC/
 dataset/ogbg*/
 dataset/COLL/

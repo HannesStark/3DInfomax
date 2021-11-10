@@ -402,13 +402,7 @@ class QM9DatasetRDKITConformers(Dataset):
             # add hydrogen bonds to molecule because they are not in the smiles representation
             mol = Chem.AddHs(mol)
 
-            try:
-                EmbedMolecule(mol)
-                conf = mol.GetConformer()
-                coordinates.append(torch.tensor(conf.GetPositions(), dtype=torch.float))
-            except:
-                print(molecules_df['smiles'][data_qm9['id'][mol_idx]])
-                continue
+
 
             atom_features_list = []
             for atom in mol.GetAtoms():
@@ -459,7 +453,13 @@ class QM9DatasetRDKITConformers(Dataset):
             targets.append(target)
             edge_indices.append(edge_index)
             all_edge_features.append(edge_features)
-
+            try:
+                EmbedMolecule(mol)
+                conf = mol.GetConformer()
+                coordinates.append(torch.tensor(conf.GetPositions(), dtype=torch.float))
+            except:
+                print(molecules_df['smiles'][data_qm9['id'][mol_idx]])
+                continue
             total_edges += len(edges_list)
             total_atoms += n_atoms
             edge_slices.append(total_edges)
