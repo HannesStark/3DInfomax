@@ -20,7 +20,7 @@ patience: 20
 loss_func: BCEWithLogitsLoss
 required_data:
   - dgl_graph
-  - targets<
+  - targets
 metrics:
   - rsquared
   - mean_predictor_loss
