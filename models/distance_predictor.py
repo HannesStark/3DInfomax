@@ -16,11 +16,11 @@ class DistancePredictor(nn.Module):
     Message Passing Neural Network that does not use 3D information
     """
 
-    def __init__(self, node_dim, edge_dim,target_dim, pna_args, projection_dim=3, distance_net=False, projection_layers=1, transformer_layer=True, nhead=16, dim_feedforward=256, activation='relu', **kwargs):
+    def __init__(self,target_dim, pna_args, projection_dim=3, distance_net=False, projection_layers=1, transformer_layer=True, nhead=16, dim_feedforward=256, activation='relu', **kwargs):
         super(DistancePredictor, self).__init__()
         hidden_dim = pna_args['hidden_dim']
         dropout = pna_args['dropout']
-        self.node_gnn = PNAGNN(node_dim=node_dim, edge_dim=edge_dim, **pna_args)
+        self.node_gnn = PNAGNN( **pna_args)
         self.transformer_layer = transformer_layer
         if transformer_layer:
             self.transformer_layer = TransformerEncoderLayer(d_model=hidden_dim, dim_feedforward=dim_feedforward,
