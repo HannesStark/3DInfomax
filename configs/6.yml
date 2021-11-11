@@ -1,4 +1,4 @@
-experiment_name: 'zpve_rdkit'
+experiment_name: 'zpve_rdkit_120k'
 
 dataset: qm9_rdkit
 num_epochs: 1000

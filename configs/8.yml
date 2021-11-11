@@ -1,4 +1,4 @@
-experiment_name: 'r2_rdkit'
+experiment_name: 'r2_rdkit_120k'
 
 dataset: qm9_rdkit
 num_epochs: 1000
