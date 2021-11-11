@@ -6,7 +6,7 @@ import torch_geometric
 from ogb.utils.features import atom_to_feature_vector, bond_to_feature_vector, get_atom_feature_dims, \
     get_bond_feature_dims
 from rdkit import Chem
-from rdkit.Chem import rdDistGeom
+from rdkit.Chem import rdDistGeom, AllChem
 from rdkit.Chem.rdDistGeom import EmbedMolecule, EmbedMultipleConfs, ETDG
 from rdkit.Chem.rdmolops import GetAdjacencyMatrix
 from torch.utils.data import Dataset
@@ -142,9 +142,9 @@ class QM9DatasetRDKITConformers(Dataset):
             assert target_task in self.unit_conversion.keys()
 
         # load the data and get normalization values
-        if not os.path.exists(os.path.join(self.qm9_directory, 'processed_rdkit_conformers', self.processed_file)):
+        if not os.path.exists(os.path.join(self.qm9_directory, 'processed_rdkit_conformers_120k', self.processed_file)):
             self.process()
-        data_dict = torch.load(os.path.join(self.qm9_directory, 'processed_rdkit_conformers', self.processed_file))
+        data_dict = torch.load(os.path.join(self.qm9_directory, 'processed_rdkit_conformers_120k', self.processed_file))
 
         self.features_tensor = data_dict['atom_features']
 
@@ -376,7 +376,7 @@ class QM9DatasetRDKITConformers(Dataset):
 
     def process(self):
         print('processing data from ({}) and saving it to ({})'.format(self.qm9_directory,
-                                                                       os.path.join(self.qm9_directory, 'processed_rdkit_conformers')))
+                                                                       os.path.join(self.qm9_directory, 'processed_rdkit_conformers_120k')))
 
         # load qm9 data with spatial coordinates
         data_qm9 = dict(np.load(os.path.join(self.qm9_directory, self.raw_spatial_data), allow_pickle=True))
@@ -396,13 +396,22 @@ class QM9DatasetRDKITConformers(Dataset):
         total_edges = 0
         avg_degree = 0  # average degree in the dataset
         # go through all molecules in the npz file
+
         for mol_idx, n_atoms in tqdm(enumerate(data_qm9['N'])):
             # get the molecule using the smiles representation from the csv file
             mol = Chem.MolFromSmiles(molecules_df['smiles'][data_qm9['id'][mol_idx]])
             # add hydrogen bonds to molecule because they are not in the smiles representation
             mol = Chem.AddHs(mol)
 
-
+            try:
+                ps = AllChem.ETKDGv2()
+                ps.useRandomCoords = True
+                AllChem.EmbedMolecule(mol, ps)
+                conf = mol.GetConformer()
+                coordinates.append(torch.tensor(conf.GetPositions(), dtype=torch.float))
+            except:
+                print(molecules_df['smiles'][data_qm9['id'][mol_idx]])
+                continue
 
             atom_features_list = []
             for atom in mol.GetAtoms():
@@ -453,13 +462,7 @@ class QM9DatasetRDKITConformers(Dataset):
             targets.append(target)
             edge_indices.append(edge_index)
             all_edge_features.append(edge_features)
-            try:
-                EmbedMolecule(mol)
-                conf = mol.GetConformer()
-                coordinates.append(torch.tensor(conf.GetPositions(), dtype=torch.float))
-            except:
-                print(molecules_df['smiles'][data_qm9['id'][mol_idx]])
-                continue
+
             total_edges += len(edges_list)
             total_atoms += n_atoms
             edge_slices.append(total_edges)
@@ -482,6 +485,6 @@ class QM9DatasetRDKITConformers(Dataset):
                      'avg_degree': avg_degree / len(data_qm9['id'])
                      }
 
-        if not os.path.exists(os.path.join(self.qm9_directory, 'processed_rdkit_conformers')):
-            os.mkdir(os.path.join(self.qm9_directory, 'processed_rdkit_conformers'))
-        torch.save(data_dict, os.path.join(self.qm9_directory, 'processed_rdkit_conformers', self.processed_file))
+        if not os.path.exists(os.path.join(self.qm9_directory, 'processed_rdkit_conformers_120k')):
+            os.mkdir(os.path.join(self.qm9_directory, 'processed_rdkit_conformers_120k'))
+        torch.save(data_dict, os.path.join(self.qm9_directory, 'processed_rdkit_conformers_120k', self.processed_file))
