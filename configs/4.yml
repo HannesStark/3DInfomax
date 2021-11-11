@@ -5,7 +5,7 @@ num_epochs: 1000
 batch_size: 32
 
 log_iterations: 30
-patience: 10
+patience: 20
 num_train: 50000
 loss_func: L1Loss
 targets:
