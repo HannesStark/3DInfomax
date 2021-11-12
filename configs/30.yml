@@ -1,4 +1,4 @@
-experiment_name: 'tune_OptimalTransportModel_file_loader_drugs_PNA_120000_hidden200_depth7_5localEpochs'
+experiment_name: 'tune_DistancePredictor_qm9'
 
 multithreaded_seeds:
   - 1
@@ -7,7 +7,7 @@ multithreaded_seeds:
   - 4
   - 5
   - 6
-pretrain_checkpoint: runs/OptimalTransportModel_file_loader_drugs_PNA_120000_hidden200_depth7_5localEpochs_123_08-08_06-27-21/best_checkpoint.pt
+pretrain_checkpoint: runs/DistancePredictor_qm9__123_11-11_16-32-46/best_checkpoint.pt
 transfer_layers:
   - gnn.
 
