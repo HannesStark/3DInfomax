@@ -1,17 +1,11 @@
-experiment_name: 'baseline'
+experiment_name: 'homo_baseline_100k'
 
-multithreaded_seeds:
-  - 1
-  - 2
-  - 3
-  - 4
-  - 5
-  - 6
-num_epochs: 1
-batch_size: 6
+
+num_epochs: 1000
+batch_size: 128
 log_iterations: 50
 patience: 30
-num_train: 50
+num_train: 100000
 loss_func: L1Loss
 targets:
   - homo
@@ -28,8 +22,7 @@ metrics:
 
 optimizer: Adam
 optimizer_params:
-  lr: 7.0e-5
-
+  lr: 1.0e-4
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
@@ -48,16 +41,16 @@ lr_scheduler_params:
 model_type: 'PNA'
 model_parameters:
   target_dim: 1
-  hidden_dim: 50
+  hidden_dim: 200
   mid_batch_norm: True
   last_batch_norm: True
   readout_batchnorm: True
   # e^(log(forgetfulness ~0.001)/number of steps per epoch) = batch_norm_momentum   =>  e^(log(0.001)/100) = 0.970
   batch_norm_momentum: 0.1
-  readout_hidden_dim: 50
+  readout_hidden_dim: 200
   readout_layers: 2
   dropout: 0.0
-  propagation_depth: 3
+  propagation_depth: 7
   aggregators:
     - mean
     - max
