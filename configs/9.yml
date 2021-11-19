@@ -13,7 +13,7 @@ patience: 30
 loss_func: L1Loss
 num_train: 50000
 targets:
-  - homo
+  - u0
 required_data:
   - dgl_graph
   - targets
@@ -25,8 +25,7 @@ metrics:
 
 optimizer: Adam
 optimizer_params:
-  lr: 7.0e-5
-  weight_decay: 1.0e-11
+  lr: 1.0e-3
 
 scheduler_step_per_batch: False
 lr_scheduler: WarmUpWrapper
@@ -35,8 +34,8 @@ lr_scheduler_params:
   interpolation: 'linear'
   # parameters of scheduler to run after warmup
   wrapped_scheduler: ReduceLROnPlateau
-  factor: 0.5
-  patience: 25
+  factor: 0.6
+  patience: 5
   min_lr: 1.0e-6
   mode: 'min'
   verbose: True
