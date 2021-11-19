@@ -1,14 +1,16 @@
-experiment_name: 'lumo_100k'
+experiment_name: 'alpha_neuralconf'
 
+dataset: qm9_neuralconf
 num_epochs: 1000
 batch_size: 32
 
 log_iterations: 30
 patience: 20
-num_train: 100000
+num_train: 50000
+num_val: 2000
 loss_func: L1Loss
 targets:
-  - lumo
+  - alpha
 required_data:
   - pytorch_geometric_smp_graph
   - targets

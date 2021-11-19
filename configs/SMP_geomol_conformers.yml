@@ -1,4 +1,4 @@
-experiment_name: 'mu_neuralconf'
+experiment_name: 'r2_geomol_120k'
 
 dataset: qm9_neuralconf
 num_epochs: 1000
@@ -10,7 +10,7 @@ num_train: 50000
 num_val: 2000
 loss_func: L1Loss
 targets:
-  - mu
+  - r2
 required_data:
   - pytorch_geometric_smp_graph
   - targets

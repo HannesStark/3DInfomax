@@ -26,6 +26,7 @@ from datasets.geomol_geom_qm9_dataset import QM9GeomolFeatDataset
 from datasets.lipo_geomol_feat import LIPOGeomol
 from datasets.lipo_geomol_featurization_of_qm9 import LIPOGeomolQM9Featurization
 from datasets.ogbg_dataset_extension import OGBGDatasetExtension
+from datasets.qm9_dataset_geomol_conformers import QM9DatasetGeomolConformers
 from datasets.qm9_dataset_rdkit_conformers import QM9DatasetRDKITConformers
 
 from datasets.qm9_geomol_featurization import QM9GeomolFeaturization
@@ -74,7 +75,7 @@ seaborn.set_theme()
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/distance_predictor.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/SMP_geomol_conformers.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
@@ -84,6 +85,7 @@ def parse_arguments():
     p.add_argument('--dataset', type=str, default='qm9', help='[qm9, zinc, drugs, geom_qm9, molhiv]')
     p.add_argument('--num_train', type=int, default=-1, help='n samples of the model samples to use for train')
     p.add_argument('--seed', type=int, default=123, help='seed for reproducibility')
+    p.add_argument('--num_val', type=int, default=None, help='n samples of the model samples to use for validation')
     p.add_argument('--multithreaded_seeds', type=list, default=[],
                    help='if this is non empty, multiple threads will be started, training the same model but with the different seeds')
     p.add_argument('--seed_data', type=int, default=123, help='if you want to use a different seed for the datasplit')
@@ -265,7 +267,7 @@ def train(args):
                     'dimension_covariance': DimensionCovariance()
                     }
     print('using device: ', device)
-    if args.dataset == 'qm9' or args.dataset == 'qm9_rdkit':
+    if args.dataset == 'qm9' or args.dataset == 'qm9_rdkit'or args.dataset == 'qm9_neuralconf':
         return train_qm9(args, device, metrics_dict)
     elif args.dataset == 'zinc':
         return train_zinc(args, device, metrics_dict)
@@ -552,6 +554,10 @@ def train_qm9(args, device, metrics_dict):
     if args.dataset == 'qm9_rdkit':
         all_data = QM9DatasetRDKITConformers(return_types=args.required_data, target_tasks=args.targets, device=device,
                               dist_embedding=args.dist_embedding, num_radial=args.num_radial)
+    elif args.dataset == 'qm9_neuralconf':
+
+        all_data = QM9DatasetGeomolConformers(return_types=args.required_data, target_tasks=args.targets, device=device,
+                              dist_embedding=args.dist_embedding, num_radial=args.num_radial)
     else:
         all_data = QM9Dataset(return_types=args.required_data, target_tasks=args.targets, device=device,
                           dist_embedding=args.dist_embedding, num_radial=args.num_radial)
@@ -561,6 +567,11 @@ def train_qm9(args, device, metrics_dict):
     test_idx = all_idx[len(model_idx): len(model_idx) + int(0.1 * len(all_data))]
     val_idx = all_idx[len(model_idx) + len(test_idx):]
     train_idx = model_idx[:args.num_train]
+
+    if args.num_val != None:
+        train_idx = all_idx[:args.num_train]
+        val_idx = all_idx[len(train_idx): len(train_idx) + args.num_val]
+        test_idx = all_idx[len(train_idx) + args.num_val: len(train_idx) + 2*args.num_val]
     # for debugging purposes:
     # test_idx = all_idx[len(model_idx): len(model_idx) + 20]
     # val_idx = all_idx[len(model_idx) + len(test_idx): len(model_idx) + len(test_idx) + 30]
@@ -571,6 +582,8 @@ def train_qm9(args, device, metrics_dict):
     print('model trainable params: ', sum(p.numel() for p in model.parameters() if p.requires_grad))
 
     print(f'Training on {len(train_idx)} samples from the model sequences')
+    print(f'Validating on {len(val_idx)} samples')
+    print(f'Testing on {len(test_idx)} samples')
     collate_function = globals()[args.collate_function] if args.collate_params == {} else globals()[
         args.collate_function](**args.collate_params)
 

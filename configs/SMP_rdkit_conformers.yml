@@ -1,11 +1,12 @@
-experiment_name: 'r2_100k'
+experiment_name: 'r2_rdkit_120k'
 
+dataset: qm9_rdkit
 num_epochs: 1000
 batch_size: 32
 
 log_iterations: 30
 patience: 20
-num_train: 100000
+num_train: 50000
 loss_func: L1Loss
 targets:
   - r2
