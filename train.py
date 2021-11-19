@@ -75,7 +75,7 @@ seaborn.set_theme()
 
 def parse_arguments():
     p = argparse.ArgumentParser()
-    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/SMP_geomol_conformers.yml')
+    p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/1.yml')
     p.add_argument('--experiment_name', type=str, help='name that will be added to the runs folder output')
     p.add_argument('--logdir', type=str, default='runs', help='tensorboard logdirectory')
     p.add_argument('--num_epochs', type=int, default=2500, help='number of times to iterate through all samples')
@@ -568,10 +568,10 @@ def train_qm9(args, device, metrics_dict):
     val_idx = all_idx[len(model_idx) + len(test_idx):]
     train_idx = model_idx[:args.num_train]
 
-    if args.num_val != None:
-        train_idx = all_idx[:args.num_train]
-        val_idx = all_idx[len(train_idx): len(train_idx) + args.num_val]
-        test_idx = all_idx[len(train_idx) + args.num_val: len(train_idx) + 2*args.num_val]
+    #if args.num_val != None:
+    #    train_idx = all_idx[:args.num_train]
+    #    val_idx = all_idx[len(train_idx): len(train_idx) + args.num_val]
+    #    test_idx = all_idx[len(train_idx) + args.num_val: len(train_idx) + 2*args.num_val]
     # for debugging purposes:
     # test_idx = all_idx[len(model_idx): len(model_idx) + 20]
     # val_idx = all_idx[len(model_idx) + len(test_idx): len(model_idx) + len(test_idx) + 30]

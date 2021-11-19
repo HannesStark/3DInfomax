@@ -1,6 +1,6 @@
 experiment_name: 'r2_geomol_120k'
 
-dataset: qm9_neuralconf
+dataset: qm9
 num_epochs: 1000
 batch_size: 32
 

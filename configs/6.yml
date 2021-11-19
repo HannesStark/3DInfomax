@@ -1,6 +1,6 @@
-experiment_name: 'gap_neuralconf'
+experiment_name: 'gap_randFea'
 
-dataset: qm9_neuralconf
+dataset: qm9
 num_epochs: 1000
 batch_size: 32
 
@@ -36,7 +36,7 @@ model_type: 'SMP'
 model_parameters:
   target_dim: 1
   hidden_dim: 128
-  use_node_features: True
+  use_node_features: False
   energy_and_force: False
   output_init: zeros # in DimeNet++, for QM9, 'zeros' for mu, homo, lumo, and zpve; 'GlorotOrthogonal' for alpha, R2, U0, U, H, G, and Cv
   num_spherical: 3
