@@ -11,7 +11,6 @@ pretrain_checkpoint: runs/OGBGNN_drugs_NTXentMultiplePositives_280000_4conformer
 transfer_layers:
   - gnn.
 
-
 dataset: 'ogbg-molbbbp'
 num_epochs: 1000
 batch_size: 32

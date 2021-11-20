@@ -581,17 +581,16 @@ def train_qm9(args, device, metrics_dict):
         train_idx = model_idx[num_pretrain: num_pretrain + args.num_train]
     print('model trainable params: ', sum(p.numel() for p in model.parameters() if p.requires_grad))
 
+
     print(f'Training on {len(train_idx)} samples from the model sequences')
     print(f'Validating on {len(val_idx)} samples')
     print(f'Testing on {len(test_idx)} samples')
     collate_function = globals()[args.collate_function] if args.collate_params == {} else globals()[
         args.collate_function](**args.collate_params)
-
     if args.train_sampler != None:
         sampler = globals()[args.train_sampler](data_source=all_data, batch_size=args.batch_size, indices=train_idx)
         train_loader = DataLoader(Subset(all_data, train_idx), batch_sampler=sampler, collate_fn=collate_function)
     else:
-
         train_loader = DataLoader(Subset(all_data, train_idx), batch_size=args.batch_size, shuffle=True,
                                   collate_fn=collate_function)
     val_loader = DataLoader(Subset(all_data, val_idx), batch_size=args.batch_size, collate_fn=collate_function)

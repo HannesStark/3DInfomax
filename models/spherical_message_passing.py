@@ -36,9 +36,9 @@ class emb(torch.nn.Module):
         dist_emb = self.dist_emb(dist)
         angle_emb = self.angle_emb(dist, angle, idx_kj)
         torsion_emb = self.torsion_emb(dist, angle, torsion, idx_kj)
-        # return dist_emb, angle_emb, torsion_emb
+        return dist_emb, angle_emb, torsion_emb
         # debug
-        return dist[:,None].expand((dist.shape[0], dist_emb.shape[1])), angle[:, None].expand((angle.shape[0], angle_emb.shape[1])), torsion[:,None].expand((torsion.shape[0], torsion_emb.shape[1]))
+        #return dist[:,None].expand((dist.shape[0], dist_emb.shape[1])), angle[:, None].expand((angle.shape[0], angle_emb.shape[1])), torsion[:,None].expand((torsion.shape[0], torsion_emb.shape[1]))
 
 
 class ResidualLayer(torch.nn.Module):
