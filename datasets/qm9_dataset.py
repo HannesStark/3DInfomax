@@ -172,6 +172,7 @@ class QM9Dataset(Dataset):
 
         self.targets = data_dict['targets'].index_select(dim=1, index=self.task_indices)  # [130831, n_tasks]
         self.targets_mean = self.targets.mean(dim=0)
+        ic(self.targets_mean)
         self.targets_std = self.targets.std(dim=0)
         if self.normalize:
             self.targets = ((self.targets - self.targets_mean) / self.targets_std)
@@ -394,7 +395,7 @@ class QM9Dataset(Dataset):
         total_edges = 0
         avg_degree = 0  # average degree in the dataset
         # go through all molecules in the npz file
-        for mol_idx, n_atoms in tqdm(enumerate(data_qm9['N'])):
+        for mol_idx, n_atoms in tqdm(enumerate(data_qm9['N'][:29])):
             # get the molecule using the smiles representation from the csv file
             mol = Chem.MolFromSmiles(molecules_df['smiles'][data_qm9['id'][mol_idx]])
             # add hydrogen bonds to molecule because they are not in the smiles representation
@@ -412,7 +413,7 @@ class QM9Dataset(Dataset):
             L = D - adj
             N = adj.sum(dim=0) ** -0.5
             L_sym = torch.eye(n_atoms) - N * L * N
-            eig_vals, eig_vecs =torch.linalg.eigh(L_sym, eigenvectors=True)
+            eig_vals, eig_vecs =torch.linalg.eigh(L_sym)
             idx = eig_vals.argsort()[0: max_freqs]  # Keep up to the maximum desired number of frequencies
             eig_vals, eig_vecs = eig_vals[idx], eig_vecs[:, idx]
 
@@ -454,8 +455,9 @@ class QM9Dataset(Dataset):
             total_atoms += n_atoms
             edge_slices.append(total_edges)
             atom_slices.append(total_atoms)
-
+        ic(targets)
         # convert targets to eV units
+        ic(torch.stack(targets).mean())
         targets = torch.stack(targets) * torch.tensor(list(self.unit_conversion.values()))[None, :]
         data_dict = {'mol_id': data_qm9['id'],
                      'n_atoms': torch.tensor(data_qm9['N'], dtype=torch.long),
