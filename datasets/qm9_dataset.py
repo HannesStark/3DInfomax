@@ -182,6 +182,8 @@ class QM9Dataset(Dataset):
         self.eV2meV = torch.tensor(
             [1.0 if list(self.unit_conversion.values())[task_index] == 1.0 else 1000 for task_index in
              self.task_indices]).to(self.device)  # [n_tasks]
+        ic(self.eV2meV)
+        ic(self.targets.std())
         self.dist_embedder = dist_emb(num_radial=6).to(device)
         self.dist_embedding = dist_embedding
 
@@ -455,9 +457,9 @@ class QM9Dataset(Dataset):
             total_atoms += n_atoms
             edge_slices.append(total_edges)
             atom_slices.append(total_atoms)
-        ic(targets)
         # convert targets to eV units
-        ic(torch.stack(targets).mean())
+        u = torch.stack(targets)[:, list(self.unit_conversion.keys()).index('u0')]
+        ic(u.mean())
         targets = torch.stack(targets) * torch.tensor(list(self.unit_conversion.values()))[None, :]
         data_dict = {'mol_id': data_qm9['id'],
                      'n_atoms': torch.tensor(data_qm9['N'], dtype=torch.long),

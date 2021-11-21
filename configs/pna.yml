@@ -3,7 +3,7 @@ experiment_name: 'homo_baseline_100k'
 
 num_epochs: 1000
 batch_size: 128
-log_iterations: 50
+log_iterations: 1
 patience: 30
 num_train: 100000
 loss_func: L1Loss

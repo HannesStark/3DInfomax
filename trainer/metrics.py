@@ -44,6 +44,7 @@ class QM9SingleTargetDenormalizedL1(nn.Module):
         self.stds = dataset.targets_std
         self.eV2meV = dataset.eV2meV
 
+
     def forward(self, preds, targets):
         preds = denormalize(preds, self.means, self.stds, self.eV2meV)
         targets = denormalize(targets, self.means, self.stds, self.eV2meV)
