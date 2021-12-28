@@ -97,7 +97,8 @@ class QM9DatasetRDKITConformers(Dataset):
 
     def __init__(self, return_types: list = None,
                  target_tasks: list = None,
-                 normalize: bool = True, device='cuda:0', dist_embedding: bool = False, num_radial: int = 6, transform=None, **kwargs):
+                 normalize: bool = True, device='cuda:0', dist_embedding: bool = False, num_radial: int = 6,
+                 transform=None, **kwargs):
         self.qm9_directory = 'dataset/QM9'
         self.processed_file = 'qm9_processed.pt'
         self.distances_file = 'qm9_distances.pt'
@@ -132,7 +133,6 @@ class QM9DatasetRDKITConformers(Dataset):
                                 'g298_atom': hartree2eV}
 
         self.return_types: list = return_types
-
 
         if target_tasks == None or target_tasks == []:  # set default
             self.target_tasks = ['mu', 'alpha', 'homo', 'lumo', 'gap', 'r2', 'zpve', 'u0', 'u298', 'h298', 'g298', 'cv']
@@ -285,12 +285,12 @@ class QM9DatasetRDKITConformers(Dataset):
                 g.edata['d_rbf'] = self.dist_embedder(g.edata['feat']).to(self.device)
             return g
         if return_type == 'mol_complete_graph':
-            g = self.get_mol_complete_graph(idx, e_start, e_end, n_atoms,start)
+            g = self.get_mol_complete_graph(idx, e_start, e_end, n_atoms, start)
             if self.e_features_tensor != None:
                 g.edges['bond'].data['feat'] = self.e_features_tensor[e_start: e_end].to(self.device)
             return g
         elif return_type == 'san_graph':
-            g = self.get_complete_graph(idx, n_atoms,start).to(self.device)
+            g = self.get_complete_graph(idx, n_atoms, start).to(self.device)
             eig_vals = self.eig_vals[idx].to(self.device)
             sign_flip = torch.rand(eig_vals.shape[0], device=self.device)
             sign_flip[sign_flip >= 0.5] = 1.0
@@ -310,7 +310,7 @@ class QM9DatasetRDKITConformers(Dataset):
                                                                                     device=self.device)  # This indicates real edges
             return g
         elif return_type == 'se3Transformer_graph' or return_type == 'se3Transformer_graph3d':
-            g = self.get_graph(idx, e_start, e_end, n_atoms,start)
+            g = self.get_graph(idx, e_start, e_end, n_atoms, start)
             g.edata['d'] = torch.norm(g.ndata['x'][g.edges()[0]] - g.ndata['x'][g.edges()[1]], p=2, dim=-1).unsqueeze(
                 -1)
             if self.e_features_tensor != None and return_type == 'se3Transformer_graph':
@@ -376,8 +376,8 @@ class QM9DatasetRDKITConformers(Dataset):
 
     def process(self):
         print('processing data from ({}) and saving it to ({})'.format(self.qm9_directory,
-                                                                       os.path.join(self.qm9_directory, 'processed_rdkit_conformers_120k')))
-
+                                                                       os.path.join(self.qm9_directory,
+                                                                                    'processed_rdkit_conformers_120k')))
         # load qm9 data with spatial coordinates
         data_qm9 = dict(np.load(os.path.join(self.qm9_directory, self.raw_spatial_data), allow_pickle=True))
         # Read the QM9 data with SMILES information
@@ -407,6 +407,7 @@ class QM9DatasetRDKITConformers(Dataset):
                 ps = AllChem.ETKDGv2()
                 ps.useRandomCoords = True
                 AllChem.EmbedMolecule(mol, ps)
+                AllChem.MMFFOptimizeMolecule(mol, confId=0)
                 conf = mol.GetConformer()
                 coordinates.append(torch.tensor(conf.GetPositions(), dtype=torch.float))
             except:
@@ -418,26 +419,26 @@ class QM9DatasetRDKITConformers(Dataset):
                 atom_features_list.append(atom_to_feature_vector(atom))
             all_atom_features.append(torch.tensor(atom_features_list, dtype=torch.long))
 
-            #adj = GetAdjacencyMatrix(mol, useBO=False, force=True)
-            #max_freqs = 10
-            #adj = torch.tensor(adj).float()
-            #D = torch.diag(adj.sum(dim=0))
-            #L = D - adj
-            #N = adj.sum(dim=0) ** -0.5
-            #L_sym = torch.eye(n_atoms) - N * L * N
-            #eig_vals, eig_vecs =torch.linalg.eigh(L_sym, eigenvectors=True)
-            #idx = eig_vals.argsort()[0: max_freqs]  # Keep up to the maximum desired number of frequencies
-            #eig_vals, eig_vecs = eig_vals[idx], eig_vecs[:, idx]
+            # adj = GetAdjacencyMatrix(mol, useBO=False, force=True)
+            # max_freqs = 10
+            # adj = torch.tensor(adj).float()
+            # D = torch.diag(adj.sum(dim=0))
+            # L = D - adj
+            # N = adj.sum(dim=0) ** -0.5
+            # L_sym = torch.eye(n_atoms) - N * L * N
+            # eig_vals, eig_vecs =torch.linalg.eigh(L_sym, eigenvectors=True)
+            # idx = eig_vals.argsort()[0: max_freqs]  # Keep up to the maximum desired number of frequencies
+            # eig_vals, eig_vecs = eig_vals[idx], eig_vecs[:, idx]
             #
             ## Sort, normalize and pad EigenVectors
-            #eig_vecs = eig_vecs[:, eig_vals.argsort()]  # increasing order
-            #eig_vecs = F.normalize(eig_vecs, p=2, dim=1, eps=1e-12, out=None)
-            #if n_atoms < max_freqs:
+            # eig_vecs = eig_vecs[:, eig_vals.argsort()]  # increasing order
+            # eig_vecs = F.normalize(eig_vecs, p=2, dim=1, eps=1e-12, out=None)
+            # if n_atoms < max_freqs:
             #    eig_vecs = F.pad(eig_vecs, (0, max_freqs - n_atoms), value=float('nan'))
             #    eig_vals = F.pad(eig_vals, (0, max_freqs - n_atoms), value=float('nan'))
 
-            #total_eigvecs.append(eig_vecs)
-            #total_eigvals.append(eig_vals.unsqueeze(0))
+            # total_eigvecs.append(eig_vecs)
+            # total_eigvals.append(eig_vals.unsqueeze(0))
 
             edges_list = []
             edge_features_list = []
@@ -469,7 +470,6 @@ class QM9DatasetRDKITConformers(Dataset):
             atom_slices.append(total_atoms)
             mol_id.append(data_qm9['id'][mol_idx])
             n_atoms_list.append(n_atoms)
-
 
         # convert targets to eV units
         targets = torch.stack(targets) * torch.tensor(list(self.unit_conversion.values()))[None, :]

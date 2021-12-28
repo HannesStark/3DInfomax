@@ -73,6 +73,7 @@ install()
 seaborn.set_theme()
 
 
+
 def parse_arguments():
     p = argparse.ArgumentParser()
     p.add_argument('--config', type=argparse.FileType(mode='r'), default='configs/pna.yml')
@@ -600,7 +601,6 @@ def train_qm9(args, device, metrics_dict):
                          'mse_denormalized': QM9DenormalizedL2(dataset=all_data)})
     metrics = {metric: metrics_dict[metric] for metric in args.metrics if metric != 'qm9_properties'}
     if 'qm9_properties' in args.metrics:
-        ic('here')
         metrics.update(
             {task: QM9SingleTargetDenormalizedL1(dataset=all_data, task=task) for task in all_data.target_tasks})
 

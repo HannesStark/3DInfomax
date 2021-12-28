@@ -1,0 +1,2 @@
+smiles_txt_path: dataset/inference_smiles.txt
+checkpoint: runs/PNA_qmugs_NTXentMultiplePositives_620000_123_25-08_09-19-52/best_checkpoint_35epochs.pt

@@ -4,7 +4,7 @@
 
 We pre-train GNNs to understand the geometry of molecules given only their 2D molecular graph which they can
 use for better molecular property predictions. Below is a 3 step guide for how to use the code and how to reproduce
-our results. If you have questions, don't hesitate to open an issue or ask me
+our results and a guide for creating molecular fingerprints. If you have questions, don't hesitate to open an issue or ask me
 via [hannes.staerk@tum.de](hannes.staerk@tum.de)
 or [social media](https://hannes-stark.com/). I am happy to hear from you!
 
@@ -12,6 +12,15 @@ This repository additionally adapts different self-supervised learning methods t
 Latent", "Barlow Twins", or "VICReg".
 
 ![](.visual_abstract_white_background.jpg)
+
+## Generating fingerprints for arbitrary SMILES
+
+To generate fingerprints that carry 3D information, just set up the environment as in step 1 below, 
+then place your SMILES into the file `dataset/inference_smiles.txt` and run 
+
+    python inference.py --config=configs_clean/fingerprint_inference.yml
+
+Your fingerprints are saved as pickle file into the `dataset_directory`
 
 ## Step 1: Setup Environment
 
@@ -76,6 +85,7 @@ the [OGB](https://ogb.stanford.edu/docs/graphprop/) datasets and train multiple 
 
 After all runs are done, the averaged results are saved in the `runs` directory of each seed in the
 file `multiple_seed_test_statistics.txt`
+
 
 ## Data
 

@@ -118,6 +118,9 @@ dataset/QM9/processed/
 dataset/QM9/processed_rdkit_conformers/
 dataset/QM9/geomol_predicted_qm9_structures/
 dataset/QM9/processed_rdkit_conformers2/
+dataset/QM9/processed_geomol_conformers/
+dataset/QM9/processed_rdkit_conformers_109k/
+dataset/QM9/processed_rdkit_conformers_120k/
 dataset/ZINC/
 dataset/ogbg*/
 dataset/COLL/
@@ -127,6 +130,7 @@ dataset/MASIF/
 !/dataset
 /dataset/*
 !/dataset/QM9
+!/dataset/inference_smiles.txt
 
 
 .idea/

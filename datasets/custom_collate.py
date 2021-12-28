@@ -17,6 +17,9 @@ def graph_collate(batch: List[Tuple]):
         targets = targets.unsqueeze(-1)
     return [batched_graph], targets
 
+def graph_only_collate(batch: List[Tuple]):
+    return dgl.batch(batch)
+
 
 def pytorch_geometric_collate(batch: List[Tuple]):
     graphs, targets = map(list, zip(*batch))
