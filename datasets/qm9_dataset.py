@@ -389,7 +389,7 @@ class QM9Dataset(Dataset):
         total_edges = 0
         avg_degree = 0  # average degree in the dataset
         # go through all molecules in the npz file
-        for mol_idx, n_atoms in tqdm(enumerate(data_qm9['N'][:29])):
+        for mol_idx, n_atoms in tqdm(enumerate(data_qm9['N'])):
             # get the molecule using the smiles representation from the csv file
             mol = Chem.MolFromSmiles(molecules_df['smiles'][data_qm9['id'][mol_idx]])
             # add hydrogen bonds to molecule because they are not in the smiles representation
