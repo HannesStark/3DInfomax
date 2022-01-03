@@ -95,7 +95,7 @@ class QM9Dataset(Dataset):
 
     def __init__(self, return_types: list = None,
                  target_tasks: list = None,
-                 normalize: bool = True, device='cuda:0', dist_embedding: bool = False, num_radial: int = 6, transform=None, **kwargs):
+                 normalize: bool = True, device='cuda:0', num_radial: int = 6, transform=None, **kwargs):
         self.qm9_directory = 'dataset/QM9'
         self.processed_file = 'qm9_processed.pt'
         self.distances_file = 'qm9_distances.pt'
@@ -172,7 +172,6 @@ class QM9Dataset(Dataset):
 
         self.targets = data_dict['targets'].index_select(dim=1, index=self.task_indices)  # [130831, n_tasks]
         self.targets_mean = self.targets.mean(dim=0)
-        ic(self.targets_mean)
         self.targets_std = self.targets.std(dim=0)
         if self.normalize:
             self.targets = ((self.targets - self.targets_mean) / self.targets_std)
@@ -182,10 +181,7 @@ class QM9Dataset(Dataset):
         self.eV2meV = torch.tensor(
             [1.0 if list(self.unit_conversion.values())[task_index] == 1.0 else 1000 for task_index in
              self.task_indices]).to(self.device)  # [n_tasks]
-        ic(self.eV2meV)
-        ic(self.targets.std())
-        self.dist_embedder = dist_emb(num_radial=6).to(device)
-        self.dist_embedding = dist_embedding
+
 
     def __len__(self):
         return len(self.meta_dict['mol_id'])
@@ -277,13 +273,9 @@ class QM9Dataset(Dataset):
                                             src=bond_features)
             src, dst = self.get_pairwise(n_atoms)
             g.edata['feat'] = e_features[src * n_atoms + dst]
-            if self.dist_embedding:
-                g.edata['d_rbf'] = self.dist_embedder(g.edata['feat']).to(self.device)
             return g
         elif return_type == 'complete_graph3d':
             g = self.get_complete_graph(idx, n_atoms, start)
-            if self.dist_embedding:
-                g.edata['d_rbf'] = self.dist_embedder(g.edata['feat']).to(self.device)
             return g
         if return_type == 'mol_complete_graph':
             g = self.get_mol_complete_graph(idx, e_start, e_end, n_atoms,start)

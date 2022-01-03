@@ -300,8 +300,6 @@ class QM9Geom(Dataset):
         self.eV2meV = torch.tensor(
             [1.0 if list(self.unit_conversion.values())[task_index] == 1.0 else 1000 for task_index in
              self.task_indices]).to(self.device)  # [n_tasks]
-        self.dist_embedder = dist_emb(num_radial=6).to(device)
-        self.dist_embedding = dist_embedding
 
     def __len__(self):
         return len(self.meta_dict['mol_id'])
@@ -392,8 +390,6 @@ class QM9Geom(Dataset):
                 pairwise_indices = self.dist_dict['pairwise_indices'][:,
                                    pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)]
                 g.edata['w'] = e_features[pairwise_indices[0] * n_atoms + pairwise_indices[1]]
-            if self.dist_embedding:
-                g.edata['d_rbf'] = self.dist_embedder(g.edata['w']).to(self.device)
             if self.pos_dir:
                 g.ndata['pos_dir'] = self.pos_enc[start: start + n_atoms].to(self.device)
             return g
@@ -412,8 +408,6 @@ class QM9Geom(Dataset):
                 pairwise_indices = self.dist_dict['pairwise_indices'][:,
                                    pairwise_start: pairwise_start + n_atoms * (n_atoms - 1)]
                 g.edata['w'] = e_features[pairwise_indices[0] * n_atoms + pairwise_indices[1]]
-            if self.dist_embedding:
-                g.edata['d_rbf'] = self.dist_embedder(g.edata['w']).to(self.device)
             if self.pos_dir:
                 g.ndata['pos_dir'] = self.pos_enc[start: start + n_atoms].to(self.device)
             return g
