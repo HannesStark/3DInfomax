@@ -450,8 +450,6 @@ class QM9Dataset(Dataset):
             edge_slices.append(total_edges)
             atom_slices.append(total_atoms)
         # convert targets to eV units
-        u = torch.stack(targets)[:, list(self.unit_conversion.keys()).index('u0')]
-        ic(u.mean())
         targets = torch.stack(targets) * torch.tensor(list(self.unit_conversion.values()))[None, :]
         data_dict = {'mol_id': data_qm9['id'],
                      'n_atoms': torch.tensor(data_qm9['N'], dtype=torch.long),
