@@ -1,6 +1,6 @@
 # 3D Infomax improves GNNs for Molecular Property Prediction
 
-### [Video](https://youtu.be/K0QX1ZrxquM) | [Paper](https://arxiv.org/abs/2110.04126)
+### [Video](https://youtu.be/wF4RG171OR0) | [Paper](https://arxiv.org/abs/2110.04126)
 
 We pre-train GNNs to understand the geometry of molecules given only their 2D molecular graph which they can
 use for better molecular property predictions. Below is a 3 step guide for how to use the code and how to reproduce
