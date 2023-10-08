@@ -3,14 +3,17 @@ channels:
   - defaults
 dependencies:
   - python=3.7
-  - pytorch
-  - torchvision
-  - torchaudio
-  - cudatoolkit=10.2
-  - rdkit
-  - pytorch-geometric
-  - dgl-cuda10.2
-  - pot
-  - numpy
-  - certifi
-  - ogb
+  - pytorch::pytorch
+  - pytorch::torchvision
+  - pytorch::torchaudio
+  - nvidia::cudatoolkit=10.2
+  - conda-forge::rdkit
+  - pyg::pyg
+  - pyg::pytorch-scatter
+  - dglteam::dgl-cuda10.2
+  - conda-forge::pot
+  - conda-forge::numpy
+  - conda-forge::certifi
+  - conda-forge::ogb
+  - conda-forge::icecream
+  - conda-forge::tensorboard
